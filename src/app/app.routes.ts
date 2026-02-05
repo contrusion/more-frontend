@@ -22,6 +22,30 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'interactions',
+    loadComponent: () => import('./functional-features/interactions/interactions-layout.component').then(m => m.InteractionsLayoutComponent),
+    canActivate: [AuthGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'analytics',
+        pathMatch: 'full'
+      },
+      {
+        path: 'messages',
+        loadComponent: () => import('./functional-features/interactions/interactions.component').then(m => m.InteractionsComponent)
+      },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./functional-features/interactions/analytics/interactions-analytics.component').then(m => m.InteractionsAnalyticsComponent)
+      },
+      {
+        path: 'reconnection',
+        loadComponent: () => import('./functional-features/interactions/reconnection/reconnection.component').then(m => m.ReconnectionComponent)
+      }
+    ]
+  },
+  {
     path: 'register',
     loadComponent: () => import('./none-functional-features/authentication-and-authorization/components/register/register.component').then(m => m.RegisterComponent)
   },

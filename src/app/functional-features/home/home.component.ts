@@ -33,7 +33,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   navigationTiles: NavigationTile[] = [
     {
       title: 'Interactions',
-      description: 'Track and manage your recruiter-applicant interactions',
+      description: 'Track all recruitment communications across platforms - from first contact to hire',
       icon: 'clipboard',
       route: '/interactions',
       color: '#0ea5e9',
@@ -97,7 +97,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.userRoles = this.authService.getUserRoles();
   }
-
+  
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

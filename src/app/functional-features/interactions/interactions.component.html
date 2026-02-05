@@ -1,0 +1,346 @@
+<div class="interactions-container" [class.no-insights]="!showInsightsPanel">
+  <!-- Left Panel - Thread List -->
+  <div class="threads-panel">
+    <div class="panel-header">
+      <h2>Interactions</h2>
+      <button class="btn-new" (click)="openNewThreadModal()" title="Start new conversation">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        (input)="onSearch()"
+        placeholder="Search conversations..."
+      />
+    </div>
+
+    <div class="threads-list">
+      <div 
+        *ngFor="let thread of filteredThreads" 
+        class="thread-item"
+        [class.active]="selectedThread?.id === thread.id"
+        (click)="selectThread(thread)"
+      >
+        <div class="thread-avatar">
+          {{ getInitials(thread.participantName) }}
+        </div>
+        <div class="thread-info">
+          <div class="thread-header">
+            <span class="thread-name">{{ thread.participantName }}</span>
+            <span class="thread-time">{{ formatTime(thread.lastEventDate) }}</span>
+          </div>
+          <div class="thread-subheader">
+            <span class="thread-company" *ngIf="thread.companyName">{{ thread.companyName }}</span>
+            <span class="thread-job" *ngIf="thread.jobTitle">• {{ thread.jobTitle }}</span>
+          </div>
+          <div class="thread-preview">{{ thread.lastEventPreview }}</div>
+          <div class="thread-meta">
+            <span class="status-badge" [ngClass]="getStatusBadgeClass(thread.status)">
+              {{ thread.status.replace('_', ' ') }}
+            </span>
+            <span class="unread-badge" *ngIf="thread.unreadCount > 0">{{ thread.unreadCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="filteredThreads.length === 0" class="empty-state">
+        <p>No interactions found</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Panel - Conversation Timeline -->
+  <div class="conversation-panel" *ngIf="selectedThread">
+    <div class="conversation-header">
+      <div class="participant-info">
+        <div class="participant-avatar">
+          {{ getInitials(selectedThread.participantName) }}
+        </div>
+        <div>
+          <h3>{{ selectedThread.participantName }}</h3>
+          <p class="participant-details">
+            <span *ngIf="selectedThread.companyName">{{ selectedThread.companyName }}</span>
+            <span *ngIf="selectedThread.jobTitle"> - {{ selectedThread.jobTitle }}</span>
+          </p>
+        </div>
+      </div>
+      <div class="conversation-actions">
+        <button class="btn-secondary" (click)="toggleInsightsPanel()" title="Toggle insights panel">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3v18h18"></path>
+            <path d="m19 9-5 5-4-4-3 3"></path>
+          </svg>
+          {{ showInsightsPanel ? 'Hide' : 'Show' }} Insights
+        </button>
+        <button class="btn-secondary" (click)="openNewEventModal()">
+          Log External Event
+        </button>
+      </div>
+    </div>
+
+    <div class="conversation-timeline">
+      <div 
+        *ngFor="let event of selectedThread.events" 
+        class="event-item"
+        [class.sent]="event.senderId === 'current-user'"
+        [class.received]="event.senderId !== 'current-user'"
+      >
+        <div class="event-content">
+          <div class="event-header">
+            <div class="event-sender">
+              <span class="sender-name">{{ event.senderName }}</span>
+              <span 
+                class="channel-badge" 
+                [style.background-color]="getChannelColor(event.channel)"
+                [title]="event.channel"
+              >
+                {{ event.channel }}
+              </span>
+            </div>
+            <span class="event-time">{{ formatTime(event.timestamp) }}</span>
+          </div>
+          <div class="event-message">{{ event.content }}</div>
+          <div class="event-type" *ngIf="event.eventType !== EventType.REPLY && event.eventType !== EventType.EXPLORATION">
+            <span class="type-badge">{{ event.eventType.replace('_', ' ') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="message-input">
+      <textarea 
+        [(ngModel)]="newMessageContent"
+        (keydown.enter)="$event.preventDefault(); ($any($event).ctrlKey) && sendMessage()"
+        placeholder="Type your message... (Ctrl+Enter to send)"
+        rows="3"
+      ></textarea>
+      <button 
+        class="btn-send" 
+        (click)="sendMessage()"
+        [disabled]="!newMessageContent.trim()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        Send
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty State when no thread selected -->
+  <div class="conversation-panel empty" *ngIf="!selectedThread">
+    <div class="empty-state-large">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <h3>Select a conversation</h3>
+      <p>Choose an interaction from the list to view the timeline</p>
+    </div>
+  </div>
+
+  <!-- Right Panel - Insights & Analytics -->
+  <div class="insights-panel" *ngIf="showInsightsPanel && selectedThread">
+    <div class="insights-header">
+      <h3>Conversation Insights</h3>
+    </div>
+
+    <!-- Participant Stats -->
+    <div class="insights-section">
+      <h4>About {{ selectedThread.participantName }}</h4>
+      <div class="stat-card">
+        <div class="stat-label">Response Rate</div>
+        <div class="stat-value" [class.success]="getRecruiterResponseRate() > 70">
+          {{ getRecruiterResponseRate() }}%
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Response Time</div>
+        <div class="stat-value info">
+          {{ getAverageResponseTime() }}
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Interaction Age</div>
+        <div class="stat-value">
+          {{ getInteractionAge() }} days
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last Activity</div>
+        <div class="stat-value" [class.warning]="getDaysSinceLastEvent() > 7">
+          {{ getDaysSinceLastEvent() }} days ago
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended Actions -->
+    <div class="insights-section" *ngIf="getRecommendedActions().length > 0">
+      <h4>Recommended Actions</h4>
+      <div class="action-item" *ngFor="let action of getRecommendedActions()">
+        {{ action }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights Panel - Empty State -->
+  <div class="insights-panel" *ngIf="showInsightsPanel && !selectedThread">
+    <div class="empty-insights">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 3v18h18"></path>
+        <path d="m19 9-5 5-4-4-3 3"></path>
+      </svg>
+      <p>Select a conversation to view insights</p>
+    </div>
+  </div>
+</div>
+
+<!-- New Event Modal -->
+<div class="modal-overlay" *ngIf="showNewEventModal" (click)="closeNewEventModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Log External Interaction</h3>
+      <button class="btn-close" (click)="closeNewEventModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Event Type</label>
+        <select [(ngModel)]="newEventType" class="form-control">
+          <option [value]="EventType.OUTREACH">Outreach</option>
+          <option [value]="EventType.EXPLORATION">Exploration</option>
+          <option [value]="EventType.REPLY">Reply</option>
+          <option [value]="EventType.FOLLOW_UP">Follow Up</option>
+          <option [value]="EventType.CV_REQUEST">CV Request</option>
+          <option [value]="EventType.CV_SUBMISSION">CV Submission</option>
+          <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Channel</label>
+        <select [(ngModel)]="newEventChannel" class="form-control">
+          <option [value]="ChannelType.LINKEDIN">LinkedIn</option>
+          <option [value]="ChannelType.EMAIL">Email</option>
+          <option [value]="ChannelType.WHATSAPP">WhatsApp</option>
+          <option [value]="ChannelType.PHONE">Phone</option>
+          <option [value]="ChannelType.IN_PERSON">In Person</option>
+          <option [value]="ChannelType.VIDEO_CALL">Video Call</option>
+          <option [value]="ChannelType.TEXT_MESSAGE">Text Message</option>
+          <option [value]="ChannelType.OTHER">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Content</label>
+        <textarea 
+          [(ngModel)]="newEventContent"
+          class="form-control"
+          rows="4"
+          placeholder="Describe what happened in this interaction..."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeNewEventModal()">Cancel</button>
+      <button 
+        class="btn-primary" 
+        (click)="logEvent()"
+        [disabled]="!newEventContent.trim()"
+      >
+        Log Event
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- New Thread Modal -->
+<div class="modal-overlay" *ngIf="showNewThreadModal" (click)="closeNewThreadModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Start New Conversation</h3>
+      <button class="btn-close" (click)="closeNewThreadModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Recruiter Name <span style="color: #ef4444;">*</span></label>
+        <input 
+          type="text" 
+          [(ngModel)]="newThreadRecruiterName" 
+          class="form-control" 
+          placeholder="e.g., Sarah Johnson"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Company</label>
+        <input 
+          type="text" 
+          [(ngModel)]="newThreadCompany" 
+          class="form-control" 
+          placeholder="e.g., TechCorp Ltd"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Job Title</label>
+        <input 
+          type="text" 
+          [(ngModel)]="newThreadJobTitle" 
+          class="form-control" 
+          placeholder="e.g., Senior Frontend Developer"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Event Type</label>
+        <select [(ngModel)]="newThreadEventType" class="form-control">
+          <option [value]="EventType.OUTREACH">Outreach (recruiter contacted you)</option>
+          <option [value]="EventType.REPLY">Reply (you responded)</option>
+          <option [value]="EventType.EXPLORATION">Exploration</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Channel</label>
+        <select [(ngModel)]="newThreadChannel" class="form-control">
+          <option [value]="ChannelType.LINKEDIN">LinkedIn</option>
+          <option [value]="ChannelType.EMAIL">Email</option>
+          <option [value]="ChannelType.PHONE">Phone</option>
+          <option [value]="ChannelType.WHATSAPP">WhatsApp</option>
+          <option [value]="ChannelType.TEXT_MESSAGE">Text Message</option>
+          <option [value]="ChannelType.IN_PERSON">In Person</option>
+          <option [value]="ChannelType.VIDEO_CALL">Video Call</option>
+          <option [value]="ChannelType.OTHER">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Initial Message/Content <span style="color: #ef4444;">*</span></label>
+        <textarea 
+          [(ngModel)]="newThreadContent" 
+          class="form-control" 
+          rows="4"
+          placeholder="What did they say or what did you send?"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeNewThreadModal()">Cancel</button>
+      <button class="btn-primary" (click)="createNewThread()">Create Conversation</button>
+    </div>
+  </div>
+</div>

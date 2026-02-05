@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../../none-functional-features/authentication-and-authorization/services/auth.service';
+import { DailyDigestService, DailyDigest } from '../../../functional-features/interactions/services/daily-digest.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 interface Breadcrumb {
@@ -26,11 +27,19 @@ export class TopbarComponent implements OnInit, OnDestroy {
   isProfileMenuOpen = false;
   isNotificationsOpen = false;
   notificationCount = 0;
+  
+  // Daily digest
+  dailyDigest: DailyDigest | null = null;
+  hasUrgentItems = false;
+  isDigestOpen = false;
+  showDigestToast = false;
+  digestViewed = false;
 
   constructor(
     private authService: AuthService,
     private router: Router,
-    private activatedRoute: ActivatedRoute
+    private activatedRoute: ActivatedRoute,
+    private dailyDigestService: DailyDigestService
   ) {}
 
   ngOnInit(): void {
@@ -58,6 +67,33 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
     // Initial breadcrumbs
     this.breadcrumbs = this.createBreadcrumbs(this.activatedRoute.root);
+    
+    // Check if digest was already viewed
+    this.digestViewed = localStorage.getItem('digestViewed') === 'true';
+    
+    // Load daily digest
+    this.dailyDigestService.getDailyDigest()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(digest => {
+        this.dailyDigest = digest;
+        // Check if there are any urgent items (priority, attention, alert)
+        this.hasUrgentItems = digest.insights.some(insight => 
+          insight.type === 'priority' || 
+          insight.type === 'attention' || 
+          insight.type === 'alert'
+        );
+        
+        // Show toast if has urgent items and not viewed yet
+        if (this.hasUrgentItems && !this.digestViewed) {
+          setTimeout(() => {
+            this.showDigestToast = true;
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+              this.showDigestToast = false;
+            }, 3000);
+          }, 500);
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -118,12 +154,28 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.isNotificationsOpen = !this.isNotificationsOpen;
     if (this.isNotificationsOpen) {
       this.isProfileMenuOpen = false;
+      this.isDigestOpen = false;
+    }
+  }
+  
+  toggleDigest(): void {
+    this.isDigestOpen = !this.isDigestOpen;
+    if (this.isDigestOpen) {
+      this.isProfileMenuOpen = false;
+      this.isNotificationsOpen = false;
+      
+      // Mark as viewed and stop animation
+      if (!this.digestViewed) {
+        this.digestViewed = true;
+        localStorage.setItem('digestViewed', 'true');
+      }
     }
   }
 
   closeMenus(): void {
     this.isProfileMenuOpen = false;
     this.isNotificationsOpen = false;
+    this.isDigestOpen = false;
   }
 
   navigateTo(url: string): void {
@@ -153,5 +205,14 @@ export class TopbarComponent implements OnInit, OnDestroy {
       return this.userName.substring(0, 2).toUpperCase();
     }
     return 'U';
+  }
+  
+  navigateToDigest(insight?: any): void {
+    if (insight?.actionUrl) {
+      this.router.navigate([insight.actionUrl]);
+    } else {
+      this.router.navigate(['/interactions/messages']);
+    }
+    this.closeMenus();
   }
 }

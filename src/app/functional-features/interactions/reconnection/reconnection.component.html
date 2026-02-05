@@ -1,0 +1,156 @@
+<div class="reconnection-container">
+  <!-- Header Section -->
+  <div class="reconnection-header">
+    <div class="header-content">
+      <div class="header-text">
+        <h1>Recruiter Reconnection Intelligence</h1>
+        <p>Find recruiters from your past conversations who match your current job search criteria</p>
+      </div>
+      <div class="header-stats">
+        <div class="stat-card">
+          <span class="stat-value">{{ filteredOpportunities.length }}</span>
+          <span class="stat-label">Matching Recruiters</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ opportunities.length }}</span>
+          <span class="stat-label">Total in History</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label for="timeframe">Time Period</label>
+      <select 
+        id="timeframe" 
+        [value]="selectedTimeframe" 
+        (change)="onTimeframeChange($event)">
+        <option value="3months">Last 3 months</option>
+        <option value="6months">Last 6 months</option>
+        <option value="12months">Last 12 months</option>
+        <option value="24months">Last 2 years</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="matchScore">Minimum Match Score: {{ minMatchScore }}%</label>
+      <input 
+        type="range" 
+        id="matchScore" 
+        min="50" 
+        max="100" 
+        step="5"
+        [value]="minMatchScore"
+        (input)="onMatchScoreChange($event)">
+    </div>
+  </div>
+
+  <!-- Opportunities List -->
+  <div class="opportunities-list">
+    <div 
+      *ngFor="let opportunity of filteredOpportunities" 
+      class="opportunity-card">
+      
+      <!-- Header with recruiter info and match score -->
+      <div class="card-header">
+        <div class="recruiter-info">
+          <div class="recruiter-avatar">
+            {{ opportunity.recruiterName.charAt(0) }}
+          </div>
+          <div class="recruiter-details">
+            <h3>{{ opportunity.recruiterName }}</h3>
+            <p class="company">{{ opportunity.recruiterCompany }}</p>
+            <p class="last-contact">Last contact: {{ getMonthsAgo(opportunity.lastContactDate) }}</p>
+          </div>
+        </div>
+        
+        <div class="match-score" [ngClass]="getMatchScoreClass(opportunity.matchScore)">
+          <div class="score-circle">
+            <span class="score-value">{{ opportunity.matchScore }}</span>
+            <span class="score-label">%</span>
+          </div>
+          <span class="match-label">Match</span>
+        </div>
+      </div>
+
+      <!-- Role Details -->
+      <div class="card-body">
+        <div class="detail-section">
+          <h4>Roles Discussed</h4>
+          <div class="role-tags">
+            <span *ngFor="let role of opportunity.roleTitles" class="tag role-tag">
+              {{ role }}
+            </span>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Tech Stack</h4>
+          <div class="tech-tags">
+            <span *ngFor="let tech of opportunity.techStack" class="tag tech-tag">
+              {{ tech }}
+            </span>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span>{{ opportunity.location }}</span>
+            <span *ngIf="opportunity.remote" class="remote-badge">Remote</span>
+          </div>
+
+          <div class="detail-item" *ngIf="opportunity.salaryRange">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span>{{ opportunity.salaryRange }}</span>
+          </div>
+        </div>
+
+        <div class="rejection-reason">
+          <strong>Why you declined:</strong> {{ opportunity.rejectionReason }}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card-actions">
+        <button 
+          class="btn btn-secondary"
+          (click)="viewConversation(opportunity.conversationId)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          View Conversation
+        </button>
+        
+        <button 
+          class="btn btn-primary"
+          (click)="generateTemplate(opportunity)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <line x1="9" y1="9" x2="15" y2="9"></line>
+            <line x1="9" y1="13" x2="15" y2="13"></line>
+          </svg>
+          Generate Message
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredOpportunities.length === 0" class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <h3>No matching recruiters found</h3>
+      <p>Try adjusting your filters or expanding your time period</p>
+    </div>
+  </div>
+</div>

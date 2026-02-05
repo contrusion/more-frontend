@@ -41,6 +41,70 @@
 
     <!-- Right Section: Notifications & Profile -->
     <div class="topbar-right">
+      <!-- Daily Digest -->
+      <div class="digest-dropdown">
+        <button 
+          class="icon-btn" 
+          (click)="toggleDigest()"
+          [class.active]="isDigestOpen"
+          [class.has-urgent]="hasUrgentItems && !digestViewed"
+          aria-label="Daily Digest">
+          <!-- Sparkles Icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path d="M12 2L13.5 6.5L18 8L13.5 9.5L12 14L10.5 9.5L6 8L10.5 6.5L12 2Z"/>
+            <path d="M19 11L19.75 13.25L22 14L19.75 14.75L19 17L18.25 14.75L16 14L18.25 13.25L19 11Z"/>
+            <path d="M19 18L19.75 20.25L22 21L19.75 21.75L19 24L18.25 21.75L16 21L18.25 20.25L19 18Z"/>
+            <path d="M5 18L5.75 20.25L8 21L5.75 21.75L5 24L4.25 21.75L2 21L4.25 20.25L5 18Z"/>
+          </svg>
+        </button>
+
+        <!-- Toast Notification -->
+        <div class="digest-toast" *ngIf="showDigestToast">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path d="M12 2L13.5 6.5L18 8L13.5 9.5L12 14L10.5 9.5L6 8L10.5 6.5L12 2Z"/>
+            <path d="M19 11L19.75 13.25L22 14L19.75 14.75L19 17L18.25 14.75L16 14L18.25 13.25L19 11Z"/>
+          </svg>
+          <span>Daily Digest</span>
+        </div>
+
+        <div class="dropdown-menu digest-menu" *ngIf="isDigestOpen && dailyDigest">
+          <div class="dropdown-header">
+            <h3>{{ dailyDigest.greeting }}</h3>
+            <p class="digest-date">{{ dailyDigest.date | date:'medium' }}</p>
+          </div>
+          
+          <div class="digest-stats">
+            <div class="stat-item">
+              <span class="stat-value">{{ dailyDigest.stats.activeConversations }}</span>
+              <span class="stat-label">Active</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ dailyDigest.stats.interviewsScheduled }}</span>
+              <span class="stat-label">Interviews</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ dailyDigest.stats.needsAttention }}</span>
+              <span class="stat-label">Attention</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ dailyDigest.stats.newThisWeek }}</span>
+              <span class="stat-label">New</span>
+            </div>
+          </div>
+          
+          <div class="dropdown-body">
+            <div 
+              *ngFor="let insight of dailyDigest.insights" 
+              class="digest-insight"
+              [ngClass]="insight.type"
+              (click)="navigateToDigest(insight)">
+              <span class="insight-icon">{{ insight.icon }}</span>
+              <span class="insight-message">{{ insight.message }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Notifications -->
       <div class="notifications-dropdown">
         <button 
@@ -140,6 +204,6 @@
 <!-- Click overlay to close dropdowns -->
 <div 
   class="dropdown-overlay" 
-  *ngIf="isProfileMenuOpen || isNotificationsOpen"
+  *ngIf="isProfileMenuOpen || isNotificationsOpen || isDigestOpen"
   (click)="closeMenus()">
 </div>
