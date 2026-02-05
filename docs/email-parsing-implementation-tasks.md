@@ -16,6 +16,11 @@
   - Indexes: user_id, token_expiry
   - Constraint: UNIQUE(user_id, provider, email_address)
 
+- [ ] Create `V{next}_create_user_email_settings_table.sql`
+  - Columns: id, user_id (UNIQUE), sync_on_login, historical_data_limit_days, auto_label_processed_emails, label_name, notify_on_new_interactions, created_at, updated_at
+  - Indexes: user_id
+  - Defaults: sync_on_login=true, historical_data_limit_days=365, auto_label_processed_emails=true, label_name='LinkedIn/Processed'
+
 - [ ] Create `V{next}_create_interaction_event_fingerprints_table.sql`
   - Columns: id, event_id, fingerprint, source, created_at
   - Indexes: event_id, fingerprint (UNIQUE)
@@ -109,6 +114,37 @@
 
 ---
 
+### Task 1.5: User Email Settings Entity ⚙️
+**Location:** `more-api/src/main/java/za/co/contrusion/apis/more/outreach/domain/`
+
+- [ ] Create `UserEmailSettings` entity
+  - Fields: id, userId, syncOnLogin, historicalDataLimitDays, autoLabelProcessedEmails, labelName, notifyOnNewInteractions, createdAt, updatedAt
+  - Use `@Column` annotations with defaults matching migration
+  - Lombok `@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`
+  - Add `@PrePersist` to set defaults if not provided
+
+- [ ] Create repository: `IUserEmailSettingsRepository extends JpaRepository`
+  ```java
+  Optional<UserEmailSettings> findByUserId(UUID userId);
+  ```
+
+- [ ] Create `UserEmailSettingsService`
+  ```java
+  public interface IUserEmailSettingsService {
+      UserEmailSettings getOrCreateDefaultSettings(UUID userId);
+      UserEmailSettings updateSettings(UUID userId, UserEmailSettingsDTO dto);
+  }
+  ```
+
+- [ ] Implement service with defaults
+  - Default: syncOnLogin=true, historicalDataLimitDays=365, autoLabelProcessedEmails=true, labelName="LinkedIn/Processed"
+  - Auto-create settings on first access if not exists
+
+**Dependencies:** Task 1.1  
+**Verification:** Fetch settings for new user, verify defaults applied
+
+---
+
 ## Phase 2: OAuth Integration (Week 2-3)
 
 ### Task 2.1: Gmail OAuth Configuration 🔑
@@ -124,6 +160,7 @@
       scopes:
         - https://www.googleapis.com/auth/gmail.readonly
         - https://www.googleapis.com/auth/gmail.metadata
+        - https://www.googleapis.com/auth/gmail.labels  # For auto-labeling processed emails
   ```
 
 - [ ] Create Google Cloud Project
@@ -264,6 +301,8 @@
 - [ ] Create `IGmailService` interface
   ```java
   List<EmailMessage> fetchEmails(UUID userId, EmailFetchCriteria criteria);
+  void applyLabel(UUID userId, String messageId, String labelName);
+  String getOrCreateLabel(UUID userId, String labelName);
   ```
 
 - [ ] Implement `GmailService`
@@ -273,14 +312,17 @@
   - Parse message details (subject, from, body, date)
   - Handle pagination (max 500 per request)
   - Add circuit breaker pattern (`@CircuitBreaker`)
+  - Implement `getOrCreateLabel()`: Check if label exists, create if not
+  - Implement `applyLabel()`: Use `users().messages().modify()` to add label to message
 
 - [ ] Add unit tests
   - Mock Gmail API responses
   - Test query construction
   - Test email parsing
+  - Test label creation and application
 
 **Dependencies:** Task 2.2  
-**Verification:** Fetch 10 LinkedIn emails from test Gmail account
+**Verification:** Fetch 10 LinkedIn emails from test Gmail account, apply "LinkedIn/Processed" label
 
 ---
 
@@ -398,16 +440,18 @@
   ```
 
 - [ ] Implement `EmailIntegrationFacade`
-  - Orchestrate entire workflow: fetch → parse → deduplicate → persist
+  - Orchestrate entire workflow: fetch → parse → deduplicate → persist → label
   - Use `@Async` for background processing
   - Track job progress in database (`sync_jobs` table - optional)
   - Handle errors gracefully (log, skip email, continue)
+  - After processing each email, apply label if `autoLabelProcessedEmails` is enabled
   - Return detailed result with counts
 
 - [ ] Add integration tests
   - Test full sync flow with 100 mock emails
   - Verify deduplication works
   - Verify interactions and events created
+  - Verify Gmail labels applied when enabled
 
 **Dependencies:** Task 3.1, 3.2, 3.3, 3.4  
 **Verification:** Trigger sync, verify interactions created in database
@@ -496,6 +540,42 @@
 
 **Dependencies:** Task 1.4, Task 3.3  
 **Verification:** Bulk insert 500 events, verify completion in <30 seconds
+
+---
+
+### Task 4.5: Login-Triggered Sync 🔄
+**Location:** `more-api/src/main/java/za/co/contrusion/apis/more/outreach/services/`
+
+- [ ] Create `LoginSyncService`
+  ```java
+  public interface ILoginSyncService {
+      void triggerSyncOnLogin(UUID userId);
+      boolean shouldSyncOnLogin(UUID userId);
+  }
+  ```
+
+- [ ] Implement `LoginSyncService`
+  - Check `user_email_settings.sync_on_login` flag
+  - Check if Gmail token exists and is valid
+  - Check when last sync occurred (avoid syncing if < 1 hour ago)
+  - Trigger incremental sync using `EmailIntegrationFacade.syncEmails()`
+  - Run asynchronously to avoid blocking login
+
+- [ ] Update `AuthController` or create login interceptor
+  - After successful JWT issuance, call `loginSyncService.triggerSyncOnLogin(userId)`
+  - Log sync trigger events
+  - Handle failures gracefully (don't block login if sync fails)
+
+- [ ] Add frontend notification
+  - Display toast: "Syncing LinkedIn emails in background..."
+  - Update notification when sync completes: "3 new interactions found"
+
+- [ ] Add configuration
+  - `email.sync.on-login.enabled=true` (environment variable)
+  - `email.sync.on-login.min-interval-hours=1` (prevent too-frequent syncs)
+
+**Dependencies:** Task 4.1, Auth service integration  
+**Verification:** Login to app, verify sync triggers automatically, check logs for sync completion
 
 ---
 

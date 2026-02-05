@@ -10,9 +10,10 @@
 Automatically capture LinkedIn recruiter interactions from email notifications (Gmail/Outlook) and convert them into structured `RecruiterInteraction` and `InteractionEvent` records.
 
 ### 1.2 Key Requirements
-- **OAuth Integration**: Secure Gmail API and Microsoft Graph API access
-- **Historical Backfill**: Parse existing emails to build interaction history
-- **Real-time Sync**: Periodic polling for new LinkedIn notifications
+- **OAuth Integration**: Secure Gmail API access (single account per user)
+- **Historical Backfill**: Parse existing emails to build interaction history (configurable date range)
+- **Login-Triggered Sync**: Automatic sync on user login to reduce system load when inactive
+- **Gmail Labeling**: Auto-label processed emails for user visibility
 - **Deduplication**: Prevent duplicate events from multiple sources (email, manual entry, future browser extension)
 - **Privacy-First Design**: Extract metadata only, discard full email bodies after parsing
 - **Intelligent Classification**: Classify event intent (CV request, interview, etc.) during parsing
@@ -121,6 +122,20 @@ CREATE TABLE user_email_tokens (
 
 CREATE INDEX idx_user_email_tokens_user_id ON user_email_tokens(user_id);
 CREATE INDEX idx_user_email_tokens_expiry ON user_email_tokens(token_expiry);
+
+CREATE TABLE user_email_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    sync_on_login BOOLEAN DEFAULT TRUE,
+    historical_data_limit_days INTEGER DEFAULT 365, -- null = all time
+    auto_label_processed_emails BOOLEAN DEFAULT TRUE,
+    label_name VARCHAR(100) DEFAULT 'LinkedIn/Processed',
+    notify_on_new_interactions BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_email_settings_user_id ON user_email_settings(user_id);
 ```
 
 ### 2.3 Required Scopes
@@ -128,6 +143,7 @@ CREATE INDEX idx_user_email_tokens_expiry ON user_email_tokens(token_expiry);
 **Gmail:**
 - `https://www.googleapis.com/auth/gmail.readonly` - Read emails
 - `https://www.googleapis.com/auth/gmail.metadata` - Email metadata (efficient filtering)
+- `https://www.googleapis.com/auth/gmail.labels` - Create and apply labels (for auto-labeling processed emails)
 
 **Future - Outlook:**
 - `Mail.Read` - Read user mail
@@ -626,18 +642,15 @@ viewOriginalEmail(gmailMessageId: string) {
 **Response:**
 ```json
 {
-  "autoSync": true,
-  "syncFrequency": "DAILY", // HOURLY, DAILY, WEEKLY
+  "syncOnLogin": true,
+  "historicalDataLimitDays": 365,  // Configurable: 30, 90, 180, 365, or null (all)
+  "autoLabelProcessedEmails": true,  // Gmail only
+  "labelName": "LinkedIn/Processed",
   "notifyOnNewInteractions": true,
-  "providers": {
-    "gmail": {
-      "enabled": true,
-      "email": "user@gmail.com"
-    },
-    "outlook": {
-      "enabled": false,
-      "email": null
-    }
+  "gmailConnection": {
+    "enabled": true,
+    "email": "user@gmail.com",
+    "connectedAt": "2026-01-15T09:00:00Z"
   }
 }
 ```
@@ -1009,13 +1022,42 @@ public class LLMEmailParser implements IEmailParser {
 
 ---
 
-## 13. Open Questions
+## 13. Implementation Decisions
 
-1. **Historical Data Limit:** How far back should initial sync go? (Propose: 1 year default, configurable)
-2. **Sync Frequency:** Should we support real-time webhooks or stick with polling? (Gmail Push API requires domain verification)
-3. **Email Labeling:** Should we auto-label processed emails in Gmail for user visibility?
-4. **Conflict Resolution:** If manual entry exists and email arrives later, which takes precedence?
-5. **Multi-Account Support:** Can users connect multiple Gmail accounts?
+### 13.1 Resolved Design Questions
+
+1. **Historical Data Limit: CONFIGURABLE** ✅
+   - User can select: 30, 90, 180, 365 days, or "All Time"
+   - Default: 365 days (1 year) for performance balance
+   - Configurable via `/api/email/settings`
+
+2. **Sync Frequency: LOGIN-TRIGGERED** ✅
+   - Automatic sync on user login
+   - Reduces system load when users are inactive
+   - No scheduled background jobs needed for MVP
+   - Future: Add manual "Sync Now" button for on-demand refresh
+
+3. **Gmail Labeling: ENABLED** ✅
+   - Auto-label processed emails: `LinkedIn/Processed`
+   - Helps users visually track what's been imported
+   - Prevents accidental re-import confusion
+   - User can customize label name in settings
+
+4. **Multi-Account Support: SINGLE ACCOUNT** ✅
+   - MVP supports one Gmail account per user
+   - Database schema allows future expansion (user_email_tokens table ready)
+   - Future Phase 2: Multi-account support with account switcher UI
+
+### 13.2 Open Questions (Future Phases)
+
+1. **Conflict Resolution:** If manual entry exists and email arrives later, which takes precedence?
+   - Current behavior: Skip duplicate (fingerprint match)
+   - Consider: Merge strategy to enrich existing data
+
+2. **Real-time Sync:** Should we add Gmail Push API for instant notifications?
+   - Requires domain verification (~$15 one-time)
+   - Adds webhook endpoint complexity
+   - Consider for Phase 3 after MVP validation
 
 ---
 
