@@ -14,10 +14,27 @@ Automatically capture LinkedIn recruiter interactions from email notifications (
 - **Historical Backfill**: Parse existing emails to build interaction history
 - **Real-time Sync**: Periodic polling for new LinkedIn notifications
 - **Deduplication**: Prevent duplicate events from multiple sources (email, manual entry, future browser extension)
-- **Privacy**: User controls OAuth consent, can revoke access anytime
+- **Privacy-First Design**: Extract metadata only, discard full email bodies after parsing
+- **Intelligent Classification**: Classify event intent (CV request, interview, etc.) during parsing
+- **User Controls**: OAuth consent required, can revoke access anytime
 - **Resilience**: Handle API rate limits, network failures, malformed emails
 
-### 1.3 Scope
+### 1.3 Gmail API Costs
+**Good News: Gmail API is FREE!** 🎉
+
+- **No charges** from Google for using Gmail API
+- **Quota limits** (not costs):
+  - 250 quota units/user/second (1 billion/day)
+  - Reading a message = 5 quota units
+  - Listing messages = 5 quota units per request
+  - **Example:** Fetching 1000 emails = ~50 quota units
+
+**Infrastructure costs:**
+- Spring Boot server hosting
+- PostgreSQL database storage
+- OAuth domain verification (~$15 one-time, optional)
+
+### 1.4 Scope
 **In Scope:**
 - Gmail OAuth integration (priority)
 - LinkedIn email notification parsing (InMail, connection requests, messages)
@@ -214,9 +231,33 @@ Reply on LinkedIn: [URL]
 - Event Type: `REPLY`
 - Channel: `LINKEDIN`
 
-### 3.4 Parser Implementation Strategy
+### 3.4 Privacy-First: Extract & Discard Pattern
 
-**Approach:** Rule-Based + Regex Patterns
+**Core Principle:** Parse full email → Extract metadata → Classify intent → Store essentials → Discard full body
+
+**What We STORE:**
+- ✅ Recruiter name, company, job title
+- ✅ Event type classification (CV_REQUEST, INTERVIEW_INVITE, etc.)
+- ✅ Smart message preview (context-aware, ~200 chars)
+- ✅ LinkedIn profile URL
+- ✅ Gmail Message ID (for "View Original" link)
+- ✅ Timestamp, channel metadata
+
+**What We DON'T store:**
+- ❌ Full email body (HTML/plain text)
+- ❌ Email headers
+- ❌ Attachments
+- ❌ Recipient lists
+
+**Benefits:**
+- 🔒 **Privacy:** Minimal PII storage, GDPR-friendly
+- 💾 **Storage:** ~200 bytes vs ~10KB+ per interaction
+- 🎯 **UX:** "View Original" opens Gmail for full context
+- 🛡️ **Security:** Less liability if database compromised
+
+### 3.5 Parser Implementation: Classify During Parse
+
+**Approach:** Extract + Classify + Discard (full email body only in memory during parsing)
 
 ```java
 public class LinkedInEmailParser {
@@ -229,20 +270,148 @@ public class LinkedInEmailParser {
         "linkedin\\.com/in/([a-zA-Z0-9-]+)"
     );
     
-    public ParsedLinkedInEmail parseEmail(EmailMessage email) {
-        // Determine email type from subject/sender
-        EmailType type = detectEmailType(email);
+    public ParsedLinkedInEmail parse(EmailMessage email) {
+        // Full email content available temporarily (in memory only)
+        String fullBody = email.getBody();
+        String subject = email.getSubject();
         
-        // Apply pattern matching based on type
-        return switch (type) {
-            case INMAIL -> parseInMail(email);
-            case CONNECTION_REQUEST -> parseConnectionRequest(email);
-            case MESSAGE_REPLY -> parseMessageReply(email);
-            default -> throw new UnsupportedEmailTypeException(type);
-        };
+        // 1. CLASSIFY intent using full content (while we have it)
+        EventType eventType = classifyEmailIntent(fullBody, subject);
+        
+        // 2. EXTRACT key information
+        String recruiterName = extractRecruiterName(fullBody);
+        String company = extractCompany(fullBody);
+        String linkedInUrl = extractLinkedInUrl(fullBody);
+        
+        // 3. GENERATE smart preview (context-aware based on classification)
+        String preview = generateSmartPreview(fullBody, eventType);
+        
+        // 4. RETURN structured data (full email discarded after this method)
+        return ParsedLinkedInEmail.builder()
+            .eventType(eventType)              // ← For analytics
+            .recruiterName(recruiterName)
+            .recruiterCompany(company)
+            .linkedInProfileUrl(linkedInUrl)
+            .messagePreview(preview)           // ← Context-aware snippet
+            .emailTimestamp(email.getTimestamp())
+            .gmailMessageId(email.getMessageId()) // ← For "View Original"
+            .build();
+    }
+    
+    /**
+     * Classify email intent using keyword patterns.
+     * Analytics can use EventType to determine conversation state.
+     */
+    private EventType classifyEmailIntent(String body, String subject) {
+        String combined = (subject + " " + body).toLowerCase();
+        
+        // CV/Resume request patterns
+        if (combined.matches(".*(send|submit|share).*(cv|resume|curriculum vitae).*") ||
+            combined.matches(".*(upload|attach).*(cv|resume).*")) {
+            return EventType.CV_REQUEST;
+        }
+        
+        // Interview invitation patterns
+        if (combined.matches(".*(schedule|arrange|set up).*(interview|call|chat).*") ||
+            combined.matches(".*(interview|meeting).*(available|time|calendar).*") ||
+            combined.contains("interview invitation")) {
+            return EventType.INTERVIEW_INVITE;
+        }
+        
+        // Follow-up patterns
+        if (combined.matches(".*(following up|follow up|checking in|circle back).*") ||
+            combined.matches(".*(haven't heard|still interested|any updates).*")) {
+            return EventType.FOLLOW_UP;
+        }
+        
+        // InMail/Initial outreach patterns
+        if (combined.matches(".*(came across your profile|noticed your|great fit for).*") ||
+            subject.contains("InMail")) {
+            return EventType.OUTREACH;
+        }
+        
+        // Job application patterns
+        if (combined.matches(".*(apply|application|submit).*(position|role|job).*")) {
+            return EventType.CV_SUBMISSION;
+        }
+        
+        // Default to REPLY if no specific pattern matched
+        return EventType.REPLY;
+    }
+    
+    /**
+     * Generate context-aware preview highlighting relevant content.
+     */
+    private String generateSmartPreview(String fullBody, EventType eventType) {
+        switch (eventType) {
+            case CV_REQUEST:
+                return extractRelevantSentence(fullBody, "cv", "resume", "share", "send");
+            
+            case INTERVIEW_INVITE:
+                return extractRelevantSentence(fullBody, "interview", "schedule", "available", "meeting");
+            
+            case FOLLOW_UP:
+                return extractRelevantSentence(fullBody, "following", "update", "checking", "heard");
+            
+            default:
+                // First 200 chars as fallback
+                return fullBody.substring(0, Math.min(200, fullBody.length()));
+        }
+    }
+    
+    /**
+     * Find the most relevant sentence containing key terms.
+     */
+    private String extractRelevantSentence(String body, String... keywords) {
+        String[] sentences = body.split("`[.!?]");
+        for (String sentence : sentences) {
+            for (String keyword : keywords) {
+                if (sentence.toLowerCase().contains(keyword)) {
+                    return sentence.trim();
+                }
+            }
+        }
+        return body.substring(0, Math.min(200, body.length()));
     }
 }
 ```
+
+**Example Flow:**
+
+1. **Email arrives** (temporary in memory):
+   ```
+   Subject: InMail from Sarah Johnson
+   Body: Hi! Impressed by your Angular skills. We're hiring. 
+         Could you please share your CV?
+   ```
+
+2. **Classification** (while full content available):
+   - Detected: `EventType.CV_REQUEST`
+
+3. **Smart Preview** (context-aware extraction):
+   - Stored: `"Could you please share your CV?"`
+
+4. **What gets saved to database:**
+   ```java
+   ParsedLinkedInEmail {
+       eventType: CV_REQUEST,           // ← Analytics can use this!
+       recruiterName: "Sarah Johnson",
+       recruiterCompany: "TechCorp",
+       messagePreview: "Could you please share your CV?",
+       gmailMessageId: "18d4c2f8a1b9e3c5",  // ← For "View Original"
+       emailTimestamp: "2026-02-05T10:30:00Z"
+   }
+   // Full email body discarded ✓
+   ```
+
+5. **Analytics Usage:**
+   ```typescript
+   // Frontend can now detect CV requests vs submissions
+   const cvRequestedButNotSent = threads.filter(t => 
+       t.events.some(e => e.eventType === 'CV_REQUEST') &&
+       !t.events.some(e => e.eventType === 'CV_SUBMISSION')
+   );
+   ```
 
 ---
 
@@ -430,6 +599,26 @@ CREATE INDEX idx_fingerprints_fingerprint ON interaction_event_fingerprints(fing
 }
 ```
 
+#### **GET** `/api/email/original/{gmailMessageId}`
+**Purpose:** Generate Gmail deep link to view original email  
+**Auth:** Requires authenticated user  
+**Response:**
+```json
+{
+  "gmailUrl": "https://mail.google.com/mail/u/0/#inbox/18d4c2f8a1b9e3c5",
+  "message": "Opens in user's Gmail account"
+}
+```
+
+**Frontend Usage:**
+```typescript
+// "View Original Email" button
+viewOriginalEmail(gmailMessageId: string) {
+  const url = `https://mail.google.com/mail/u/0/#inbox/${gmailMessageId}`;
+  window.open(url, '_blank');
+}
+```
+
 ### 5.3 Configuration Endpoints
 
 #### **GET** `/api/email/settings`
@@ -557,17 +746,41 @@ public class EmailIntegrationFacade {
 @Data
 @Builder
 public class ParsedLinkedInEmail {
-    private EmailType emailType;
+    // Event classification (determined during parsing)
+    private EventType eventType;  // CV_REQUEST, INTERVIEW_INVITE, OUTREACH, etc.
+    
+    // Recruiter metadata
     private String recruiterName;
     private String recruiterJobTitle;
     private String recruiterCompany;
     private String recruiterLinkedInUrl;
     private String recruiterEmail;
-    private String messagePreview;
+    
+    // Smart preview (context-aware, extracted sentence)
+    private String messagePreview;  // ~200 chars max
+    
+    // Traceability
     private LocalDateTime emailTimestamp;
-    private String gmailMessageId;
+    private String gmailMessageId;  // For "View Original" link
+    
+    // Enrichment flags
     private boolean isPersonalized;
     private boolean isUrgent;
+    
+    // NOTE: Full email body is NOT stored (discarded after parsing)
+}
+```
+
+**EventType Enum** (used by Analytics):
+```java
+public enum EventType {
+    OUTREACH,           // Initial InMail/connection request
+    CV_REQUEST,         // Recruiter asked for CV
+    CV_SUBMISSION,      // Applicant sent CV
+    INTERVIEW_INVITE,   // Interview scheduled
+    FOLLOW_UP,          // Checking in message
+    REPLY,              // General response
+    EXPLORATION         // Exploratory conversation
 }
 ```
 
@@ -635,15 +848,41 @@ public enum EmailType {
 - **Audit Logging:** Log all OAuth consent/revocation events
 
 ### 8.2 Rate Limiting
-- **Gmail API:** 250 quota units/user/second, 1 billion/day
-- **Application:** Limit sync requests to 1 per user per hour
-- **Backoff Strategy:** Exponential backoff on 429 responses
+- **Gmail API Quotas:**
+  - 250 quota units/user/second
+  - 1 billion quota units per day
+  - Fetching 1 message = 5 units
+  - **Cost:** FREE (no charges from Google)
+- **Application Limits:**
+  - Max 1 sync request per user per hour
+  - Max 500 emails per sync batch
+- **Backoff Strategy:** Exponential backoff on 429 responses (2s, 4s, 8s)
 
-### 8.3 Data Privacy
-- **Minimal Data:** Only parse LinkedIn emails, ignore all other emails
-- **User Consent:** Explicit OAuth consent required
-- **Data Retention:** Raw email content NOT stored, only parsed metadata
-- **GDPR Compliance:** Right to delete (cascade delete on user deletion)
+### 8.3 Data Privacy (Privacy-First Architecture)
+
+**Extract & Discard Pattern Benefits:**
+- ✅ **No Full Email Storage:** Email bodies discarded after parsing (only in memory during extraction)
+- ✅ **Minimal PII:** Only store recruiter name, company, job title, preview snippet
+- ✅ **User Verifiable:** "View Original" link allows users to check Gmail directly
+- ✅ **GDPR Friendly:** Less data = easier right to be forgotten
+- ✅ **Security:** Database breach exposes minimal sensitive information
+
+**Compliance Measures:**
+- **Selective Parsing:** Only process LinkedIn emails, ignore all other mail
+- **User Consent:** Explicit OAuth consent with clear scope explanation
+- **Data Retention:** Metadata only (recruiter info + smart preview)
+- **Audit Trail:** Log all sync operations with timestamps
+- **Right to Delete:** Cascade deletion on user account removal
+- **Data Portability:** Export user's interaction data as JSON
+
+**Storage Comparison:**
+```
+Full Email Storage:    ~10KB per email × 1000 emails = 10MB
+Extract & Discard:     ~200B per email × 1000 emails = 200KB
+
+Storage savings: 98% reduction ✓
+Privacy improvement: Massive ✓
+```
 
 ### 8.4 CSRF Protection
 - **State Parameter:** Random token stored in session, validated on callback
