@@ -1,0 +1,150 @@
+<div class="email-sync-container">
+  <div class="email-sync-card">
+    <!-- Header -->
+    <div class="card-header">
+      <div class="header-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+        <div>
+          <h2>Email Sync</h2>
+          <p>Connect your Gmail to automatically import LinkedIn recruiter interactions</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div *ngIf="error" class="alert alert-error">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ error }}</span>
+    </div>
+
+    <div *ngIf="success" class="alert alert-success">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+        <path d="m9 12 2 2 4-4"></path>
+      </svg>
+      <span>{{ success }}</span>
+    </div>
+
+    <!-- Connected Status -->
+    <div *ngIf="gmailStatus?.connected" class="status-card status-connected">
+      <div class="status-header">
+        <div class="status-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div>
+          <h3>Gmail Connected</h3>
+          <p class="status-email">{{ gmailStatus!.email || 'Connected' }}</p>
+        </div>
+      </div>
+
+      <div class="status-details">
+        <div class="detail-item">
+          <span class="detail-label">Provider</span>
+          <span class="detail-value">{{ gmailStatus!.provider || 'Gmail' }}</span>
+        </div>
+        <div class="detail-item" *ngIf="gmailStatus!.tokenExpiry">
+          <span class="detail-label">Token Expires</span>
+          <span class="detail-value">{{ gmailStatus!.tokenExpiry | date: 'short' }}</span>
+        </div>
+      </div>
+
+      <button 
+        class="btn btn-danger" 
+        (click)="disconnectGmail()"
+        [disabled]="loading"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+        <span *ngIf="!loading">Disconnect Gmail</span>
+        <span *ngIf="loading">Disconnecting...</span>
+      </button>
+    </div>
+
+    <!-- Not Connected -->
+    <div *ngIf="!gmailStatus?.connected && !loading" class="status-card status-disconnected">
+      <div class="status-icon-large">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+        </svg>
+      </div>
+      <h3>Gmail Not Connected</h3>
+      <p>Connect your Gmail account to automatically import LinkedIn recruiter messages and interactions.</p>
+      
+      <div class="features-list">
+        <div class="feature-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Automatically import recruiter emails</span>
+        </div>
+        <div class="feature-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Parse job opportunities and interview invites</span>
+        </div>
+        <div class="feature-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Track interaction history</span>
+        </div>
+        <div class="feature-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Secure OAuth 2.0 authentication</span>
+        </div>
+      </div>
+
+      <button 
+        class="btn btn-primary" 
+        (click)="connectGmail()"
+        [disabled]="loading"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        <span *ngIf="!loading">Connect Gmail</span>
+        <span *ngIf="loading">Connecting...</span>
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading && !gmailStatus" class="loading-state">
+      <div class="spinner"></div>
+      <p>Checking Gmail connection...</p>
+    </div>
+  </div>
+
+  <!-- Privacy Notice -->
+  <div class="privacy-notice">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+    </svg>
+    <p>
+      Your Gmail credentials are securely encrypted using AES-256-GCM encryption. 
+      We only access emails from LinkedIn recruiters and never share your data with third parties.
+    </p>
+  </div>
+</div>

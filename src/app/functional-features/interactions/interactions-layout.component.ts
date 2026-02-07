@@ -41,6 +41,17 @@ import { RouterModule, Router, ActivatedRoute } from '@angular/router';
           </svg>
           <span>Reconnect</span>
         </button>
+        <button 
+          class="nav-item"
+          [class.active]="isActive('email-sync')"
+          (click)="navigate('email-sync')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+          </svg>
+          <span>Email Sync</span>
+        </button>
       </nav>
       <div class="interactions-content">
         <router-outlet></router-outlet>

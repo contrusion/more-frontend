@@ -42,6 +42,10 @@ export const routes: Routes = [
       {
         path: 'reconnection',
         loadComponent: () => import('./functional-features/interactions/reconnection/reconnection.component').then(m => m.ReconnectionComponent)
+      },
+      {
+        path: 'email-sync',
+        loadComponent: () => import('./functional-features/interactions/email-sync/email-sync.component').then(m => m.EmailSyncComponent)
       }
     ]
   },
