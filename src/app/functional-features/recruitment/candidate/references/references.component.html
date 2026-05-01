@@ -1,0 +1,89 @@
+<div class="section-page">
+  <header class="section-header">
+    <div class="section-header__content">
+      <div class="section-header__text">
+        <h1>References</h1>
+        <p>Manage professional references for your applications</p>
+      </div>
+      <button class="btn-primary" (click)="openCreate()">+ Add Reference</button>
+    </div>
+  </header>
+
+  <div class="section-body">
+    @if (errorMessage) { <div class="alert-error">{{ errorMessage }}</div> }
+    @if (isLoading) { <div class="loading-state"><div class="spinner"></div><p>Loading…</p></div> }
+
+    @if (showForm) {
+      <div class="form-card">
+        <h2>{{ editingItem ? 'Edit Reference' : 'Add Reference' }}</h2>
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label>Full Name *</label>
+            <input [(ngModel)]="form.fullName" placeholder="e.g. Jane Smith" />
+          </div>
+          <div class="form-field">
+            <label>Job Title *</label>
+            <input [(ngModel)]="form.jobTitle" placeholder="e.g. Engineering Manager" />
+          </div>
+          <div class="form-field">
+            <label>Company *</label>
+            <input [(ngModel)]="form.company" placeholder="e.g. Acme Corp" />
+          </div>
+          <div class="form-field">
+            <label>Email *</label>
+            <input type="email" [(ngModel)]="form.email" placeholder="jane@example.com" />
+          </div>
+          <div class="form-field">
+            <label>Phone</label>
+            <input [(ngModel)]="form.phone" placeholder="+27 82 000 0000" />
+          </div>
+          <div class="form-field">
+            <label>Relationship *</label>
+            <select [(ngModel)]="form.relationship">
+              @for (r of relationships; track r.value) {
+                <option [value]="r.value">{{ r.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field form-field--checkbox">
+            <label><input type="checkbox" [(ngModel)]="form.includeInCv" /> Include in CV</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="cancel()">Cancel</button>
+          <button class="btn-primary" (click)="save()">{{ editingItem ? 'Save Changes' : 'Add Reference' }}</button>
+        </div>
+      </div>
+    }
+
+    @if (!isLoading && items.length === 0 && !showForm) {
+      <div class="empty-state">
+        <p>No references added yet.</p>
+        <button class="btn-primary" (click)="openCreate()">Add your first reference</button>
+      </div>
+    }
+
+    <div class="item-list">
+      @for (item of items; track item.id) {
+        <div class="item-card" [class.item-card--hidden]="!item.includeInCv">
+          <div class="item-card__main">
+            <div class="item-card__info">
+              <h3>{{ item.fullName }}</h3>
+              <p class="item-card__sub">{{ item.jobTitle }} at {{ item.company }}</p>
+              <div class="item-card__meta">
+                <span class="tag">{{ getRelationshipLabel(item.relationship) }}</span>
+                <span class="item-card__location">{{ item.email }}</span>
+                @if (item.phone) { <span class="item-card__location">{{ item.phone }}</span> }
+              </div>
+            </div>
+            <div class="item-card__actions">
+              @if (!item.includeInCv) { <span class="tag tag--muted">Hidden from CV</span> }
+              <button class="btn-icon" title="Edit" (click)="openEdit(item)">✏️</button>
+              <button class="btn-icon btn-icon--danger" title="Delete" (click)="delete(item)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

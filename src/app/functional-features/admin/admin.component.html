@@ -1,0 +1,27 @@
+<div class="admin-container">
+  <header class="admin-header">
+    <h1>🔐 Admin Dashboard</h1>
+    <p class="subtitle">Administrative tools and utilities</p>
+  </header>
+
+  <div class="admin-sections">
+    <a 
+      *ngFor="let section of adminSections" 
+      [routerLink]="section.route"
+      class="admin-card"
+      routerLinkActive="active"
+    >
+      <div class="card-icon">{{ section.icon }}</div>
+      <div class="card-content">
+        <h3>{{ section.title }}</h3>
+        <p>{{ section.description }}</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+
+  <!-- Router outlet for nested admin routes -->
+  <div class="admin-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

@@ -1,0 +1,95 @@
+<div class="section-page">
+  <header class="section-header">
+    <div class="section-header__content">
+      <div class="section-header__text">
+        <h1>Education</h1>
+        <p>Add your academic background and qualifications</p>
+      </div>
+      <button class="btn-primary" (click)="openCreate()">+ Add Education</button>
+    </div>
+  </header>
+
+  <div class="section-body">
+    @if (errorMessage) { <div class="alert-error">{{ errorMessage }}</div> }
+    @if (isLoading) { <div class="loading-state"><div class="spinner"></div><p>Loading…</p></div> }
+
+    @if (showForm) {
+      <div class="form-card">
+        <h2>{{ editingItem ? 'Edit Education' : 'Add Education' }}</h2>
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label>Institution *</label>
+            <input [(ngModel)]="form.institution" placeholder="e.g. University of Cape Town" />
+          </div>
+          <div class="form-field">
+            <label>Degree / Qualification</label>
+            <input [(ngModel)]="form.degree" placeholder="e.g. BSc Computer Science" />
+          </div>
+          <div class="form-field">
+            <label>Field of Study</label>
+            <input [(ngModel)]="form.fieldOfStudy" placeholder="e.g. Software Engineering" />
+          </div>
+          <div class="form-field">
+            <label>Start Date</label>
+            <input type="date" [(ngModel)]="form.startDate" />
+          </div>
+          <div class="form-field">
+            <label>End Date</label>
+            <input type="date" [(ngModel)]="form.endDate" [disabled]="!!form.isCurrent" />
+          </div>
+          <div class="form-field form-field--checkbox">
+            <label><input type="checkbox" [(ngModel)]="form.isCurrent" /> Currently studying</label>
+          </div>
+          <div class="form-field">
+            <label>Grade / Result</label>
+            <input [(ngModel)]="form.grade" placeholder="e.g. Cum Laude, 75%" />
+          </div>
+          <div class="form-field form-field--checkbox">
+            <label><input type="checkbox" [(ngModel)]="form.includeInCv" /> Include in CV</label>
+          </div>
+          <div class="form-field form-field--full">
+            <label>Description</label>
+            <textarea [(ngModel)]="form.description" rows="3" placeholder="Notable achievements, subjects, activities…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="cancel()">Cancel</button>
+          <button class="btn-primary" (click)="save()">{{ editingItem ? 'Save Changes' : 'Add Education' }}</button>
+        </div>
+      </div>
+    }
+
+    @if (!isLoading && items.length === 0 && !showForm) {
+      <div class="empty-state">
+        <p>No education added yet.</p>
+        <button class="btn-primary" (click)="openCreate()">Add your first qualification</button>
+      </div>
+    }
+
+    <div class="item-list">
+      @for (item of items; track item.id) {
+        <div class="item-card" [class.item-card--hidden]="!item.includeInCv">
+          <div class="item-card__main">
+            <div class="item-card__info">
+              <h3>{{ item.degree ?? item.institution }}</h3>
+              <p class="item-card__sub">{{ item.institution }}</p>
+              <div class="item-card__meta">
+                @if (item.fieldOfStudy) { <span class="tag">{{ item.fieldOfStudy }}</span> }
+                <span class="item-card__dates">
+                  {{ formatDate(item.startDate) }} – {{ item.isCurrent ? 'Present' : formatDate(item.endDate) }}
+                </span>
+                @if (item.grade) { <span class="item-card__location">{{ item.grade }}</span> }
+              </div>
+              @if (item.description) { <p class="item-card__desc">{{ item.description }}</p> }
+            </div>
+            <div class="item-card__actions">
+              @if (!item.includeInCv) { <span class="tag tag--muted">Hidden from CV</span> }
+              <button class="btn-icon" title="Edit" (click)="openEdit(item)">✏️</button>
+              <button class="btn-icon btn-icon--danger" title="Delete" (click)="delete(item)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

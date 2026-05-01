@@ -1,23 +1,168 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, tap, catchError } from 'rxjs/operators';
 import { InteractionThread, InteractionEvent, CreateEventRequest, ChannelType, EventType, InteractionStatus } from '../models/interaction.model';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InteractionService {
-  private apiUrl = 'http://localhost:8081/api/interactions';
+  private apiUrl = `${environment.apiUrl}/api/interactions`;
   private threadsSubject = new BehaviorSubject<InteractionThread[]>([]);
   public threads$ = this.threadsSubject.asObservable();
+  private isLoaded = false;
+  private isLoading = false;
 
-  constructor(private http: HttpClient) {
-    this.loadMockData(); // TODO: Replace with real API call
+  constructor(private http: HttpClient) {}
+
+  // Clear cache and force reload on next getThreads() call
+  clearCache(): void {
+    this.isLoaded = false;
+    this.isLoading = false;
+    this.threadsSubject.next([]);
   }
 
-  // Get all interaction threads for the current user
+  // Get all interaction threads for the current user (cached)
   getThreads(): Observable<InteractionThread[]> {
+    // Return cached data if already loaded
+    if (this.isLoaded) {
+      return this.threads$;
+    }
+
+    // If currently loading, return the observable to share the same request
+    if (this.isLoading) {
+      return this.threads$;
+    }
+
+    // Load data for the first time
+    return this.refreshThreads();
+  }
+
+  // Force refresh threads from backend
+  refreshThreads(): Observable<InteractionThread[]> {
+    this.isLoading = true;
+    
+    // Add cache-busting parameter to force fresh data
+    const cacheBuster = `?_=${new Date().getTime()}`;
+    
+    return this.http.get<any[]>(`${this.apiUrl}${cacheBuster}`).pipe(
+      map(interactions => interactions.map(dto => this.mapToThread(dto))),
+      tap(threads => {
+        this.threadsSubject.next(threads);
+        this.isLoaded = true;
+        this.isLoading = false;
+      }),
+      catchError(error => {
+        console.error('Error fetching interaction threads:', error);
+        this.isLoading = false;
+        return of([]);
+      })
+    );
+  }
+  
+  /**
+   * Map backend RecruiterInteractionDto to frontend InteractionThread model
+   */
+  private mapToThread(dto: any): InteractionThread {
+    const events = (dto.interactionEventDtos || [])
+      .map((e: any) => {
+        // Determine sender based on event type
+        const isUserSent = this.isUserSentEvent(e.type);
+        
+        return {
+          id: e.id,
+          interactionThreadId: dto.id,
+          eventType: this.mapEventType(e.type),
+          channel: this.mapChannel(e.channel),
+          content: e.messagePreview || e.notes || '',
+          timestamp: new Date(e.timestamp),
+          senderId: isUserSent ? 'current-user' : (dto.externalRecruiterEmail || dto.recruiter?.email || 'recruiter'),
+          senderName: isUserSent ? 'You' : (dto.externalRecruiterName || dto.recruiter?.name || 'Recruiter'),
+          metadata: {
+            personalizationLevel: e.personalized ? 80 : 20,
+            containsUrgencyCue: e.containsUrgencyCue
+          }
+        };
+      })
+      .sort((a: InteractionEvent, b: InteractionEvent) => a.timestamp.getTime() - b.timestamp.getTime()); // Sort chronologically
+    
+    const lastEvent = events[events.length - 1];
+    
+    return {
+      id: dto.id,
+      participantId: dto.recruiter?.id || dto.externalRecruiterEmail || 'external',
+      participantName: dto.externalRecruiterName || dto.recruiter?.name || dto.externalRecruiterEmail || 'Unknown Recruiter',
+      participantRole: 'RECRUITER',
+      companyName: dto.externalCompanyName || dto.recruiter?.company || undefined,
+      jobTitle: this.extractJobTitle(events),
+      status: this.mapStatus(dto.status),
+      lastEventDate: lastEvent?.timestamp || new Date(dto.initiatedAt),
+      lastEventPreview: lastEvent?.content || 'No messages yet',
+      unreadCount: 0, // TODO: Implement unread tracking
+      createdAt: new Date(dto.initiatedAt),
+      updatedAt: new Date(dto.initiatedAt),
+      events: events
+    };
+  }
+  
+  /**
+   * Determine if an event was sent by the user based on event type
+   */
+  private isUserSentEvent(eventType: string): boolean {
+    const userSentTypes = ['REPLY', 'CV_SUBMISSION'];
+    return userSentTypes.includes(eventType);
+  }
+  
+  private mapEventType(backendType: string): EventType {
+    const mapping: Record<string, EventType> = {
+      'JOB_OPPORTUNITY': EventType.OUTREACH,
+      'CV_REQUEST': EventType.CV_REQUEST,
+      'INTERVIEW_INVITE': EventType.INTERVIEW_INVITE,
+      'FOLLOW_UP': EventType.FOLLOW_UP,
+      'REJECTION': EventType.FOLLOW_UP,
+      'OTHER': EventType.EXPLORATION
+    };
+    return mapping[backendType] || EventType.EXPLORATION;
+  }
+  
+  private mapChannel(backendChannel: string): ChannelType {
+    const mapping: Record<string, ChannelType> = {
+      'EMAIL': ChannelType.EMAIL,
+      'LINKEDIN': ChannelType.LINKEDIN,
+      'PHONE': ChannelType.PHONE,
+      'WHATSAPP': ChannelType.WHATSAPP,
+      'IN_PERSON': ChannelType.IN_PERSON,
+      'SMS': ChannelType.TEXT_MESSAGE,
+      'MO_NATIVE': ChannelType.MO_NATIVE
+    };
+    return mapping[backendChannel] || ChannelType.OTHER;
+  }
+  
+  private mapStatus(backendStatus: string): InteractionStatus {
+    const mapping: Record<string, InteractionStatus> = {
+      'NEW': InteractionStatus.NEW,
+      'ACTIVE': InteractionStatus.ACTIVE,
+      'STALE': InteractionStatus.STALE,
+      'CLOSED': InteractionStatus.CLOSED
+    };
+    return mapping[backendStatus] || InteractionStatus.NEW;
+  }
+  
+  private extractJobTitle(events: InteractionEvent[]): string | undefined {
+    // Try to extract job title from event content
+    for (const event of events) {
+      const match = event.content.match(/(?:for|about|regarding)\s+(?:a|an|the)?\s*([A-Z][a-zA-Z\s]+(?:Engineer|Developer|Manager|Designer|Analyst|Architect))/);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    return undefined;
+  }
+
+  // DEPRECATED: Get all interaction threads - mock data version  
+  getThreadsOld(): Observable<InteractionThread[]> {
     // TODO: Replace with actual API call
     // return this.http.get<InteractionThread[]>(`${this.apiUrl}/threads`).pipe(
     //   tap(threads => this.threadsSubject.next(threads))

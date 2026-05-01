@@ -1,0 +1,86 @@
+<div class="goal-form-overlay" (click)="onBackdropClick($event)">
+<div class="goal-form-modal" role="dialog" aria-modal="true" [attr.aria-label]="isEditMode ? 'Edit goal' : 'Create new goal'">
+  <div class="goal-form-modal__header">
+    <h2 class="goal-form-modal__title">{{ isEditMode ? 'Edit Goal' : 'New Goal' }}</h2>
+    <button class="goal-form-modal__close" (click)="onCancel()" aria-label="Close">✕</button>
+  </div>
+
+  <form class="goal-form-modal__body" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label class="form-label" for="title">Title <span class="required">*</span></label>
+      <input
+        id="title"
+        class="form-input"
+        type="text"
+        [(ngModel)]="form.title"
+        name="title"
+        placeholder="e.g. Complete Java Certification"
+        maxlength="255"
+        required
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="description">Description</label>
+      <textarea
+        id="description"
+        class="form-input form-textarea"
+        [(ngModel)]="form.description"
+        name="description"
+        rows="3"
+        placeholder="What does achieving this goal look like?"
+      ></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="category">Category <span class="required">*</span></label>
+        <select class="form-input form-select" id="category" [(ngModel)]="form.category" name="category">
+          @for (cat of categoryOptions; track cat) {
+            <option [value]="cat">{{ labelFor(cat) }}</option>
+          }
+        </select>
+      </div>
+
+      @if (isEditMode) {
+        <div class="form-group">
+          <label class="form-label" for="status">Status</label>
+          <select class="form-input form-select" id="status" [(ngModel)]="form.status" name="status">
+            @for (s of statusOptions; track s) {
+              <option [value]="s">{{ labelFor(s) }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="targetDate">Target Date</label>
+        <input
+          id="targetDate"
+          class="form-input"
+          type="date"
+          [(ngModel)]="form.targetDate"
+          name="targetDate"
+        />
+      </div>
+
+      <div class="form-group form-group--checkbox">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="form.isPublic" name="isPublic" />
+          Visible on Living CV
+        </label>
+      </div>
+    </div>
+
+    <div class="goal-form-modal__actions">
+      <button type="button" class="btn btn--secondary" (click)="onCancel()">Cancel</button>
+      <button type="submit" class="btn btn--primary" [disabled]="!form.title.trim()">
+        {{ isEditMode ? 'Save Changes' : 'Create Goal' }}
+      </button>
+    </div>
+  </form>
+</div>
+</div>

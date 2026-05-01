@@ -1,0 +1,595 @@
+<div class="cv-page">
+
+  <!-- ── HERO ─────────────────────────────────────────── -->
+  <header class="cv-hero">
+    @if (cv()) {
+      <div class="cv-hero__profile">
+        <div class="cv-hero__avatar">
+          @if (cv()!.profile.profileImageUrl) {
+            <img [src]="cv()!.profile.profileImageUrl" alt="Profile" />
+          } @else {
+            <span class="cv-hero__initials">
+              {{ cv()!.profile.firstName[0] }}{{ cv()!.profile.lastName[0] }}
+            </span>
+          }
+        </div>
+        <div class="cv-hero__info">
+          <div class="cv-hero__name-row">
+            <h1>{{ cv()!.profile.firstName }} {{ cv()!.profile.lastName }}</h1>
+            <span class="class-badge class-badge--{{ cv()!.candidateClass | lowercase }}">
+              {{ getClassLabel(cv()!.candidateClass) }}
+            </span>
+          </div>
+          <p class="cv-hero__title">
+            {{ cv()!.profile.jobTitle }}
+            @if (cv()!.profile.industry) {
+              <span class="cv-hero__sep">&nbsp;·&nbsp;</span>{{ cv()!.profile.industry }}
+            }
+          </p>
+          @if (cv()!.profile.biography) {
+            <p class="cv-hero__bio">{{ cv()!.profile.biography }}</p>
+          }
+          <div class="cv-hero__links">
+            @if (cv()!.profile.linkedinUrl) {
+              <a [href]="cv()!.profile.linkedinUrl" target="_blank" rel="noopener" class="cv-hero__link">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                LinkedIn
+              </a>
+            }
+            @if (cv()!.profile.portfolioUrl) {
+              <a [href]="cv()!.profile.portfolioUrl" target="_blank" rel="noopener" class="cv-hero__link">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Portfolio
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- CV completion ring -->
+      <div class="cv-hero__completion">
+        <div class="completion-ring">
+          <svg width="68" height="68" viewBox="0 0 68 68">
+            <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="6"/>
+            <circle cx="34" cy="34" r="28" fill="none" stroke="#0ea5e9" stroke-width="6"
+                    stroke-linecap="round"
+                    stroke-dasharray="176"
+                    [attr.stroke-dashoffset]="176 - (176 * cvCompletionPct() / 100)"
+                    transform="rotate(-90 34 34)"/>
+          </svg>
+          <span class="completion-ring__pct">{{ cvCompletionPct() }}%</span>
+        </div>
+        <div class="completion-meta">
+          <span class="completion-meta__label">CV Complete</span>
+          @if (cv()!.lastUpdated) {
+            <span class="completion-meta__date">Updated {{ formatDate(cv()!.lastUpdated) }}</span>
+          }
+        </div>
+      </div>
+    } @else if (loading()) {
+      <div class="cv-hero__loading">
+        <div class="cv-spinner"></div>
+        <p>Building your Living CV…</p>
+      </div>
+    }
+  </header>
+
+  <!-- ── TAGLINE STRIP ─────────────────────────────────── -->
+  <div class="cv-tagline">
+    <h2 class="cv-tagline__title">Your Living CV</h2>
+    <p class="cv-tagline__sub">Track goals, log milestones, and showcase proof — every step strengthens your Living CV, builds trust, and earns your class badge as you evolve.</p>
+  </div>
+
+  <!-- ── BODY ─────────────────────────────────────────── -->
+  <div class="cv-body">
+
+    @if (error()) {
+      <div class="cv-alert-error">{{ error() }}</div>
+    }
+
+    @if (loading()) {
+      <div class="cv-loading">
+        <div class="cv-spinner"></div>
+        <p>Building your Living CV…</p>
+      </div>
+    }
+
+    @if (cv()) {
+      <div class="cv-layout">
+      <div class="cv-main">
+
+      <!-- ── DASHBOARD ─────────────────────────────────── -->
+      <div class="cv-dashboard">
+        <div class="dash-card">
+          <div class="dash-card__icon">🎯</div>
+          <div class="dash-card__data">
+            <span class="dash-card__value">{{ cv()!.stats.completedGoals }}<span class="dash-card__total">/{{ cv()!.stats.totalGoals }}</span></span>
+            <span class="dash-card__label">Goals</span>
+          </div>
+          <div class="dash-card__bar">
+            <div class="dash-card__fill" [style.width]="goalCompletionPct() + '%'"></div>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card__icon dash-card__icon--work">💼</div>
+          <div class="dash-card__data">
+            <span class="dash-card__value">{{ cv()!.workExperience.length }}</span>
+            <span class="dash-card__label">Roles</span>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card__icon dash-card__icon--edu">🎓</div>
+          <div class="dash-card__data">
+            <span class="dash-card__value">{{ cv()!.education.length }}</span>
+            <span class="dash-card__label">Qualifications</span>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card__icon dash-card__icon--skills">⚡</div>
+          <div class="dash-card__data">
+            <span class="dash-card__value">{{ cv()!.skills.length }}</span>
+            <span class="dash-card__label">Skills</span>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card__icon dash-card__icon--certs">🏅</div>
+          <div class="dash-card__data">
+            <span class="dash-card__value">{{ cv()!.certifications.length }}</span>
+            <span class="dash-card__label">Certifications</span>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card__icon dash-card__icon--refs">👥</div>
+          <div class="dash-card__data">
+            <span class="dash-card__value">{{ cv()!.references.length }}</span>
+            <span class="dash-card__label">References</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GOALS ─────────────────────────────────────── -->
+      <section id="cv-goals" class="cv-panel">
+        <div class="cv-panel__head">
+          <div class="cv-panel__title">
+            <span class="cv-panel__icon">🎯</span>
+            Goals &amp; Progress
+            @if (cv()!.stats.totalGoals > 0) {
+              <span class="cv-panel__count">{{ cv()!.stats.completedGoals }}/{{ cv()!.stats.totalGoals }}</span>
+            }
+          </div>
+          <a routerLink="/personal-development/goals" class="cv-panel__action">
+            {{ cv()!.goals.length ? 'Manage Goals' : '+ Add Goal' }}
+          </a>
+        </div>
+
+        @if (cv()!.goals.length > 0) {
+          <div class="goals-overview">
+            <div class="goals-overview__bar">
+              <div class="goals-overview__fill" [style.width]="goalCompletionPct() + '%'"></div>
+            </div>
+            <div class="goals-overview__labels">
+              <span>{{ goalCompletionPct() }}% complete</span>
+              <span>{{ cv()!.stats.totalMilestones }} milestones · {{ cv()!.stats.verifiedProofItems }} verified proofs</span>
+            </div>
+          </div>
+
+          <div class="goal-list">
+            @for (goal of cv()!.goals; track goal.id) {
+              <div class="goal-row" [class.goal-row--expanded]="isGoalExpanded(goal.id)">
+                <div class="goal-row__summary" (click)="toggleGoal(goal.id)">
+                  <span class="goal-dot goal-dot--{{ goal.status | lowercase }}"></span>
+                  <div class="goal-row__info">
+                    <span class="goal-row__title">{{ goal.title }}</span>
+                    <span class="goal-row__meta">{{ getCategoryLabel(goal.category) }} &bull; {{ totalMilestonesFor(goal) }} milestone{{ totalMilestonesFor(goal) !== 1 ? 's' : '' }}</span>
+                  </div>
+                  <div class="goal-row__progress">
+                    <div class="goal-mini-bar">
+                      <div class="goal-mini-fill goal-mini-fill--{{ goal.status | lowercase }}"
+                           [style.width]="progressFor(goal) + '%'"></div>
+                    </div>
+                    <span class="goal-mini-pct">{{ progressFor(goal) }}%</span>
+                  </div>
+                  <span class="goal-badge goal-badge--{{ goal.status | lowercase }}">{{ getStatusLabel(goal.status) }}</span>
+                  <button class="goal-toggle" [attr.aria-expanded]="isGoalExpanded(goal.id)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                         [style.transform]="isGoalExpanded(goal.id) ? 'rotate(180deg)' : 'rotate(0)'">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                </div>
+
+                @if (isGoalExpanded(goal.id)) {
+                  <div class="goal-row__detail">
+                    @if (goal.description) {
+                      <p class="goal-desc">{{ goal.description }}</p>
+                    }
+                    @if (goal.milestones.length > 0) {
+                      <div class="milestone-track">
+                        @for (ms of goal.milestones; track ms.id) {
+                          <div class="ms-step" [class.ms-step--done]="ms.completionPercentage === 100">
+                            <div class="ms-step__node">
+                              @if (ms.completionPercentage === 100) {
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                              } @else {
+                                <span class="ms-step__pct-label">{{ ms.completionPercentage }}%</span>
+                              }
+                            </div>
+                            <span class="ms-step__title">{{ ms.title }}</span>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <p class="goal-no-ms">No milestones recorded yet.</p>
+                    }
+                    @if (goal.targetDate) {
+                      <p class="goal-due">📅 Due {{ formatDate(goal.targetDate) }}</p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="cv-empty">
+            <div class="cv-empty__icon">🎯</div>
+            <p>No goals yet. <a routerLink="/personal-development/goals">Set your first goal</a> to start building your Living CV.</p>
+          </div>
+        }
+      </section>
+
+      <!-- ── WORK EXPERIENCE ───────────────────────────── -->
+      <section id="cv-work" class="cv-panel">
+        <div class="cv-panel__head">
+          <div class="cv-panel__title">
+            <span class="cv-panel__icon">💼</span>
+            Career Journey
+            @if (cv()!.workExperience.length > 0) {
+              <span class="cv-panel__count">{{ cv()!.workExperience.length }} role{{ cv()!.workExperience.length !== 1 ? 's' : '' }}</span>
+            }
+          </div>
+          <a routerLink="/personal-development/work-experience" class="cv-panel__action">
+            {{ cv()!.workExperience.length ? 'Manage' : '+ Add' }}
+          </a>
+        </div>
+
+        @if (cv()!.workExperience.length > 0) {
+          <div class="career-timeline">
+            @for (job of cv()!.workExperience; track job.id; let last = $last) {
+              <div class="ct-item">
+                <div class="ct-left">
+                  <div class="ct-dot" [class.ct-dot--active]="job.isCurrent"></div>
+                  @if (!last) { <div class="ct-line"></div> }
+                </div>
+                <div class="ct-card">
+                  <div class="ct-card__head">
+                    <div>
+                      <h3 class="ct-card__title">{{ job.jobTitle }}</h3>
+                      <p class="ct-card__sub">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                        {{ job.companyName }}
+                        @if (job.location) { <span class="ct-card__muted">&nbsp;· {{ job.location }}</span> }
+                      </p>
+                    </div>
+                    <div class="ct-tags">
+                      @if (job.isCurrent) { <span class="ct-tag ct-tag--active">Current</span> }
+                      @if (job.employmentType) { <span class="ct-tag">{{ job.employmentType | titlecase }}</span> }
+                    </div>
+                  </div>
+                  <p class="ct-card__dates">
+                    {{ formatDate(job.startDate) }} – {{ job.isCurrent ? 'Present' : formatDate(job.endDate) }}
+                  </p>
+                  @if (job.description) { <p class="ct-card__desc">{{ job.description }}</p> }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="cv-empty">
+            <div class="cv-empty__icon">💼</div>
+            <p>No work history yet. <a routerLink="/personal-development/work-experience">Add your first role</a>.</p>
+          </div>
+        }
+      </section>
+
+      <!-- ── EDUCATION ─────────────────────────────────── -->
+      <section id="cv-education" class="cv-panel">
+        <div class="cv-panel__head">
+          <div class="cv-panel__title">
+            <span class="cv-panel__icon">🎓</span>
+            Education
+            @if (cv()!.education.length > 0) {
+              <span class="cv-panel__count">{{ cv()!.education.length }}</span>
+            }
+          </div>
+          <a routerLink="/personal-development/education" class="cv-panel__action">
+            {{ cv()!.education.length ? 'Manage' : '+ Add' }}
+          </a>
+        </div>
+
+        @if (cv()!.education.length > 0) {
+          <div class="career-timeline">
+            @for (edu of cv()!.education; track edu.id; let last = $last) {
+              <div class="ct-item">
+                <div class="ct-left">
+                  <div class="ct-dot" [class.ct-dot--active]="edu.isCurrent"></div>
+                  @if (!last) { <div class="ct-line"></div> }
+                </div>
+                <div class="ct-card">
+                  <div class="ct-card__head">
+                    <div>
+                      <h3 class="ct-card__title">{{ edu.degree ?? edu.institution }}</h3>
+                      <p class="ct-card__sub">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                        {{ edu.institution }}
+                        @if (edu.fieldOfStudy) { <span class="ct-card__muted">&nbsp;· {{ edu.fieldOfStudy }}</span> }
+                      </p>
+                    </div>
+                    @if (edu.isCurrent) { <span class="ct-tag ct-tag--active">Current</span> }
+                  </div>
+                  <p class="ct-card__dates">
+                    {{ formatDate(edu.startDate) }} – {{ edu.isCurrent ? 'Present' : formatDate(edu.endDate) }}
+                  </p>
+                  @if (edu.grade) { <p class="ct-card__grade">Grade: {{ edu.grade }}</p> }
+                  @if (edu.description) { <p class="ct-card__desc">{{ edu.description }}</p> }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="cv-empty">
+            <div class="cv-empty__icon">🎓</div>
+            <p>No qualifications added yet. <a routerLink="/personal-development/education">Add your education</a>.</p>
+          </div>
+        }
+      </section>
+
+      <!-- ── SKILLS ────────────────────────────────────── -->
+      <section id="cv-skills" class="cv-panel">
+        <div class="cv-panel__head">
+          <div class="cv-panel__title">
+            <span class="cv-panel__icon">⚡</span>
+            Skills &amp; Expertise
+            @if (cv()!.skills.length > 0) {
+              <span class="cv-panel__count">{{ cv()!.skills.length }}</span>
+            }
+          </div>
+          <a routerLink="/personal-development/skills" class="cv-panel__action">
+            {{ cv()!.skills.length ? 'Manage' : '+ Add' }}
+          </a>
+        </div>
+
+        @if (cv()!.skills.length > 0) {
+          <div class="skills-grid">
+            @for (skill of cv()!.skills; track skill.id) {
+              <div class="skill-item skill-item--{{ skill.proficiencyLevel | lowercase }}">
+                <div class="skill-item__head">
+                  <span class="skill-item__name">{{ skill.skillName }}</span>
+                  <span class="skill-item__level">{{ skill.proficiencyLevel | titlecase }}</span>
+                </div>
+                <div class="skill-bar">
+                  <div class="skill-bar__fill skill-bar__fill--{{ skill.proficiencyLevel | lowercase }}"
+                       [style.width]="proficiencyPct(skill.proficiencyLevel) + '%'"></div>
+                </div>
+                @if (skill.yearsExperience) {
+                  <span class="skill-item__years">{{ skill.yearsExperience }} yr{{ skill.yearsExperience !== 1 ? 's' : '' }} exp.</span>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="cv-empty">
+            <div class="cv-empty__icon">⚡</div>
+            <p>No skills added yet. <a routerLink="/personal-development/skills">Add your skills</a>.</p>
+          </div>
+        }
+      </section>
+
+      <!-- ── CERTIFICATIONS ────────────────────────────── -->
+      <section id="cv-certs" class="cv-panel">
+        <div class="cv-panel__head">
+          <div class="cv-panel__title">
+            <span class="cv-panel__icon">🏅</span>
+            Certifications
+            @if (cv()!.certifications.length > 0) {
+              <span class="cv-panel__count">{{ cv()!.certifications.length }}</span>
+            }
+          </div>
+          <a routerLink="/personal-development/certifications" class="cv-panel__action">
+            {{ cv()!.certifications.length ? 'Manage' : '+ Add' }}
+          </a>
+        </div>
+
+        @if (cv()!.certifications.length > 0) {
+          <div class="certs-grid">
+            @for (cert of cv()!.certifications; track cert.id) {
+              <div class="cert-card"
+                   [class.cert-card--expiring]="isExpiringSoon(cert.expiryDate)"
+                   [class.cert-card--expired]="isExpired(cert.expiryDate)">
+                <div class="cert-card__badge">
+                  <span class="cert-card__initial">{{ cert.name[0] }}</span>
+                </div>
+                <div class="cert-card__body">
+                  <h4 class="cert-card__name">{{ cert.name }}</h4>
+                  <p class="cert-card__org">{{ cert.issuingOrganization }}</p>
+                  <p class="cert-card__dates">
+                    Issued {{ formatDate(cert.issueDate) }}
+                    @if (cert.expiryDate) {
+                      <span [class.cert-date--amber]="isExpiringSoon(cert.expiryDate)"
+                            [class.cert-date--red]="isExpired(cert.expiryDate)">
+                        &nbsp;· Expires {{ formatDate(cert.expiryDate) }}
+                      </span>
+                    }
+                  </p>
+                  <div class="cert-card__foot">
+                    @if (cert.credentialUrl) {
+                      <a [href]="cert.credentialUrl" target="_blank" rel="noopener" class="cert-card__link">View Credential ↗</a>
+                    }
+                    @if (isExpired(cert.expiryDate)) {
+                      <span class="cert-status cert-status--expired">Expired</span>
+                    } @else if (isExpiringSoon(cert.expiryDate)) {
+                      <span class="cert-status cert-status--expiring">Expiring soon</span>
+                    } @else {
+                      <span class="cert-status cert-status--valid">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                        Valid
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="cv-empty">
+            <div class="cv-empty__icon">🏅</div>
+            <p>No certifications yet. <a routerLink="/personal-development/certifications">Add certifications</a>.</p>
+          </div>
+        }
+      </section>
+
+      <!-- ── REFERENCES ────────────────────────────────── -->
+      <section id="cv-refs" class="cv-panel">
+        <div class="cv-panel__head">
+          <div class="cv-panel__title">
+            <span class="cv-panel__icon">👥</span>
+            References
+            @if (cv()!.references.length > 0) {
+              <span class="cv-panel__count">{{ cv()!.references.length }}</span>
+            }
+          </div>
+          <a routerLink="/personal-development/references" class="cv-panel__action">
+            {{ cv()!.references.length ? 'Manage' : '+ Add' }}
+          </a>
+        </div>
+
+        <p class="cv-panel__privacy">🔒 References are private until a recruiter expresses interest.</p>
+
+        @if (cv()!.references.length > 0) {
+          <div class="refs-grid">
+            @for (ref of cv()!.references; track ref.id) {
+              <div class="ref-card">
+                <div class="ref-card__avatar">{{ ref.fullName[0] }}</div>
+                <div class="ref-card__body">
+                  <h4 class="ref-card__name">{{ ref.fullName }}</h4>
+                  <p class="ref-card__role">{{ ref.jobTitle }} · {{ ref.company }}</p>
+                  <div class="ref-card__foot">
+                    <span class="ref-tag">{{ ref.relationship | titlecase }}</span>
+                    @if (ref.includeInCv) {
+                      <span class="ref-status ref-status--public">✓ Shared</span>
+                    } @else {
+                      <span class="ref-status ref-status--private">🔒 Private</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="cv-empty">
+            <div class="cv-empty__icon">👥</div>
+            <p>No references added yet. <a routerLink="/personal-development/references">Add references</a>.</p>
+          </div>
+        }
+      </section>
+
+      </div><!-- /cv-main -->
+
+      <!-- ── STICKY SIDEBAR ──────────────────────────────── -->
+      <aside class="cv-sidebar">
+
+        <!-- Profile Strength -->
+        <div class="sidebar-card health-card">
+          <div class="sidebar-card__head">
+            <span class="sidebar-card__icon">📊</span>
+            <h3 class="sidebar-card__title">Profile Strength</h3>
+          </div>
+          <div class="health-bar">
+            <div class="health-bar__fill" [style.width]="cvCompletionPct() + '%'"></div>
+          </div>
+          <p class="health-pct"><strong>{{ cvCompletionPct() }}%</strong> complete</p>
+          <ul class="health-list">
+            <li class="health-item" [class.health-item--done]="!!cv()!.profile.biography">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">Biography</span>
+              <span class="health-item__pts">+15</span>
+            </li>
+            <li class="health-item" [class.health-item--done]="cv()!.workExperience.length > 0">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">Work experience</span>
+              <span class="health-item__pts">+20</span>
+            </li>
+            <li class="health-item" [class.health-item--done]="cv()!.education.length > 0">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">Education</span>
+              <span class="health-item__pts">+15</span>
+            </li>
+            <li class="health-item" [class.health-item--done]="cv()!.skills.length > 0">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">Skills</span>
+              <span class="health-item__pts">+15</span>
+            </li>
+            <li class="health-item" [class.health-item--done]="cv()!.certifications.length > 0">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">Certifications</span>
+              <span class="health-item__pts">+15</span>
+            </li>
+            <li class="health-item" [class.health-item--done]="cv()!.goals.length > 0">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">Goals</span>
+              <span class="health-item__pts">+10</span>
+            </li>
+            <li class="health-item" [class.health-item--done]="cv()!.references.length > 0">
+              <span class="health-item__dot"></span>
+              <span class="health-item__label">References</span>
+              <span class="health-item__pts">+10</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Jump to Section -->
+        <div class="sidebar-card nav-card">
+          <div class="sidebar-card__head">
+            <span class="sidebar-card__icon">🗂️</span>
+            <h3 class="sidebar-card__title">Jump to</h3>
+          </div>
+          <nav class="cv-nav">
+            <a href="#cv-goals" class="cv-nav__item">
+              <span class="cv-nav__icon">🎯</span>
+              <span class="cv-nav__label">Goals</span>
+              <span class="cv-nav__count">{{ cv()!.stats.totalGoals }}</span>
+            </a>
+            <a href="#cv-work" class="cv-nav__item">
+              <span class="cv-nav__icon">💼</span>
+              <span class="cv-nav__label">Career</span>
+              <span class="cv-nav__count">{{ cv()!.workExperience.length }}</span>
+            </a>
+            <a href="#cv-education" class="cv-nav__item">
+              <span class="cv-nav__icon">🎓</span>
+              <span class="cv-nav__label">Education</span>
+              <span class="cv-nav__count">{{ cv()!.education.length }}</span>
+            </a>
+            <a href="#cv-skills" class="cv-nav__item">
+              <span class="cv-nav__icon">⚡</span>
+              <span class="cv-nav__label">Skills</span>
+              <span class="cv-nav__count">{{ cv()!.skills.length }}</span>
+            </a>
+            <a href="#cv-certs" class="cv-nav__item">
+              <span class="cv-nav__icon">🏅</span>
+              <span class="cv-nav__label">Certifications</span>
+              <span class="cv-nav__count">{{ cv()!.certifications.length }}</span>
+            </a>
+            <a href="#cv-refs" class="cv-nav__item">
+              <span class="cv-nav__icon">👥</span>
+              <span class="cv-nav__label">References</span>
+              <span class="cv-nav__count">{{ cv()!.references.length }}</span>
+            </a>
+          </nav>
+        </div>
+
+      </aside>
+
+      </div><!-- /cv-layout -->
+    }
+  </div>
+</div>
+

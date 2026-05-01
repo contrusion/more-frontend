@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EmailSyncService, GmailStatusResponse } from '../services/email-sync.service';
+import { EmailSyncService, GmailStatusResponse, EmailSyncResult } from '../services/email-sync.service';
+import { InteractionService } from '../services/interaction.service';
 
 @Component({
   selector: 'app-email-sync',
@@ -16,9 +17,16 @@ export class EmailSyncComponent implements OnInit {
   error: string | null = null;
   success: string | null = null;
   oauthWindow: Window | null = null;
+  
+  // Sync state
+  syncInProgress = false;
+  lastSyncResult: EmailSyncResult | null = null;
+  syncError: string | null = null;
+  showDisconnectConfirmation = false;
 
   constructor(
     private emailSyncService: EmailSyncService,
+    private interactionService: InteractionService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -122,24 +130,92 @@ export class EmailSyncComponent implements OnInit {
   }
 
   disconnectGmail(): void {
-    if (!confirm('Are you sure you want to disconnect your Gmail account?')) {
-      return;
-    }
+    console.log('disconnectGmail() called');
+    this.showDisconnectConfirmation = true;
+  }
 
+  cancelDisconnect(): void {
+    console.log('User cancelled disconnect');
+    this.showDisconnectConfirmation = false;
+  }
+
+  confirmDisconnect(): void {
+    console.log('User confirmed disconnect, sending request...');
+    this.showDisconnectConfirmation = false;
     this.loading = true;
     this.error = null;
     this.success = null;
 
     this.emailSyncService.revokeGmailAccess().subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('Disconnect successful:', response);
         this.success = 'Gmail disconnected successfully';
         this.gmailStatus = null;
+        this.lastSyncResult = null;
         this.loading = false;
       },
       error: (err) => {
         console.error('Failed to disconnect Gmail:', err);
-        this.error = 'Failed to disconnect Gmail';
+        this.error = err.error?.message || 'Failed to disconnect Gmail';
         this.loading = false;
+      }
+    });
+  }
+
+  /**
+   * Trigger manual email sync
+   * Fetches and imports LinkedIn recruiter emails from Gmail
+   */
+  syncEmails(): void {
+    if (this.syncInProgress) {
+      return; // Already syncing
+    }
+
+    this.syncInProgress = true;
+    this.syncError = null;
+    this.error = null;
+    this.success = null;
+
+    console.log('Starting email sync...');
+
+    this.emailSyncService.syncNow().subscribe({
+      next: (result) => {
+        this.lastSyncResult = result;
+        this.syncInProgress = false;
+        
+        console.log('Sync completed:', result);
+
+        if (result.success && result.processed > 0) {
+          this.success = `✓ ${result.processed} new interaction${result.processed > 1 ? 's' : ''} imported`;
+          
+          // Refresh interactions list after successful sync
+          this.interactionService.getThreads().subscribe({
+            next: () => console.log('Interactions refreshed after sync'),
+            error: (err) => console.error('Failed to refresh interactions:', err)
+          });
+        } else if (result.success && result.processed === 0) {
+          this.success = 'No new interactions found';
+        } else if (!result.success) {
+          this.syncError = result.errors.join(', ') || 'Sync failed';
+        }
+
+        // Refresh Gmail status to get updated last sync info
+        this.checkGmailStatus();
+
+        // Show sync statistics if there were items fetched
+        if (result.totalFetched > 0) {
+          console.log(`Sync stats: ${result.totalFetched} fetched, ${result.processed} processed, ${result.skipped} skipped, ${result.failed} failed`);
+        }
+      },
+      error: (err) => {
+        console.error('Email sync failed:', err);
+        this.syncInProgress = false;
+        
+        if (err.status === 409) {
+          this.syncError = 'Sync already in progress';
+        } else {
+          this.syncError = err.error?.message || 'Failed to sync emails';
+        }
       }
     });
   }

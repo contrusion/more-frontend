@@ -32,7 +32,7 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
-        path: 'messages',
+        path: 'events',
         loadComponent: () => import('./functional-features/interactions/interactions.component').then(m => m.InteractionsComponent)
       },
       {
@@ -50,21 +50,71 @@ export const routes: Routes = [
     ]
   },
   {
-    path: 'register',
-    loadComponent: () => import('./none-functional-features/authentication-and-authorization/components/register/register.component').then(m => m.RegisterComponent)
-  },
-  /* Uncomment these routes when components are ready
-  {
     path: 'admin',
-    loadComponent: () => import('./admin/admin.component').then(m => m.AdminComponent),
-    canActivate: [RoleGuard],
-    data: { roles: ['admin'] }
+    loadComponent: () => import('./functional-features/admin/admin.component').then(m => m.AdminComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['MO_ADMIN'] },
+    children: [
+      {
+        path: '',
+        redirectTo: 'outreach-ml',
+        pathMatch: 'full'
+      },
+      {
+        path: 'outreach-ml',
+        loadComponent: () => import('./functional-features/interactions/dataset-export/dataset-export.component').then(m => m.DatasetExportComponent)
+      }
+    ]
+  },
+  {
+    path: 'personal-development',
+    loadComponent: () => import('./functional-features/recruitment/recruitment-layout.component').then(m => m.RecruitmentLayoutComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['APPLICANT'] },
+    children: [
+      {
+        path: '',
+        redirectTo: 'living-cv',
+        pathMatch: 'full'
+      },
+      {
+        path: 'goals',
+        loadComponent: () => import('./functional-features/recruitment/candidate/goals/candidate-goals.component').then(m => m.CandidateGoalsComponent)
+      },
+      {
+        path: 'living-cv',
+        loadComponent: () => import('./functional-features/recruitment/candidate/living-cv/living-cv.component').then(m => m.LivingCvComponent)
+      },
+      {
+        path: 'work-experience',
+        loadComponent: () => import('./functional-features/recruitment/candidate/work-experience/work-experience.component').then(m => m.WorkExperienceComponent)
+      },
+      {
+        path: 'education',
+        loadComponent: () => import('./functional-features/recruitment/candidate/education/education.component').then(m => m.EducationComponent)
+      },
+      {
+        path: 'certifications',
+        loadComponent: () => import('./functional-features/recruitment/candidate/certifications/certifications.component').then(m => m.CertificationsComponent)
+      },
+      {
+        path: 'references',
+        loadComponent: () => import('./functional-features/recruitment/candidate/references/references.component').then(m => m.ReferencesComponent)
+      },
+      {
+        path: 'skills',
+        loadComponent: () => import('./functional-features/recruitment/candidate/skills/skills.component').then(m => m.SkillsComponent)
+      }
+    ]
   },
   {
     path: 'unauthorized',
-    loadComponent: () => import('./unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent)
+    loadComponent: () => import('./shared/components/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent)
   },
-  */
+  {
+    path: 'register',
+    loadComponent: () => import('./none-functional-features/authentication-and-authorization/components/register/register.component').then(m => m.RegisterComponent)
+  },
   {
     path: '**',
     redirectTo: 'home'

@@ -1,0 +1,89 @@
+<div class="section-page">
+  <header class="section-header">
+    <div class="section-header__content">
+      <div class="section-header__text">
+        <h1>Certifications</h1>
+        <p>Showcase your professional certifications and credentials</p>
+      </div>
+      <button class="btn-primary" (click)="openCreate()">+ Add Certification</button>
+    </div>
+  </header>
+
+  <div class="section-body">
+    @if (errorMessage) { <div class="alert-error">{{ errorMessage }}</div> }
+    @if (isLoading) { <div class="loading-state"><div class="spinner"></div><p>Loading…</p></div> }
+
+    @if (showForm) {
+      <div class="form-card">
+        <h2>{{ editingItem ? 'Edit Certification' : 'Add Certification' }}</h2>
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label>Certification Name *</label>
+            <input [(ngModel)]="form.name" placeholder="e.g. AWS Solutions Architect" />
+          </div>
+          <div class="form-field form-field--full">
+            <label>Issuing Organization *</label>
+            <input [(ngModel)]="form.issuingOrganization" placeholder="e.g. Amazon Web Services" />
+          </div>
+          <div class="form-field">
+            <label>Issue Date *</label>
+            <input type="date" [(ngModel)]="form.issueDate" />
+          </div>
+          <div class="form-field">
+            <label>Expiry Date</label>
+            <input type="date" [(ngModel)]="form.expiryDate" />
+          </div>
+          <div class="form-field">
+            <label>Credential ID</label>
+            <input [(ngModel)]="form.credentialId" placeholder="e.g. ABC-12345" />
+          </div>
+          <div class="form-field">
+            <label>Credential URL</label>
+            <input [(ngModel)]="form.credentialUrl" placeholder="https://…" />
+          </div>
+          <div class="form-field form-field--checkbox">
+            <label><input type="checkbox" [(ngModel)]="form.includeInCv" /> Include in CV</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="cancel()">Cancel</button>
+          <button class="btn-primary" (click)="save()">{{ editingItem ? 'Save Changes' : 'Add Certification' }}</button>
+        </div>
+      </div>
+    }
+
+    @if (!isLoading && items.length === 0 && !showForm) {
+      <div class="empty-state">
+        <p>No certifications added yet.</p>
+        <button class="btn-primary" (click)="openCreate()">Add your first certification</button>
+      </div>
+    }
+
+    <div class="item-list">
+      @for (item of items; track item.id) {
+        <div class="item-card" [class.item-card--hidden]="!item.includeInCv">
+          <div class="item-card__main">
+            <div class="item-card__info">
+              <h3>{{ item.name }}</h3>
+              <p class="item-card__sub">{{ item.issuingOrganization }}</p>
+              <div class="item-card__meta">
+                <span class="item-card__dates">Issued {{ formatDate(item.issueDate) }}</span>
+                @if (item.expiryDate) {
+                  <span class="item-card__dates">&bull; Expires {{ formatDate(item.expiryDate) }}</span>
+                }
+              </div>
+              @if (item.credentialUrl) {
+                <a [href]="item.credentialUrl" target="_blank" rel="noopener" class="item-card__link">View credential ↗</a>
+              }
+            </div>
+            <div class="item-card__actions">
+              @if (!item.includeInCv) { <span class="tag tag--muted">Hidden from CV</span> }
+              <button class="btn-icon" title="Edit" (click)="openEdit(item)">✏️</button>
+              <button class="btn-icon btn-icon--danger" title="Delete" (click)="delete(item)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

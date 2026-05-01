@@ -20,9 +20,9 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   selectedThread: InteractionThread | null = null;
   searchQuery: string = '';
   showInsightsPanel: boolean = true;
+  isRefreshing: boolean = false;
   
-  // For new message/event
-  newMessageContent: string = '';
+  // For new event
   showNewEventModal: boolean = false;
   newEventType: EventType = EventType.EXPLORATION;
   newEventChannel: ChannelType = ChannelType.LINKEDIN;
@@ -37,6 +37,11 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   newThreadChannel: ChannelType = ChannelType.LINKEDIN;
   newThreadContent: string = '';
   
+  // For add company modal
+  showAddCompanyModal: boolean = false;
+  selectedThreadForCompany: InteractionThread | null = null;
+  newCompanyName: string = '';
+  
   // Enums for template
   ChannelType = ChannelType;
   EventType = EventType;
@@ -45,6 +50,8 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   constructor(private interactionService: InteractionService) {}
 
   ngOnInit(): void {
+    // Clear cache on app refresh to always get fresh data
+    this.interactionService.clearCache();
     this.loadThreads();
   }
 
@@ -54,7 +61,8 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   }
 
   loadThreads(): void {
-    this.interactionService.getThreads()
+    // Subscribe to cached threads observable
+    this.interactionService.threads$
       .pipe(takeUntil(this.destroy$))
       .subscribe(threads => {
         this.threads = threads.sort((a, b) => 
@@ -66,6 +74,18 @@ export class InteractionsComponent implements OnInit, OnDestroy {
         if (!this.selectedThread && this.threads.length > 0) {
           this.selectThread(this.threads[0]);
         }
+      });
+    
+    // Trigger initial load if not already loaded
+    this.interactionService.getThreads().pipe(takeUntil(this.destroy$)).subscribe();
+  }
+
+  refreshThreads(): void {
+    this.isRefreshing = true;
+    this.interactionService.refreshThreads()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.isRefreshing = false;
       });
   }
 
@@ -87,25 +107,6 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       thread.jobTitle?.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
       thread.companyName?.toLowerCase().includes(this.searchQuery.toLowerCase())
     );
-  }
-
-  sendMessage(): void {
-    if (!this.newMessageContent.trim() || !this.selectedThread) return;
-
-    const request = {
-      interactionThreadId: this.selectedThread.id,
-      eventType: EventType.REPLY, // Use REPLY for native messages
-      channel: ChannelType.MO_NATIVE,
-      content: this.newMessageContent
-    };
-
-    this.interactionService.createEvent(request).subscribe(event => {
-      // Add to current thread
-      this.selectedThread!.events.push(event);
-      this.selectedThread!.lastEventDate = event.timestamp;
-      this.selectedThread!.lastEventPreview = event.content;
-      this.newMessageContent = '';
-    });
   }
 
   openNewEventModal(): void {
@@ -192,6 +193,9 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       this.selectedThread!.lastEventDate = event.timestamp;
       this.selectedThread!.lastEventPreview = event.content;
       this.closeNewEventModal();
+      
+      // Refresh threads to get latest data from backend
+      this.refreshThreads();
     });
   }
 
@@ -256,6 +260,28 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  addCompany(thread: InteractionThread): void {
+    this.selectedThreadForCompany = thread;
+    this.newCompanyName = '';
+    this.showAddCompanyModal = true;
+  }
+
+  confirmAddCompany(): void {
+    if (!this.newCompanyName.trim() || !this.selectedThreadForCompany) return;
+
+    // TODO: Call backend API to update the interaction with company name
+    this.selectedThreadForCompany.companyName = this.newCompanyName.trim();
+    console.log(`Company "${this.newCompanyName}" added for ${this.selectedThreadForCompany.participantName}`);
+    
+    this.cancelAddCompany();
+  }
+
+  cancelAddCompany(): void {
+    this.showAddCompanyModal = false;
+    this.selectedThreadForCompany = null;
+    this.newCompanyName = '';
   }
 
   // ========== INSIGHTS & ANALYTICS ==========

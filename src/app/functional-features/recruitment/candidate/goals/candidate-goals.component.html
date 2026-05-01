@@ -1,0 +1,119 @@
+<div class="goals-page">
+  <!-- Gradient Header -->
+  <div class="goals-header">
+    <div class="goals-header__content">
+      <div class="goals-header__text">
+        <h1>Build credibility, one goal at a time.</h1>
+        <p>Track progress. Show growth. Earn trust. Milestones that speak louder than words.</p>
+      </div>
+      <div class="goals-header__actions">
+        <div class="goals-header__stats">
+          <div class="stat-card">
+            <span class="stat-value">{{ goals.length }}</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ activeCount }}</span>
+            <span class="stat-label">Active</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ completedCount }}</span>
+            <span class="stat-label">Completed</span>
+          </div>
+        </div>
+        <button class="btn btn--outline-white" (click)="openCreateForm()">+ New Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="goals-body">
+    @if (goals.length > 0) {
+      <div class="goals-toolbar">
+        <div class="goals-toolbar__search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search goals…"
+            [(ngModel)]="searchQuery"
+            class="search-input"
+          />
+        </div>
+        <div class="goals-toolbar__filters">
+          <select [(ngModel)]="statusFilter" class="filter-select">
+            @for (opt of statusOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+          <select [(ngModel)]="categoryFilter" class="filter-select">
+            @for (opt of categoryOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+          <select [(ngModel)]="sortBy" class="filter-select">
+            @for (opt of sortOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+          @if (hasActiveFilters) {
+            <button class="btn btn--ghost" (click)="clearFilters()">Clear</button>
+          }
+        </div>
+      </div>
+    }
+
+    @if (errorMessage) {
+      <div class="error-banner">{{ errorMessage }}</div>
+    }
+
+    @if (isLoading) {
+      <div class="loading">Loading goals…</div>
+    } @else if (goals.length === 0) {
+      <div class="empty-state">
+        <div class="empty-state__icon">🎯</div>
+        <h3>No goals yet</h3>
+        <p>Set your first goal to start building your growth portfolio.</p>
+        <button class="btn btn--primary" (click)="openCreateForm()">Create Your First Goal</button>
+      </div>
+    } @else if (filteredGoals.length === 0) {
+      <div class="empty-state">
+        <div class="empty-state__icon">🔍</div>
+        <h3>No goals match your filters</h3>
+        <p>Try adjusting your search or filters.</p>
+        <button class="btn btn--ghost" (click)="clearFilters()">Clear Filters</button>
+      </div>
+    } @else {
+      <p class="goals-count">Showing {{ filteredGoals.length }} of {{ goals.length }} goals</p>
+      <div class="goals-grid">
+        @for (goal of filteredGoals; track goal.id) {
+          <app-goal-card
+            [goal]="goal"
+            (edit)="openEditForm($event)"
+            (delete)="onDelete($event)"
+            (addMilestone)="openMilestoneForm($event)"
+            (reopen)="onReopen($event)"
+            (milestonesChanged)="loadGoals()"
+          />
+        }
+      </div>
+    }
+  </div>
+
+  @if (showForm) {
+    <app-goal-form
+      [goal]="editingGoal"
+      (save)="onSave($event)"
+      (cancel)="closeForm()"
+    />
+  }
+
+  @if (showMilestoneForm && milestoneGoal) {
+    <app-milestone-form
+      [goal]="milestoneGoal"
+      (save)="onSaveMilestone($event)"
+      (cancel)="closeMilestoneForm()"
+    />
+  }
+</div>

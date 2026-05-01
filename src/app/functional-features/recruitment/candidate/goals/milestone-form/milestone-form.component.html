@@ -1,0 +1,73 @@
+<div class="milestone-form-overlay" (click)="onBackdropClick($event)">
+  <div class="milestone-form-modal" role="dialog" aria-modal="true" [attr.aria-label]="'Add milestone to ' + goal.title">
+    <div class="milestone-form-modal__header">
+      <h2 class="milestone-form-modal__title">Add Milestone</h2>
+      <p class="milestone-form-modal__subtitle">{{ goal.title }}</p>
+      <button class="milestone-form-modal__close" (click)="onCancel()" aria-label="Close">✕</button>
+    </div>
+
+    <form class="milestone-form-modal__body" (ngSubmit)="onSubmit()" #milestoneForm="ngForm" novalidate>
+
+      <div class="form-group">
+        <label class="form-label" for="milestoneTitle">Milestone title <span class="required">*</span></label>
+        <input
+          id="milestoneTitle"
+          class="form-input"
+          type="text"
+          [(ngModel)]="title"
+          name="title"
+          placeholder="e.g. Completed Module 3"
+          maxlength="150"
+          required
+          autocomplete="off"
+        />
+        @if (milestoneForm.submitted && !title.trim()) {
+          <span class="form-error">Title is required.</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="milestoneDescription">Notes (optional)</label>
+        <textarea
+          id="milestoneDescription"
+          class="form-input form-textarea"
+          [(ngModel)]="description"
+          name="description"
+          placeholder="Describe what you achieved, what you learned…"
+          rows="3"
+          maxlength="500"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="completionPct">Progress checkpoint <span class="required">*</span></label>
+        <select
+          id="completionPct"
+          class="form-input form-select"
+          [(ngModel)]="completionPercentage"
+          name="completionPercentage"
+          required
+        >
+          @for (opt of percentageOptions; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+        @if (completionPercentage === 100) {
+          <p class="form-hint form-hint--success">
+            🎉 Marking 100% will automatically complete this goal!
+          </p>
+        }
+      </div>
+
+      <div class="milestone-form-modal__actions">
+        <button type="button" class="btn btn--secondary" (click)="onCancel()" [disabled]="isSaving">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn--primary" [disabled]="!isValid || isSaving">
+          @if (isSaving) { Saving… } @else { Log Milestone }
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

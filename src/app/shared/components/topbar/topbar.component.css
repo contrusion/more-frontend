@@ -337,6 +337,18 @@
   color: #ef4444;
 }
 
+.admin-item {
+  color: #fbbf24;
+  border-top: 1px solid rgba(251, 191, 36, 0.1);
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+}
+
+.admin-item:hover {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
 /* Notifications Menu */
 .notifications-menu {
   min-width: 320px;

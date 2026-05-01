@@ -19,11 +19,18 @@ export class InteractionsAnalyticsComponent implements OnInit, OnDestroy {
   constructor(private interactionService: InteractionService) {}
 
   ngOnInit(): void {
-    this.interactionService.getThreads()
+    // Clear cache on component init to get fresh data
+    this.interactionService.clearCache();
+    
+    // Subscribe to cached threads observable
+    this.interactionService.threads$
       .pipe(takeUntil(this.destroy$))
       .subscribe(threads => {
         this.threads = threads;
       });
+    
+    // Trigger initial load if not already loaded (won't make duplicate API call)
+    this.interactionService.getThreads().pipe(takeUntil(this.destroy$)).subscribe();
   }
 
   ngOnDestroy(): void {

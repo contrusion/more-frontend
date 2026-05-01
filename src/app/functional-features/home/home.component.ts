@@ -37,14 +37,15 @@ export class HomeComponent implements OnInit, OnDestroy {
       icon: 'clipboard',
       route: '/interactions',
       color: '#0ea5e9',
-      roles: ['APPLICANT', 'RECRUITER']
+      roles: ['APPLICANT', 'RECRUITER', 'MO_ADMIN']
     },
     {
-      title: 'Interviews',
-      description: 'View and update your professional profile',
-      icon: 'calendar',
-      route: '/interviews',
-      color: '#8b5cf6'
+      title: 'Outreach ML Dataset Export',
+      description: 'Export recruitment emails for machine learning model training',
+      icon: 'database',
+      route: '/admin/outreach-ml',
+      color: '#f59e0b',
+      roles: ['MO_ADMIN']
     },
     {
       title: 'Job Opportunities and Applications',
@@ -63,11 +64,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       roles: ['RECRUITER']
     },
     {
-      title: 'Connections',
-      description: 'View and respond to your conversations',
-      icon: 'users',
-      route: '/connections',
-      color: '#ec4899'
+      title: 'Personal Development',
+      description: 'Track goals, log milestones, and showcase proof—every step strengthens your Living CV, builds trust, and earns your class badge as you evolve.',
+      icon: 'sparkles',
+      route: '/personal-development',
+      color: '#667eea',
+      roles: ['APPLICANT']
     },
     {
       title: 'Settings',
@@ -113,14 +115,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   canAccessTile(tile: NavigationTile): boolean {
-    // Temporarily show all tiles for testing
-    //return true;
-    
-    //Original role-based logic (uncomment when authentication is working):
-     if (!tile.roles || tile.roles.length === 0) {
-       return true;
-     }
-     return tile.roles.some(role => this.authService.hasRole(role));
+    // Show tiles without role restrictions to everyone
+    if (!tile.roles || tile.roles.length === 0) {
+      return true;
+    }
+    // Check if user has any of the required roles
+    return tile.roles.some(role => this.authService.hasRole(role));
   }
 
   logout(): void {

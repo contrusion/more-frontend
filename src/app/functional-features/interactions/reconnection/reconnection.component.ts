@@ -133,8 +133,8 @@ export class ReconnectionComponent implements OnInit, OnDestroy {
   }
 
   viewConversation(conversationId: string): void {
-    // Navigate to the specific conversation in messages
-    this.router.navigate(['/interactions/messages'], { 
+    // Navigate to the specific conversation in events
+    this.router.navigate(['/interactions/events'], { 
       queryParams: { conversation: conversationId } 
     });
   }

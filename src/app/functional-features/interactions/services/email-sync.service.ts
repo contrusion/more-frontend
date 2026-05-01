@@ -12,6 +12,26 @@ export interface GmailStatusResponse {
   provider?: string;
   email?: string;
   tokenExpiry?: string;
+  lastSyncAt?: string;
+  lastSyncSuccess?: boolean;
+  lastSyncProcessedCount?: number;
+}
+
+export interface EmailSyncResult {
+  userId: string;
+  syncedAt: string;
+  totalFetched: number;
+  processed: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+  durationMs: number;
+  success: boolean;
+}
+
+export interface SyncStatusResponse {
+  syncing: boolean;
+  userId: string;
 }
 
 @Injectable({
@@ -39,8 +59,24 @@ export class EmailSyncService {
   /**
    * Revoke Gmail access
    */
-  revokeGmailAccess(): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/gmail/revoke`);
+  revokeGmailAccess(): Observable<{message: string, status: string}> {
+    console.log('Calling DELETE /api/email/gmail/revoke');
+    return this.http.delete<{message: string, status: string}>(`${this.apiUrl}/gmail/revoke`);
+  }
+
+  /**
+   * Trigger manual email sync
+   * Fetches and imports LinkedIn recruiter emails from Gmail
+   */
+  syncNow(): Observable<EmailSyncResult> {
+    return this.http.post<EmailSyncResult>(`${this.apiUrl}/sync`, {});
+  }
+
+  /**
+   * Check if email sync is currently in progress
+   */
+  getSyncStatus(): Observable<SyncStatusResponse> {
+    return this.http.get<SyncStatusResponse>(`${this.apiUrl}/sync-status`);
   }
 
   /**

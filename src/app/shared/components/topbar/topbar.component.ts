@@ -129,10 +129,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const routeLabels: { [key: string]: string } = {
       'home': 'Home',
       'interactions': 'Interactions',
+      'personal-development': 'Personal Development',
+      'goals': 'My Goals',
       'profile': 'Profile',
       'jobs': 'Job Opportunities',
       'search': 'Talent Search',
-      'messages': 'Messages',
+      'events': 'Events',
       'settings': 'Settings'
     };
 
@@ -191,6 +193,14 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.navigateTo('/settings');
   }
 
+  goToAdmin(): void {
+    this.navigateTo('/admin');
+  }
+
+  isAdmin(): boolean {
+    return this.authService.hasRole('MO_ADMIN');
+  }
+
   logout(): void {
     this.authService.logout();
     this.closeMenus();
@@ -211,7 +221,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     if (insight?.actionUrl) {
       this.router.navigate([insight.actionUrl]);
     } else {
-      this.router.navigate(['/interactions/messages']);
+      this.router.navigate(['/interactions/events']);
     }
     this.closeMenus();
   }

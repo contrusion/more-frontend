@@ -1,0 +1,85 @@
+<div class="goal-card" [class.overdue]="isOverdue" [class.completed]="goal.status === GoalStatus.COMPLETED">
+
+  <!-- Clickable header row -->
+  <div class="goal-card__header" (click)="showMilestones = !showMilestones">
+    <div class="goal-card__header-left">
+      <div class="goal-card__title-group">
+        <span class="goal-card__category">{{ categoryLabel }}</span>
+        <h3 class="goal-card__title">{{ goal.title }}</h3>
+      </div>
+    </div>
+
+    <div class="goal-card__header-right">
+      @if (goal.milestoneCount > 0) {
+        <span class="goal-card__milestone-count">
+          {{ goal.completedMilestoneCount }}/{{ goal.milestoneCount }}
+        </span>
+      }
+      @if (goal.targetDate) {
+        <span class="goal-card__date" [class.overdue-text]="isOverdue">
+          {{ goal.targetDate | date:'mediumDate' }}
+          @if (isOverdue) { <em>(overdue)</em> }
+        </span>
+      }
+      <span class="goal-card__status" [class]="'status--' + goal.status.toLowerCase()">{{ statusLabel }}</span>
+      <button class="goal-card__toggle" (click)="$event.stopPropagation(); showMilestones = !showMilestones">
+        {{ showMilestones ? '▲' : '▼' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Expandable body -->
+  @if (showMilestones) {
+    <div class="goal-card__body">
+
+      @if (goal.description) {
+        <p class="goal-card__description">{{ goal.description }}</p>
+      }
+
+      @if (goal.milestoneCount > 0) {
+        <div class="goal-card__progress">
+          <div class="goal-card__progress-label">
+            <span>Milestones</span>
+            <span>{{ goal.completedMilestoneCount }} / {{ goal.milestoneCount }}</span>
+          </div>
+          <div class="goal-card__progress-bar">
+            <div
+              class="goal-card__progress-fill"
+              [style.width.%]="(goal.completedMilestoneCount / goal.milestoneCount) * 100"
+              [class.fill--complete]="goal.completedMilestoneCount === goal.milestoneCount"
+            ></div>
+          </div>
+        </div>
+        <app-milestone-list
+          [goalId]="goal.id"
+          (milestoneChanged)="milestonesChanged.emit()"
+        />
+      } @else {
+        <p class="goal-card__no-milestones">No milestones yet. Add one below to start tracking progress.</p>
+      }
+
+      <div class="goal-card__actions">
+        @switch (goal.status) {
+          @case (GoalStatus.NOT_STARTED) {
+            <button class="btn btn--primary btn--sm" (click)="onAddMilestone()">+ Milestone</button>
+            <button class="btn btn--secondary btn--sm" (click)="onEdit()">Edit</button>
+          }
+          @case (GoalStatus.IN_PROGRESS) {
+            <button class="btn btn--primary btn--sm" (click)="onAddMilestone()">+ Milestone</button>
+            <button class="btn btn--secondary btn--sm" (click)="onEdit()">Edit</button>
+          }
+          @case (GoalStatus.COMPLETED) {
+            <button class="btn btn--secondary btn--sm" (click)="onEdit()">Edit</button>
+          }
+          @case (GoalStatus.ABANDONED) {
+            <button class="btn btn--primary btn--sm" (click)="onReopen()">Reopen</button>
+            <button class="btn btn--secondary btn--sm" (click)="onEdit()">Edit</button>
+          }
+        }
+        <button class="btn btn--danger btn--sm" (click)="onDelete()">Delete</button>
+      </div>
+
+    </div>
+  }
+
+</div>

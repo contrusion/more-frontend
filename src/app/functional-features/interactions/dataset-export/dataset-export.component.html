@@ -1,0 +1,202 @@
+<div class="dataset-export-container">
+  <h2>📊 ML Dataset Export</h2>
+  <p class="description">
+    Export recruitment emails from Gmail to build your machine learning training dataset.
+  </p>
+
+  <!-- Export Configuration -->
+  <div class="export-config-card">
+    <h3>Export Configuration</h3>
+    
+    <div class="config-grid">
+      <div class="config-item">
+        <label for="sinceDays">Days to Look Back:</label>
+        <input 
+          type="number" 
+          id="sinceDays" 
+          [(ngModel)]="exportConfig.sinceDays" 
+          min="1" 
+          max="3650"
+          class="config-input"
+        />
+      </div>
+      
+      <div class="config-item">
+        <label for="maxResults">Max Emails:</label>
+        <input 
+          type="number" 
+          id="maxResults" 
+          [(ngModel)]="exportConfig.maxResults" 
+          min="1" 
+          max="5000"
+          class="config-input"
+        />
+      </div>
+      
+      <div class="config-item checkbox-item">
+        <label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="exportConfig.includeInbox"
+          />
+          Include Inbox
+        </label>
+      </div>
+      
+      <div class="config-item checkbox-item">
+        <label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="exportConfig.includeSent"
+          />
+          Include Sent
+        </label>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button 
+        (click)="exportJson()" 
+        [disabled]="loading"
+        class="btn btn-primary"
+      >
+        {{ loading ? '⏳ Exporting...' : '📥 Export as JSON' }}
+      </button>
+      
+      <button 
+        (click)="exportCsv()" 
+        [disabled]="loading"
+        class="btn btn-secondary"
+      >
+        {{ loading ? '⏳ Exporting...' : '📊 Export as CSV' }}
+      </button>
+      
+      <button 
+        (click)="resetConfig()" 
+        class="btn btn-outline"
+      >
+        🔄 Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="error-message">
+    ⚠️ {{ errorMessage }}
+  </div>
+
+  <!-- Export Results -->
+  <div *ngIf="exportResponse" class="export-results">
+    <h3>Export Results</h3>
+    
+    <div class="stats-grid">
+      <div class="stat-item">
+        <span class="stat-label">Total Emails:</span>
+        <span class="stat-value">{{ exportResponse.totalEmails }}</span>
+      </div>
+      
+      <div class="stat-item" *ngIf="exportResponse.stats">
+        <span class="stat-label">Inbox:</span>
+        <span class="stat-value">{{ exportResponse.stats.inboxCount }}</span>
+      </div>
+      
+      <div class="stat-item" *ngIf="exportResponse.stats">
+        <span class="stat-label">Sent:</span>
+        <span class="stat-value">{{ exportResponse.stats.sentCount }}</span>
+      </div>
+      
+      <div class="stat-item" *ngIf="exportResponse.stats">
+        <span class="stat-label">With Attachments:</span>
+        <span class="stat-value">{{ exportResponse.stats.withAttachments }}</span>
+      </div>
+    </div>
+    
+    <div class="export-info">
+      <p><strong>Exported At:</strong> {{ exportResponse.exportedAt | date:'medium' }}</p>
+      <p *ngIf="exportResponse.stats?.oldestEmail">
+        <strong>Date Range:</strong> 
+        {{ exportResponse.stats.oldestEmail | date:'shortDate' }} - 
+        {{ exportResponse.stats.newestEmail | date:'shortDate' }}
+      </p>
+    </div>
+    
+    <div class="success-message" *ngIf="exportResponse.success">
+      ✅ Export completed successfully! Dataset ready for labeling.
+    </div>
+  </div>
+
+  <!-- Preview Section -->
+  <div class="preview-section">
+    <div class="preview-header">
+      <h3>📧 Recent Recruitment Emails (Preview)</h3>
+      <button 
+        (click)="loadPreview()" 
+        [disabled]="previewLoading"
+        class="btn btn-sm"
+      >
+        {{ previewLoading ? '⏳' : '🔄' }} Refresh
+      </button>
+    </div>
+    
+    <div *ngIf="previewLoading" class="loading-spinner">
+      Loading preview...
+    </div>
+    
+    <div *ngIf="!previewLoading && previewData" class="preview-list">
+      <div 
+        *ngFor="let email of previewData.emails" 
+        class="email-preview-card"
+      >
+        <div class="email-header">
+          <span class="email-subject">{{ email.subject || '(No Subject)' }}</span>
+          <span class="email-folder" [class.inbox]="email.folder === 'INBOX'">
+            {{ email.folder }}
+          </span>
+        </div>
+        
+        <div class="email-meta">
+          <span class="email-from">
+            {{ email.fromName || email.fromEmail }}
+          </span>
+          <span class="email-date">
+            {{ email.receivedDate | date:'short' }}
+          </span>
+        </div>
+        
+        <div class="email-snippet">
+          {{ email.snippet }}
+        </div>
+        
+        <div class="email-tags">
+          <span class="tag" *ngIf="email.hasAttachments">📎 Attachment</span>
+          <span class="tag" *ngIf="email.companyName">🏢 {{ email.companyName }}</span>
+        </div>
+      </div>
+      
+      <div *ngIf="previewData.emails.length === 0" class="no-emails">
+        No recruitment emails found in the last 30 days.
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="instructions-card">
+    <h3>📝 Next Steps</h3>
+    <ol>
+      <li>Click <strong>"Export as CSV"</strong> to download your recruitment emails</li>
+      <li>Open the CSV file in Excel or Google Sheets</li>
+      <li>Add labels to the <code>label</code> column:
+        <ul>
+          <li><code>outreach</code> - Initial recruiter contact</li>
+          <li><code>cv_requested</code> - Asking for your resume</li>
+          <li><code>cv_submitted</code> - Confirmation of application</li>
+          <li><code>interview_scheduled</code> - Interview invitation</li>
+          <li><code>interview_feedback</code> - Post-interview updates</li>
+          <li><code>follow_up</code> - Status check emails</li>
+          <li><code>non_recruitment</code> - Not recruitment related</li>
+        </ul>
+      </li>
+      <li>Save the labeled CSV for training your ML model</li>
+    </ol>
+  </div>
+</div>

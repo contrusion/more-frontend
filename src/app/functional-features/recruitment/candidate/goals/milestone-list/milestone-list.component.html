@@ -1,0 +1,59 @@
+@if (isLoading()) {
+  <p class="ml-loading">Loading milestones…</p>
+} @else if (milestones().length === 0) {
+  <p class="ml-empty">No milestones yet. Use "Add Milestone" to log progress.</p>
+} @else {
+  <ul class="ml-list">
+    @for (m of milestones(); track m.id) {
+      <li class="ml-item">
+        @if (editingId() === m.id) {
+          <!-- Edit form -->
+          <div class="ml-edit-form">
+            <input
+              class="ml-input"
+              type="text"
+              [(ngModel)]="editTitle"
+              placeholder="Milestone title"
+              maxlength="150"
+            />
+            <textarea
+              class="ml-input ml-textarea"
+              [(ngModel)]="editDescription"
+              placeholder="Notes (optional)"
+              rows="2"
+              maxlength="500"
+            ></textarea>
+            <select class="ml-input ml-select" [(ngModel)]="editCompletion">
+              @for (opt of percentageOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+            <div class="ml-edit-actions">
+              <button class="ml-btn ml-btn--save" (click)="saveEdit(m)">Save</button>
+              <button class="ml-btn ml-btn--cancel" (click)="cancelEdit()">Cancel</button>
+            </div>
+          </div>
+        } @else {
+          <!-- Read view -->
+          <div class="ml-row">
+            <div class="ml-info">
+              <span class="ml-pct-badge" [class.done]="m.completionPercentage === 100">
+                {{ m.completionPercentage }}%
+              </span>
+              <div class="ml-text">
+                <span class="ml-title">{{ m.title }}</span>
+                @if (m.description) {
+                  <span class="ml-desc">{{ m.description }}</span>
+                }
+              </div>
+            </div>
+            <div class="ml-actions">
+              <button class="ml-btn ml-btn--edit" (click)="startEdit(m)" title="Edit">✏️</button>
+              <button class="ml-btn ml-btn--delete" (click)="delete(m)" title="Delete">🗑️</button>
+            </div>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}

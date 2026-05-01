@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor } from '@angular/common/http';
 import { Observable, from, switchMap } from 'rxjs';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { environment } from '../../../../environments/environment';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
@@ -34,6 +35,6 @@ export class AuthInterceptor implements HttpInterceptor {
   private isSecureUrl(url: string): boolean {
     // Add logic to determine if a URL should have the auth token added
     // For example, only add tokens to your API endpoints
-    return url.startsWith('http://localhost:8081/');
+    return url.startsWith(environment.apiUrl);
   }
 }

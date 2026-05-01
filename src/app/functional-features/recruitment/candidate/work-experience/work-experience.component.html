@@ -1,0 +1,117 @@
+<div class="section-page">
+
+  <!-- Header -->
+  <header class="section-header">
+    <div class="section-header__content">
+      <div class="section-header__text">
+        <h1>Work Experience</h1>
+        <p>Track your employment history and highlight it on your CV</p>
+      </div>
+      <button class="btn-primary" (click)="openCreate()">+ Add Experience</button>
+    </div>
+  </header>
+
+  <div class="section-body">
+    @if (errorMessage) {
+      <div class="alert-error">{{ errorMessage }}</div>
+    }
+
+    @if (isLoading) {
+      <div class="loading-state"><div class="spinner"></div><p>Loading…</p></div>
+    }
+
+    <!-- Form -->
+    @if (showForm) {
+      <div class="form-card">
+        <h2>{{ editingItem ? 'Edit Experience' : 'Add Experience' }}</h2>
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label>Company Name *</label>
+            <input [(ngModel)]="form.companyName" placeholder="e.g. Acme Corp" />
+          </div>
+          <div class="form-field form-field--full">
+            <label>Job Title *</label>
+            <input [(ngModel)]="form.jobTitle" placeholder="e.g. Software Engineer" />
+          </div>
+          <div class="form-field">
+            <label>Employment Type</label>
+            <select [(ngModel)]="form.employmentType">
+              <option value="">— Select —</option>
+              @for (t of employmentTypes; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Location</label>
+            <input [(ngModel)]="form.location" placeholder="e.g. Cape Town, SA" />
+          </div>
+          <div class="form-field">
+            <label>Start Date *</label>
+            <input type="date" [(ngModel)]="form.startDate" />
+          </div>
+          <div class="form-field">
+            <label>End Date</label>
+            <input type="date" [(ngModel)]="form.endDate" [disabled]="!!form.isCurrent" />
+          </div>
+          <div class="form-field form-field--checkbox">
+            <label><input type="checkbox" [(ngModel)]="form.isCurrent" /> Currently working here</label>
+          </div>
+          <div class="form-field form-field--checkbox">
+            <label><input type="checkbox" [(ngModel)]="form.includeInCv" /> Include in CV</label>
+          </div>
+          <div class="form-field form-field--full">
+            <label>Description</label>
+            <textarea [(ngModel)]="form.description" rows="4" placeholder="Key responsibilities and achievements…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="cancel()">Cancel</button>
+          <button class="btn-primary" (click)="save()">{{ editingItem ? 'Save Changes' : 'Add Experience' }}</button>
+        </div>
+      </div>
+    }
+
+    <!-- List -->
+    @if (!isLoading && items.length === 0 && !showForm) {
+      <div class="empty-state">
+        <p>No work experience added yet.</p>
+        <button class="btn-primary" (click)="openCreate()">Add your first role</button>
+      </div>
+    }
+
+    <div class="item-list">
+      @for (item of items; track item.id) {
+        <div class="item-card" [class.item-card--hidden]="!item.includeInCv">
+          <div class="item-card__main">
+            <div class="item-card__info">
+              <h3>{{ item.jobTitle }}</h3>
+              <p class="item-card__sub">{{ item.companyName }}</p>
+              <div class="item-card__meta">
+                @if (item.employmentType) {
+                  <span class="tag">{{ getEmploymentLabel(item.employmentType) }}</span>
+                }
+                <span class="item-card__dates">
+                  {{ formatDate(item.startDate) }} – {{ item.isCurrent ? 'Present' : formatDate(item.endDate) }}
+                </span>
+                @if (item.location) {
+                  <span class="item-card__location">{{ item.location }}</span>
+                }
+              </div>
+              @if (item.description) {
+                <p class="item-card__desc">{{ item.description }}</p>
+              }
+            </div>
+            <div class="item-card__actions">
+              @if (!item.includeInCv) {
+                <span class="tag tag--muted">Hidden from CV</span>
+              }
+              <button class="btn-icon" title="Edit" (click)="openEdit(item)">✏️</button>
+              <button class="btn-icon btn-icon--danger" title="Delete" (click)="delete(item)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

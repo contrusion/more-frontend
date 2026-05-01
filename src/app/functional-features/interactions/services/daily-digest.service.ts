@@ -57,7 +57,7 @@ export class DailyDigestService {
         type: 'priority',
         icon: '🎯',
         message: `${interviewThreads.length} interview${interviewThreads.length > 1 ? 's' : ''} scheduled with ${names}${interviewThreads.length > 3 ? ' and others' : ''}`,
-        actionUrl: '/interactions/messages'
+        actionUrl: '/interactions/events'
       });
     }
 
@@ -90,7 +90,7 @@ export class DailyDigestService {
         type: 'alert',
         icon: '📄',
         message: `CV requested by ${names} - submit your latest version`,
-        actionUrl: '/interactions/messages'
+        actionUrl: '/interactions/events'
       });
     }
 
@@ -108,7 +108,7 @@ export class DailyDigestService {
         type: 'opportunity',
         icon: '✨',
         message: `${recruiter.participantName} (${recruiter.companyName || 'Company'}) has excellent response rate - high-value opportunity`,
-        actionUrl: '/interactions/messages'
+        actionUrl: '/interactions/events'
       });
     }
 
@@ -118,7 +118,7 @@ export class DailyDigestService {
         type: 'opportunity',
         icon: '📈',
         message: `${newThisWeek} new conversation${newThisWeek > 1 ? 's' : ''} started this week - momentum is building`,
-        actionUrl: '/interactions/messages'
+        actionUrl: '/interactions/events'
       });
     }
 
@@ -128,7 +128,7 @@ export class DailyDigestService {
         type: 'opportunity',
         icon: '💼',
         message: `All caught up! ${activeConversations} active conversation${activeConversations !== 1 ? 's' : ''} in your pipeline`,
-        actionUrl: '/interactions/messages'
+        actionUrl: '/interactions/events'
       });
     }
 
