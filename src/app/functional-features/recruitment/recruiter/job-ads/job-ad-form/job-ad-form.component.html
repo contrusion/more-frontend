@@ -1,0 +1,256 @@
+<div class="modal-backdrop" (click)="cancel()"></div>
+<div class="modal-panel" role="dialog" aria-modal="true">
+
+  <div class="modal-header">
+    <h2>{{ editAd ? 'Edit Job Ad' : 'Post a Job Ad' }}</h2>
+    <button class="close-btn" (click)="cancel()" aria-label="Close">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="form-error">{{ error() }}</div>
+  }
+
+  <div class="modal-body">
+
+    <!-- ── Basic Details ── -->
+    <section class="form-section">
+      <h3 class="section-title">Basic Details</h3>
+
+      <div class="form-group">
+        <label>Job Title <span class="req">*</span></label>
+        <input type="text" [(ngModel)]="title" placeholder="e.g. Senior Java Developer" maxlength="255"/>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Job Type <span class="req">*</span></label>
+          <select [(ngModel)]="jobType">
+            @for (jt of jobTypes; track jt) {
+              <option [value]="jt">{{ labelFor(jt) }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Experience Level <span class="req">*</span></label>
+          <select [(ngModel)]="experienceLevel">
+            @for (el of experienceLevels; track el) {
+              <option [value]="el">{{ labelFor(el) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Location <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="location" placeholder="e.g. Cape Town, South Africa"/>
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" [(ngModel)]="department" placeholder="e.g. Engineering"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Description <span class="req">*</span></label>
+        <textarea [(ngModel)]="description" rows="5" placeholder="Describe the role, responsibilities and what makes it great…"></textarea>
+      </div>
+    </section>
+
+    <!-- ── Compensation ── -->
+    <section class="form-section">
+      <h3 class="section-title">Compensation</h3>
+      <div class="form-row three-col">
+        <div class="form-group">
+          <label>Min Salary</label>
+          <input type="number" [(ngModel)]="salaryMin" placeholder="e.g. 40000" min="0"/>
+        </div>
+        <div class="form-group">
+          <label>Max Salary</label>
+          <input type="number" [(ngModel)]="salaryMax" placeholder="e.g. 80000" min="0"/>
+        </div>
+        <div class="form-group">
+          <label>Currency</label>
+          <input type="text" [(ngModel)]="currency" placeholder="ZAR" maxlength="10"/>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Dates & Status ── -->
+    <section class="form-section">
+      <h3 class="section-title">Dates &amp; Status</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Closing Date <span class="req">*</span></label>
+          <input type="date" [(ngModel)]="closingDate"/>
+        </div>
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="isActive"/>
+            <span>Active (visible to matched candidates)</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Skills ── -->
+    <section class="form-section">
+      <h3 class="section-title">Required &amp; Preferred Skills</h3>
+      @if (loadingCatalogs()) {
+        <p class="hint">Loading skills…</p>
+      } @else {
+        <!-- Skill picker -->
+        <div class="chip-picker">
+          @for (skill of availableSkills(); track skill.id) {
+            <button
+              type="button"
+              class="chip"
+              [class.chip-selected]="isSkillSelected(skill.id)"
+              (click)="addSkill(skill)"
+            >{{ skill.name }}</button>
+          }
+        </div>
+
+        <!-- Selected skills with importance + years -->
+        @if (selectedSkills.length > 0) {
+          <div class="selected-skills">
+            @for (sel of selectedSkills; track sel.skillId) {
+              <div class="skill-row">
+                <span class="skill-name">{{ sel.skillName }}</span>
+                <select [(ngModel)]="sel.importanceLevel" class="importance-select">
+                  @for (il of importanceLevels; track il) {
+                    <option [value]="il">{{ labelFor(il) }}</option>
+                  }
+                </select>
+                <input type="number" [(ngModel)]="sel.yearsRequired" placeholder="Years" min="0" max="30" class="years-input"/>
+                <button type="button" class="remove-chip" (click)="removeSkill(sel.skillId)" aria-label="Remove">×</button>
+              </div>
+            }
+          </div>
+        }
+      }
+    </section>
+
+    <!-- ── Benefits ── -->
+    <section class="form-section">
+      <h3 class="section-title">Benefits</h3>
+      @if (loadingCatalogs()) {
+        <p class="hint">Loading benefits…</p>
+      } @else {
+        <div class="chip-picker">
+          @for (benefit of availableBenefits(); track benefit.id) {
+            <button
+              type="button"
+              class="chip"
+              [class.chip-selected]="isBenefitSelected(benefit.id)"
+              (click)="toggleBenefit(benefit.id)"
+            >{{ benefit.name }}</button>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- ── Selection Criteria ── -->
+    <section class="form-section">
+      <h3 class="section-title">Selection Criteria</h3>
+      <p class="hint">Define who sees this advert. Unselected criteria apply no restriction.</p>
+
+      <div class="form-group">
+        <label class="criteria-label">Preferred Tiers</label>
+        <p class="field-hint">Only candidates in the selected tiers will see this advert. Example: Gold + All‑Star → top‑tier only.</p>
+        <div class="chip-picker">
+          @for (tier of tierOptions; track tier) {
+            <button type="button" class="chip" [class.chip-selected]="isTierSelected(tier)" (click)="toggleTier(tier)">{{ tier }}</button>
+          }
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="criteria-label">Company Alumni</label>
+        <p class="field-hint">Prioritise candidates who have worked at these companies. Example: Ex‑Microsoft, Ex‑Standard Bank.</p>
+        <div class="cert-input-row">
+          <input type="text" [(ngModel)]="companyInput" placeholder="e.g. Microsoft, Standard Bank" (keydown.enter)="addCompany(); $event.preventDefault()"/>
+          <button type="button" class="add-cert-btn" (click)="addCompany()">Add</button>
+        </div>
+        <div class="cert-chips">
+          @for (c of companyAlumni; track c) {
+            <span class="cert-chip">{{ c }}<button type="button" class="remove-chip" (click)="removeCompany(c)" aria-label="Remove">×</button></span>
+          }
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="criteria-label">Problem Domain</label>
+        <p class="field-hint">Show advert to candidates with domain experience. Example: Finance + Health.</p>
+        <div class="chip-picker">
+          @for (domain of domainOptions; track domain) {
+            <button type="button" class="chip" [class.chip-selected]="isDomainSelected(domain)" (click)="toggleDomain(domain)">{{ domain }}</button>
+          }
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="criteria-label">School Alumni</label>
+        <p class="field-hint">Target candidates from specific academic institutions. Example: UCT, Wits, Stellenbosch.</p>
+        <div class="cert-input-row">
+          <input type="text" [(ngModel)]="schoolInput" placeholder="e.g. University of Cape Town, Wits" (keydown.enter)="addSchool(); $event.preventDefault()"/>
+          <button type="button" class="add-cert-btn" (click)="addSchool()">Add</button>
+        </div>
+        <div class="cert-chips">
+          @for (s of schoolAlumni; track s) {
+            <span class="cert-chip">{{ s }}<button type="button" class="remove-chip" (click)="removeSchool(s)" aria-label="Remove">×</button></span>
+          }
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="criteria-label">Preferred Certifications</label>
+        <p class="field-hint">Candidates with these certifications are prioritised. Example: AWS Certified Developer, CFA.</p>
+        <div class="cert-input-row">
+          <input type="text" [(ngModel)]="certInput" placeholder="e.g. AWS Certified Developer" (keydown.enter)="addCert(); $event.preventDefault()"/>
+          <button type="button" class="add-cert-btn" (click)="addCert()">Add</button>
+        </div>
+        <div class="cert-chips">
+          @for (cert of preferredCertifications; track cert) {
+            <span class="cert-chip">{{ cert }}<button type="button" class="remove-chip" (click)="removeCert(cert)" aria-label="Remove">×</button></span>
+          }
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="criteria-label">Activity Recency (days)</label>
+        <input type="number" [(ngModel)]="activityRecencyDays" placeholder="e.g. 90 — leave blank for no requirement" min="1"/>
+        <p class="field-hint">Minimum days of recent platform activity required (optional).</p>
+      </div>
+    </section>
+
+    <!-- ── Links ── -->
+    <section class="form-section">
+      <h3 class="section-title">Application Details</h3>
+      <div class="form-group">
+        <label>External Job URL</label>
+        <input type="url" [(ngModel)]="externalJobUrl" placeholder="https://careers.example.com/job/123"/>
+      </div>
+      <div class="form-group">
+        <label>Application Instructions</label>
+        <textarea [(ngModel)]="applicationInstructions" rows="3" placeholder="How should candidates apply?"></textarea>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer">
+    <button class="btn-cancel" (click)="cancel()">Cancel</button>
+    <button class="btn-submit" (click)="submit()" [disabled]="saving()">
+      @if (saving()) { Saving… } @else { {{ editAd ? 'Save Changes' : 'Post Job Ad' }} }
+    </button>
+  </div>
+
+</div>

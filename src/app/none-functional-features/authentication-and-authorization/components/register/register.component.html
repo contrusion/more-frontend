@@ -8,8 +8,8 @@
           <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <h1 class="register-title">Unlock Your Potential</h1>
-      <p class="register-subtitle">Join us today and discover what More can do for you</p>
+      <h1 class="register-title">Connecting proven talent with trusted recruiters</h1>
+      <p class="register-subtitle">Join us today and unleash more opportunities</p>
     </div>
 
     <div *ngIf="errorMessage" class="alert-error" role="alert">
@@ -173,6 +173,37 @@
             Job title is required
           </div>
         </div>
+      </div>
+
+      <div class="form-group" *ngIf="registerForm.get('userType')?.value !== 'RECRUITER'">
+        <label for="roleCategory" class="form-label">
+          Role Category
+          <span class="required">*</span>
+        </label>
+        <div class="input-wrapper">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <select
+            id="roleCategory"
+            formControlName="roleCategory"
+            class="form-input"
+            [class.input-error]="registerForm.get('roleCategory')?.touched && registerForm.get('roleCategory')?.invalid"
+            aria-describedby="roleCategory-error">
+            <option value="" disabled>Select your role category</option>
+            <option *ngFor="let opt of roleCategoryOptions" [value]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div
+          *ngIf="registerForm.get('roleCategory')?.touched && registerForm.get('roleCategory')?.errors?.['required']"
+          class="field-error"
+          id="roleCategory-error"
+          role="alert">
+          Role category is required
+        </div>
+        <p class="field-hint">Used to generate your anonymous candidate alias — recruiters will never see your name until you choose to reveal it.</p>
       </div>
 
       <div class="form-group" *ngIf="registerForm.get('userType')?.value === 'RECRUITER'">

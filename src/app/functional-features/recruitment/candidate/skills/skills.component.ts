@@ -27,6 +27,7 @@ export class SkillsComponent implements OnInit, OnDestroy {
   addProficiency: ProficiencyLevel = 'INTERMEDIATE';
   addYears: number | undefined;
   addIncludeInCv = true;
+  addLastUsed: string = '';
   showAddForm = false;
 
   readonly proficiencyLevels: { value: ProficiencyLevel; label: string }[] = [
@@ -52,18 +53,18 @@ export class SkillsComponent implements OnInit, OnDestroy {
       });
   }
 
-  openAdd(): void { this.addSkillId = ''; this.addProficiency = 'INTERMEDIATE'; this.addYears = undefined; this.addIncludeInCv = true; this.showAddForm = true; }
+  openAdd(): void { this.addSkillId = ''; this.addProficiency = 'INTERMEDIATE'; this.addYears = undefined; this.addIncludeInCv = true; this.addLastUsed = ''; this.showAddForm = true; }
   cancelAdd(): void { this.showAddForm = false; }
 
   add(): void {
-    this.service.add({ skillId: this.addSkillId, proficiencyLevel: this.addProficiency, yearsExperience: this.addYears, includeInCv: this.addIncludeInCv })
+    this.service.add({ skillId: this.addSkillId, proficiencyLevel: this.addProficiency, yearsExperience: this.addYears, includeInCv: this.addIncludeInCv, lastUsed: this.addLastUsed || undefined })
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: () => { this.showAddForm = false; this.load(); }, error: (e) => { this.errorMessage = e.error?.message ?? 'Failed to add skill.'; } });
   }
 
   openEdit(item: CandidateSkill): void {
     this.editingItem = item;
-    this.editForm = { proficiencyLevel: item.proficiencyLevel, yearsExperience: item.yearsExperience ?? undefined, includeInCv: item.includeInCv };
+    this.editForm = { proficiencyLevel: item.proficiencyLevel, yearsExperience: item.yearsExperience ?? undefined, includeInCv: item.includeInCv, lastUsed: item.lastUsed ? item.lastUsed.substring(0, 10) : undefined };
   }
 
   cancelEdit(): void { this.editingItem = null; }

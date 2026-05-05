@@ -1,0 +1,247 @@
+﻿<div class="search-page">
+
+  <!-- ── Gradient Header ─────────────────────────────── -->
+  <div class="search-header">
+    <div class="search-header__content">
+      <div class="search-header__text">
+        <h1>Candidate Pool</h1>
+        <p>Browse pre-classified top talent vetted through goals and milestone achievements. Tier filters help you match candidates to your hiring bar.</p>
+      </div>
+      @if (!loading() && totalElements() > 0) {
+        <span class="search-header__count">{{ totalElements() }} candidates</span>
+      }
+    </div>
+  </div>
+
+  <!-- ── Body ───────────────────────────────────────── -->
+  <div class="search-body">
+
+    <!-- ── Filter section ────────────────────────────── -->
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-group__label">Tier</span>
+        <div class="filter-bar">
+          @for (opt of filterOptions; track opt.label) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="activeFilter() === opt.value"
+              (click)="applyFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+      <div class="filter-group filter-group--exp">
+        <span class="filter-group__label">Experience</span>
+        <div class="filter-bar">
+          @for (opt of experienceFilterOptions; track opt.label) {
+            <button
+              class="filter-pill filter-pill--exp"
+              [class.filter-pill--active]="activeExperienceFilter() === opt.value"
+              (click)="applyExperienceFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Loading ────────────────────────────────────── -->
+    @if (loading()) {
+      <div class="state-block">
+        <div class="spinner"></div>
+        <p>Loading candidates...</p>
+      </div>
+    }
+
+    <!-- ── Error ──────────────────────────────────────── -->
+    @if (!loading() && error()) {
+      <div class="state-block state-block--error">
+        <p>{{ error() }}</p>
+        <button class="btn-retry" (click)="load()">Retry</button>
+      </div>
+    }
+
+    <!-- ── Empty state ────────────────────────────────── -->
+    @if (!loading() && !error() && results().length === 0) {
+      <div class="state-block">
+        <p>No candidates found for this filter.</p>
+      </div>
+    }
+
+    <!-- ── Table ──────────────────────────────────────── -->
+    @if (!loading() && results().length > 0) {
+      <div class="table-wrapper">
+        <table class="candidates-table">
+          <thead>
+            <tr>
+              <th>Alias</th>
+              <th>Role</th>
+              <th>Class</th>
+              <th>Activity Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (candidate of results(); track candidate.publicAlias) {
+              <tr>
+                <td class="td-alias">{{ candidate.publicAlias }}</td>
+                <td class="td-role">
+                  @if (candidate.jobTitle) {
+                    <span class="td-role__title">{{ candidate.jobTitle }}</span>
+                  }
+                  @if (candidate.industry) {
+                    <span class="td-role__industry">{{ candidate.industry }}</span>
+                  }
+                  <span class="td-role__category">{{ formatRoleCategory(candidate.roleCategory) }}</span>
+                </td>
+                <td class="td-class">
+                  <app-candidate-class-badge
+                    [candidateClass]="candidate.candidateClass"
+                    [tooltip]="getClassDescription(candidate.candidateClass)" />
+                </td>
+                <td class="td-message" [title]="candidate.classTooltip">{{ truncateMessage(candidate.classTooltip) }}</td>
+                <td class="td-action">
+                  <button class="btn-view" (click)="openModal(candidate)">View CV</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- ── Living CV Modal ────────────────────────────── -->
+    @if (modalOpen()) {
+      <div class="modal-backdrop" (click)="closeModal()">
+        <div class="modal" (click)="$event.stopPropagation()">
+
+          <!-- Modal header -->
+          <div class="modal-header">
+            <div class="modal-header__info">
+              @if (modalCandidate()) {
+                <span class="modal-alias">{{ modalCandidate()!.publicAlias }}</span>
+                <app-candidate-class-badge
+                  [candidateClass]="modalCandidate()!.candidateClass"
+                  [tooltip]="modalCandidate()!.classTooltip" />
+              }
+            </div>
+            <button class="modal-close" (click)="closeModal()" aria-label="Close">✕</button>
+          </div>
+
+          <!-- Modal body -->
+          <div class="modal-body">
+
+            @if (modalLoading()) {
+              <div class="modal-state">
+                <div class="spinner"></div>
+                <p>Loading Living CV…</p>
+              </div>
+            }
+
+            @if (!modalLoading() && modalError()) {
+              <div class="modal-state modal-state--error">
+                <p>{{ modalError() }}</p>
+              </div>
+            }
+
+            @if (!modalLoading() && modalCv()) {
+              <!-- Profile summary -->
+              @if (modalCv()!.profile.biography) {
+                <section class="modal-section">
+                  <h3>About</h3>
+                  <p class="modal-bio">{{ modalCv()!.profile.biography }}</p>
+                </section>
+              }
+
+              <!-- Stats bar -->
+              <section class="modal-section modal-stats">
+                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.completedGoals }}</span><span class="stat-chip__label">Goals Done</span></div>
+                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.totalMilestones }}</span><span class="stat-chip__label">Milestones</span></div>
+                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.verifiedProofItems }}</span><span class="stat-chip__label">Verified Proof</span></div>
+                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.totalProofItems }}</span><span class="stat-chip__label">Total Proof</span></div>
+              </section>
+
+              <!-- Work experience -->
+              @if (modalCv()!.workExperience.length > 0) {
+                <section class="modal-section">
+                  <h3>Work Experience</h3>
+                  @for (w of modalCv()!.workExperience; track w.id) {
+                    <div class="modal-entry">
+                      <div class="modal-entry__title">{{ w.jobTitle }}</div>
+                      <div class="modal-entry__sub">{{ w.companyName }}@if (w.location) { · {{ w.location }} }</div>
+                      <div class="modal-entry__dates">{{ w.startDate | date:'MMM yyyy' }} – {{ w.isCurrent ? 'Present' : (w.endDate | date:'MMM yyyy') }}</div>
+                      @if (w.description) { <p class="modal-entry__desc">{{ w.description }}</p> }
+                    </div>
+                  }
+                </section>
+              }
+
+              <!-- Education -->
+              @if (modalCv()!.education.length > 0) {
+                <section class="modal-section">
+                  <h3>Education</h3>
+                  @for (e of modalCv()!.education; track e.id) {
+                    <div class="modal-entry">
+                      <div class="modal-entry__title">{{ e.degree }}@if (e.fieldOfStudy) { — {{ e.fieldOfStudy }} }</div>
+                      <div class="modal-entry__sub">{{ e.institution }}</div>
+                      <div class="modal-entry__dates">{{ e.startDate | date:'yyyy' }} – {{ e.isCurrent ? 'Present' : (e.endDate | date:'yyyy') }}</div>
+                    </div>
+                  }
+                </section>
+              }
+
+              <!-- Skills -->
+              @if (modalCv()!.skills.length > 0) {
+                <section class="modal-section">
+                  <h3>Skills</h3>
+                  <div class="modal-skills">
+                    @for (s of modalCv()!.skills; track s.id) {
+                      <span class="skill-chip">{{ s.skillName }}</span>
+                    }
+                  </div>
+                </section>
+              }
+
+              <!-- Certifications -->
+              @if (modalCv()!.certifications.length > 0) {
+                <section class="modal-section">
+                  <h3>Certifications</h3>
+                  @for (c of modalCv()!.certifications; track c.id) {
+                    <div class="modal-entry">
+                      <div class="modal-entry__title">{{ c.name }}</div>
+                      <div class="modal-entry__sub">{{ c.issuingOrganization }}</div>
+                    </div>
+                  }
+                </section>
+              }
+            }
+          </div>
+
+        </div>
+      </div>
+    }
+
+    <!-- ── Pagination ─────────────────────────────────── -->
+    @if (!loading() && totalPages() > 1) {
+      <div class="pagination">
+        <button class="pagination__btn" [disabled]="currentPage() === 0" (click)="goToPage(currentPage() - 1)">
+          Prev
+        </button>
+        @for (p of pageNumbers; track p) {
+          <button
+            class="pagination__btn pagination__btn--page"
+            [class.pagination__btn--active]="currentPage() === p"
+            (click)="goToPage(p)">
+            {{ p + 1 }}
+          </button>
+        }
+        <button class="pagination__btn" [disabled]="currentPage() === totalPages() - 1" (click)="goToPage(currentPage() + 1)">
+          Next
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>

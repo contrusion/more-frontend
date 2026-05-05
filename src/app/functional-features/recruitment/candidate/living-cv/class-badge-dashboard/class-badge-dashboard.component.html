@@ -1,0 +1,27 @@
+<div class="class-dash" [ngClass]="config.accentClass">
+
+  <!-- Left: alias + badge -->
+  <div class="class-dash__identity">
+    <div class="class-dash__alias-row">
+      <span class="class-dash__alias-label">Your public alias</span>
+      <span class="class-dash__alias">{{ publicAlias }}</span>
+    </div>
+    <div class="class-dash__badge-row">
+      <app-candidate-class-badge [candidateClass]="candidateClass" />
+      <span class="class-dash__tier-label">Recruiter visibility tier</span>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="class-dash__divider"></div>
+
+  <!-- Right: motivational message + next step -->
+  <div class="class-dash__messaging">
+    <p class="class-dash__message">{{ config.motivationalMessage }}</p>
+    <div class="class-dash__next-step">
+      <span class="class-dash__next-icon">🚀</span>
+      <span class="class-dash__next-text">{{ config.nextStep }}</span>
+    </div>
+  </div>
+
+</div>

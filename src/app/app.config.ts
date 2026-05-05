@@ -1,9 +1,12 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { AuthConfigModule } from './none-functional-features/authentication-and-authorization/configuration/auth.config.module';
 import { AuthInterceptor } from './none-functional-features/authentication-and-authorization/interceptors/auth.interceptor';
 import { routes } from './app.routes';
+import { providePrimeNG } from 'primeng/config';
+import Aura from '@primeuix/themes/aura';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -11,6 +14,8 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(),
+    provideAnimationsAsync(),
+    providePrimeNG({ theme: { preset: Aura } }),
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

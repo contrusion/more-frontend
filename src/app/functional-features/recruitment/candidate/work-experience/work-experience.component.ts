@@ -67,6 +67,7 @@ export class WorkExperienceComponent implements OnInit, OnDestroy {
       isCurrent: item.isCurrent,
       location: item.location ?? undefined,
       description: item.description ?? undefined,
+      gapReason: item.gapReason ?? undefined,
       includeInCv: item.includeInCv
     };
     this.showForm = true;

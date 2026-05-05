@@ -225,8 +225,6 @@
 }
 .btn--danger:hover { background: #fed7d7; }
 
-}
-
 .btn {
   cursor: pointer;
   border: none;

@@ -112,6 +112,44 @@ export const routes: Routes = [
     loadComponent: () => import('./shared/components/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent)
   },
   {
+    path: 'jobs',
+    loadComponent: () => import('./functional-features/recruitment/candidate/jobs/jobs-layout.component').then(m => m.JobsLayoutComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['APPLICANT'] },
+    children: [
+      { path: '', redirectTo: 'opportunities', pathMatch: 'full' },
+      {
+        path: 'opportunities',
+        loadComponent: () => import('./functional-features/recruitment/candidate/jobs/opportunities/opportunity-feed.component').then(m => m.OpportunityFeedComponent)
+      },
+      {
+        path: 'applications',
+        loadComponent: () => import('./functional-features/recruitment/candidate/jobs/applications/my-applications.component').then(m => m.MyApplicationsComponent)
+      }
+    ]
+  },
+  {
+    path: 'recruiter',
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['RECRUITER'] },
+    loadComponent: () => import('./functional-features/recruitment/recruiter/recruiter-layout.component').then(m => m.RecruiterLayoutComponent),
+    children: [
+      {
+        path: '',
+        redirectTo: 'candidates',
+        pathMatch: 'full'
+      },
+      {
+        path: 'candidates',
+        loadComponent: () => import('./functional-features/recruitment/recruiter/candidate-search/candidate-search.component').then(m => m.CandidateSearchComponent)
+      },
+      {
+        path: 'job-ads',
+        loadComponent: () => import('./functional-features/recruitment/recruiter/job-ads/job-ads-list.component').then(m => m.JobAdsListComponent)
+      }
+    ]
+  },
+  {
     path: 'register',
     loadComponent: () => import('./none-functional-features/authentication-and-authorization/components/register/register.component').then(m => m.RegisterComponent)
   },

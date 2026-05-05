@@ -39,23 +39,33 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 ## Implementation Approach
 
 **Launch Order (6-8 sprints):**
-1. **Sprint 1-2 (Phase 1):** 
-   - Backend: Candidate Goals, Milestones, Alias generation (US 1.3a), Privacy settings (US 1.5)
-   - Frontend: Goal management UI, Living CV display with aliases
-2. **Sprint 2-3 (Phase 1 continued):**
-   - Backend: Class calculation (weekly batch), Application tracking
-   - Frontend: Class badges, application history, privacy controls
-3. **Sprint 3 (Phase 1.5):**
+1. **Sprint 1-2 (Phase 1):** ✅ *COMPLETED*
+   - ✅ Backend: Candidate Goals, Milestones, Alias generation (US 1.3a), Living CV endpoints (US 1.3)
+   - ✅ Frontend: Goal management UI, Living CV display with aliases, `publicAlias` in all DTOs
+2. **Sprint 2-3 (Phase 1 continued):** ✅ *COMPLETED*
+   - ✅ Backend: Class calculation weekly batch (`CandidateClassScheduler`, `TwoGroupCandidateClassifier`)
+   - ✅ Frontend: Candidate Pool UI (US-R3) — class badges, tier + experience filters, Living CV modal, recruiter sidebar layout
+   - ⏳ Privacy controls (US 1.5) — deferred to Phase 1.5
+3. **Sprint 3 (Phase 1):** ✅ *COMPLETED*
+   - ✅ **US-C2:** `ClassBadgeDashboardComponent` — alias + tier badge + motivational message + next-step guidance on Living CV
+   - ⏳ Privacy controls (US 1.5) — deferred to Phase 1.5
+4. **Sprint 4 (Phase 1 — IN PROGRESS):**
+   - ✅ Scaffolding: Job Ads tile (home page, RECRUITER-only), `/recruiter/job-ads` route, `JobAdsListComponent` placeholder, "Jobs" sidebar nav item
+   - **Implementation order: US-R1 → US-R2 → US-C1** (recruiter job spec → match engine → candidate opportunity feed)
+   - ⏳ **US-R1 (IN PROGRESS):** Recruiter creates structured job specification form
+5. **Sprint 5 (Phase 1 continued):**
+   - **US-R2:** System matches job specs to Living CVs (match engine)
+   - **US-C1:** Candidate sees curated role feed + expresses interest under alias
+   - **US-NAV1:** Global hamburger navigation drawer (all roles)
+6. **Sprint 6 (Phase 2):**
    - Trust Layer: Onboarding tutorials, authenticity warnings (US 1.11)
-   - Email sync for applications, daily digest updates
-4. **Sprint 4-5 (Phase 2):**
+   - Privacy controls (US 1.5)
+7. **Sprint 7-8 (Phase 2):**
    - Monetization Core: Identity reveal workflow (US 1.8), Stripe integration (US 1.9)
    - Company subscription dashboard, reveal request flow
    - Keycloak COMPANY role support
-5. **Sprint 6-7 (Phase 2 continued):**
-   - Company dashboard alpha, recruiter features (filter by class)
-   - Testing identity reveal end-to-end workflow
-6. **Sprint 7-8 (Phase 3):**
+   - **Talent Search (US-R4):** Full registry search with keyword + role + industry + experience filters
+8. **Sprint 8-9 (Phase 3):**
    - Audit logging (US 1.10), compliance reporting
    - Polish, performance optimization, deployment
 
@@ -91,22 +101,22 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 #### Epic: Candidate Portfolio & Growth Proof
 
-**US 1.1: Candidate Can Create Growth Goals**
+**US 1.1: Candidate Can Create Growth Goals** ✅ *Implemented*
 - **As a** candidate
 - **I want to** set measurable goals (e.g., "Complete Java Certification by June 30")
 - **So that** recruiters can see I'm actively improving
 - **Acceptance Criteria:**
-  - Create goal with title, description, target date, category (skill, cert, project, etc.)
-  - Goals persist in backend
-  - Goals visible on candidate's public profile/Living CV
-  - Can edit/delete own goals
-  - Soft delete for historical tracking
-- **Components to Create:**
-  - `CandidateGoalsComponent` (manage goals)
-  - `GoalFormComponent` (create/edit modal)
-  - `GoalCardComponent` (display single goal with status)
+  - ✅ Create goal with title, description, target date, category (skill, cert, project, etc.)
+  - ✅ Goals persist in backend
+  - ✅ Goals visible on candidate's public profile/Living CV
+  - ✅ Can edit/delete own goals
+  - ✅ Soft delete for historical tracking
+- **Components Created:**
+  - ✅ `CandidateGoalsComponent` (manage goals; `goals/candidate-goals.component.ts`)
+  - ✅ `GoalFormComponent` (create/edit modal; `goals/goal-form/`)
+  - ✅ `GoalCardComponent` (display single goal with status; `goals/goal-card/`)
 - **Data Model:** Goal with status (Not Started, In Progress, Completed, Abandoned)
-- **Estimated Endpoints:** POST/GET/PATCH/DELETE `/api/candidates/goals`
+- **Implemented Endpoints:** POST/GET/PATCH/DELETE `/api/candidates/goals`
 
 **US 1.2: Candidate Can Log Progress & Proof** ✅ *Implemented*
 - **As a** candidate
@@ -143,65 +153,63 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 - **DB Migration:** ✅ `V5__Add_Goal_Milestones.sql` — `goal_milestones` + `milestone_proof_items` tables
 - **Cost Optimization:** Verification deferred until company engagement — proof items are link-only at this stage (no S3 uploads), reducing infrastructure cost at MVP scale
 
-**US 1.3: Candidate Can View Their Living CV**
+**US 1.3: Candidate Can View Their Living CV** ✅ *Implemented*
 - **As a** candidate
 - **I want to** see a dynamic, real-time view of my career profile (Living CV)
 - **So that** I can understand how recruiters see me
 - **Acceptance Criteria:**
-  - Living CV displays: profile info, goals, proof, completed milestones, current class (Gold/Silver/Bronze)
-  - Automatically updates when goals/milestones change
-  - Can toggle privacy settings (identity reveal options)
-  - Shows last updated timestamp
-  - Clean, professional visual design
-- **Components to Create:**
-  - `LivingCvComponent` (main display)
-  - `LivingCvSectionComponent` (reusable section for goals, skills, achievements)
-- **Data Model:** Aggregates Goal, Milestone, and candidate profile data
-- **Estimated Endpoints:** GET `/api/candidates/{id}/living-cv`
+  - ✅ Living CV displays: profile info, goals, proof, completed milestones, current class (Gold/Silver/Bronze)
+  - ✅ Automatically updates when goals/milestones change
+  - ✅ Shows structured sections: Work Experience, Education, Certifications, Skills, References
+  - ✅ Clean, professional visual design
+  - Privacy toggles — deferred to US 1.5
+- **Components Created:**
+  - ✅ `LivingCvComponent` (main display; `living-cv/living-cv.component.ts`)
+  - ✅ `WorkExperienceComponent` (`work-experience/work-experience.component.ts`)
+  - ✅ `EducationComponent` (`education/education.component.ts`)
+  - ✅ `CertificationsComponent` (`certifications/certifications.component.ts`)
+  - ✅ `SkillsComponent` (`skills/skills.component.ts`)
+  - ✅ `ReferencesComponent` (`references/references.component.ts`)
+- **Services Created:**
+  - ✅ `LivingCvService`, `WorkExperienceService`, `EducationService`, `CertificationService`, `CandidateSkillService`, `ReferenceService`
+- **Data Model:** Aggregates Goal, Milestone, WorkExperience, Education, Certification, Skill, Reference, and candidate profile data
+- **Implemented Endpoints:** GET `/api/candidates/{id}/living-cv`
 
-**US 1.3a: System Generates Anonymized Candidate Aliases** *(Technical Foundation)*
+**US 1.3a: System Generates Anonymized Candidate Aliases** ✅ *Implemented* *(Technical Foundation)*
 - **As a** system
 - **I want to** auto-generate unique, professional aliases for candidates
 - **So that** real identities remain hidden until companies transact
 - **Acceptance Criteria:**
-  - Generate alias on candidate registration (e.g., "TechPro_4782", "JavaDev_2056")
-  - Alias displayed in all Living CVs and search results
-  - Real name/email never exposed in API responses to companies without reveal
-  - Alias persists and doesn't change (brand consistency)
-  - Candidate can see their alias in profile settings
-- **Data Model:**
-  ```typescript
-  CandidateProfile {
-    publicAlias: string              // "TechPro_4782"
-    firstName: string                // Hidden from companies
-    lastName: string                 // Hidden from companies  
-    email: string                    // Hidden from companies
-    ...
-  }
-  ```
-- **Estimated Endpoints:**
-  - GET `/api/candidates/public/{alias}` - Returns anonymized CV
-  - Modify existing endpoints to return `publicAlias` instead of real name
+  - ✅ `publicAlias` column on `Applicant` entity — generated on registration
+  - ✅ Alias returned in all recruiter-facing DTOs (`CandidateSearchResultDto`, `PublicLivingCvDto`)
+  - ✅ Real name/email never exposed — `PublicLivingCvDto` enforces zero-PII contract
+  - ✅ Alias persists; uniqueness enforced via DB unique constraint
+  - Candidate alias settings page — deferred to US-C2
+- **Implemented Endpoints:**
+  - ✅ `GET /api/candidates/public/{alias}/living-cv` — RECRUITER-gated, returns `PublicLivingCvDto` (no PII)
+  - ✅ All search results return `publicAlias` only
 - **Phase:** Phase 1 (Foundation) - **Must come before reveal logic**
 
-**US 1.4: System Calculates Candidate Class (Gold/Silver/Bronze)**
+**US 1.4: System Calculates Candidate Class (All-Star/Gold/Silver/Bronze)** ✅ *Implemented*
 - **As a** system
-- **I want to** automatically classify candidates based on activity
+- **I want to** automatically classify candidates based on activity and career depth
 - **So that** recruiters can prioritize high-performers
 - **Acceptance Criteria:**
-  - Gold: 3+ active goals, 3+ completed proof items, updated in last 7 days
-  - Silver: 1-2 active goals, 1-2 proof items, updated in last 30 days
-  - Bronze: 0 goals or stale (30+ days without update)
-  - Recalculate weekly
-  - Classification visible in profiles and recruiter filters
-  - Candidate notified when class changes (gamification)
-- **Implementation:**
-  - Service method in backend to calculate class
-  - Exposed as field in `/api/candidates/{id}` response
-  - Frontend displays as badge/indicator
-- **Estimated Endpoints:** GET `/api/candidates/{id}` includes `class` field
+  - ✅ Two-group classification strategy (`TwoGroupCandidateClassifier`):
+    - Group A (≥ 5 years): All-Star / Gold / Silver / Bronze tiers based on goals, proof items, recency
+    - Group B (< 5 years): Gold / Silver / Bronze tiers with adjusted thresholds
+  - ✅ Weekly recalculation via `CandidateClassScheduler`
+  - ✅ `cachedClass` persisted on `Applicant` entity
+  - ✅ Classification visible in Candidate Pool search results and Living CV
+  - Candidate notification on class change — deferred to US-C2
+- **Implemented Components:**
+  - ✅ `TwoGroupCandidateClassifier` — classification logic
+  - ✅ `CandidateClassScheduler` — weekly batch recalculation
+  - ✅ `CandidateClassMessagingProvider` — recruiter-facing card messages and tooltips
+  - ✅ `CandidateClassBadgeComponent` — reusable frontend badge with tier tooltip
+- **Implemented Endpoints:** `cachedClass` returned in all candidate DTOs
 
-**US 1.5: Candidate Can Manage Privacy & Visibility** *(Simplified)*
+**US 1.5: Candidate Can Manage Privacy & Visibility** *(Simplified)* ⏳ *Deferred to Phase 2*
 - **As a** candidate
 - **I want to** control which goals and proof items are visible on my public profile
 - **So that** I can curate my professional presentation
@@ -215,11 +223,11 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - `VisibilityToggleComponent` (per-goal/proof toggles)
 - **Data Model:** PrivacySetting entity with visible_goals[], visible_proof[]
 - **Estimated Endpoints:** GET/PATCH `/api/candidates/{id}/privacy-settings`
-- **Phase:** Phase 1
+- **Phase:** Phase 1.5 — *deferred; US-R3 and US-C2 take priority*
 
 ---
 
-#### Epic: Application History & Feedback Aggregation (Phase 1.5)
+#### Epic: Application History & Feedback Aggregation (Phase 2)
 
 **US 1.6: System Auto-Logs Applications**
 - **As a** candidate
@@ -259,7 +267,313 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 ---
 
+#### Epic: Role Matching & Interest Expression (Phase 1)
+
+> **The Triad:** Recruiter (US-R1) creates structured job specs → System (US-R2) matches them to Living CVs → Candidate (US-C1) sees curated matches and expresses interest under alias → Recruiter reveal workflow (US 1.8) monetises the interaction. These three stories form a closed loop: recruiters get structured, high-quality signals; candidates get curated, motivating opportunities; the platform enforces alias + reveal, protecting trust and driving monetisation.
+
+**US-R1: Recruiter Creates Structured Job Specification**
+- **As a** recruiter
+- **I want to** create a job specification using structured fields (skills, certifications, experience level, proof signals, activity recency)
+- **So that** the system can accurately match candidates' Living CVs to my role requirements
+- **Acceptance Criteria:**
+  - Recruiter fills out job spec form with controlled vocabularies (skills, certifications, years of experience, role type)
+  - Recruiter can mark requirements as must-have or nice-to-have
+  - Job spec data maps directly to Living CV fields (Goals, Proof Items, Candidate Class, Experience)
+  - System validates form completeness before posting
+  - Alias-based candidate matching is enforced (no real identities exposed)
+- **Components to Create:**
+  - `JobSpecFormComponent` (structured fields, toggles for must-have/nice-to-have; `recruiter/job-spec/job-spec-form/`)
+  - `JobSpecPreviewComponent` (review before posting; `recruiter/job-spec/job-spec-preview/`)
+- **Services to Create:**
+  - `JobSpecService` (CRUD for job specifications)
+- **Data Model:**
+  ```typescript
+  JobSpecification {
+    id: string
+    recruiterId: string
+    roleTitle: string
+    requiredSkills: string[]
+    preferredCertifications: string[]
+    experienceLevel: string
+    mustHave: string[]
+    niceToHave: string[]
+    activityRecency: number          // days
+    createdAt: Date
+  }
+  ```
+- **Estimated Endpoints:**
+  - `POST /api/recruiters/{id}/job-specs` — Create job specification
+  - `GET /api/recruiters/{id}/job-specs` — List recruiter's job specs
+  - `PATCH /api/recruiters/{id}/job-specs/{specId}` — Update job spec
+  - `DELETE /api/recruiters/{id}/job-specs/{specId}` — Delete job spec
+- **Phase:** Phase 1 — **Must come before US-R2 (matching)**
+- **Dependencies:** US 1.3 (Living CV fields exist to match against)
+
+**US-R2: System Matches Job Ads to Living CVs**
+- **As a** system
+- **I want to** automatically match recruiter job advertisements to candidate Living CVs
+- **So that** candidates only see curated, relevant opportunities and recruiters receive filtered, high-quality signals
+- **Acceptance Criteria:**
+  - System compares job spec fields against Living CV data (Goals, Proof Items, Candidate Class, Experience)
+  - Candidates see only roles where their Living CV aligns with must-have requirements
+  - Candidates can express interest under their alias (no identity reveal yet)
+  - Recruiters see alias + Living CV snapshot when candidates show interest
+  - Reveal workflow triggers if recruiter wants to unlock candidate identity (US 1.8)
+- **Components to Create:**
+  - `CandidateOpportunityFeedComponent` (curated role list for candidates; `candidate/opportunities/`)
+  - `AliasInterestButtonComponent` (candidate expresses interest without revealing identity; `candidate/opportunities/alias-interest-button/`)
+  - `MatchedCandidateCardComponent` (recruiter sees alias + Living CV snapshot; `recruiter/matches/`)
+- **Services to Create:**
+  - `RoleMatchEngineService` (backend matching logic — compares job spec fields to Living CV)
+  - `OpportunityFeedService` (frontend service to fetch curated roles for candidate)
+- **Data Model:**
+  ```typescript
+  RoleMatch {
+    jobSpecId: string
+    candidateAlias: string
+    matchScore: number
+    mustHaveMatched: string[]
+    niceToHaveMatched: string[]
+    lastUpdated: Date
+  }
+  ```
+- **Estimated Endpoints:**
+  - `GET /api/candidates/{id}/opportunities` — Curated role feed for candidate (matches by Living CV)
+  - `POST /api/job-specs/{specId}/interest` — Candidate expresses interest under alias
+  - `GET /api/recruiters/{id}/job-specs/{specId}/interested-candidates` — Recruiter sees interested aliases + CV snapshots
+  - `GET /api/job-specs/{specId}/matches` — System-computed matches for a job spec
+- **Phase:** Phase 1 — **Together with US-R1 this closes the matching loop**
+- **Dependencies:** US-R1 (job spec exists), US 1.3 (Living CV exists), US 1.3a (alias system)
+
+**US-C1: Candidate Sees Roles They'll Qualify For & Expresses Interest**
+- **As a** candidate
+- **I want to** see the roles my Living CV makes me eligible for — including roles I'm close to qualifying for — and express interest under my alias
+- **So that** I'm motivated to keep improving, recruiters discover me based on verified growth signals, and my real identity is protected until the right moment
+- **Acceptance Criteria:**
+  - Candidate dashboard shows two sections:
+    - **"Roles You Qualify For"** — roles where Living CV already meets must-have requirements
+    - **"Potential Roles"** — roles where one or two gaps remain, with a specific action to close each gap
+  - Each role card shows alias-safe details: role title, required skills, certifications, match score, and — for Potential Roles — a contextual nudge (e.g. *"Finish your Java milestone to become eligible for 12 potential backend roles"*)
+  - Gap nudges are specific and actionable, not generic (e.g. *"Completing your AWS Certification will qualify you for Cloud Engineer roles"*, *"Update your Living CV to surface more opportunities recruiters are looking for"*)
+  - Candidate can click **"Show Interest"** on any qualifying role, sending an alias-based signal to the recruiter — no identity exposed
+  - Candidate's real identity remains hidden until the recruiter initiates the reveal workflow (US 1.8)
+  - Candidate receives a notification when a recruiter views their interest or requests a reveal
+- **UX Copy Guidelines (enforced in component templates):**
+  - Use *"Potential Roles"* or *"Roles You'll Qualify For"* — never "Unlock"
+  - Gap nudge pattern: *"[Complete X] to [become eligible for / qualify for] [N] [role type] roles"*
+  - Forward-looking framing: *"Future Opportunities"* for roles that require more growth
+  - Action-oriented but realistic: *"Roles You'll Be Ready To Apply For"* for near-miss matches
+- **Components to Create:**
+  - `OpportunityFeedComponent` (two-section layout: qualifying + potential; `candidate/opportunities/opportunity-feed/`)
+  - `RoleMatchCardComponent` (role details, match score, eligibility status; `candidate/opportunities/role-match-card/`)
+  - `GapNudgeComponent` (contextual, specific action prompts per gap; `candidate/opportunities/gap-nudge/`)
+  - `AliasInterestButtonComponent` (express interest without revealing identity; `candidate/opportunities/alias-interest-button/`)
+- **Services to Create:**
+  - `OpportunityFeedService` (fetch qualifying + potential roles; extends `RoleMatchEngineService`)
+  - `CandidateInterestService` (submit and track interest signals)
+- **Data Model:**
+  ```typescript
+  CandidateInterest {
+    id: string
+    candidateAlias: string
+    jobSpecId: string
+    expressedAt: Date
+    status: InterestStatus           // PENDING | VIEWED | REVEAL_REQUESTED
+  }
+
+  RoleMatch {
+    jobSpecId: string
+    candidateAlias: string
+    matchScore: number
+    eligibilityStatus: EligibilityStatus  // QUALIFIES | POTENTIAL | FUTURE
+    mustHaveMatched: string[]
+    mustHaveGaps: string[]           // Fields candidate still needs to meet
+    niceToHaveMatched: string[]
+    gapNudge?: string                // E.g. "Complete AWS Cert to qualify for Cloud Engineer roles"
+    lastUpdated: Date
+  }
+
+  enum EligibilityStatus {
+    QUALIFIES     // All must-haves met — show in "Roles You Qualify For"
+    POTENTIAL     // 1-2 gaps remain — show in "Potential Roles" with gap nudge
+    FUTURE        // More than 2 gaps — show in "Future Opportunities" (motivational only)
+  }
+  ```
+- **Estimated Endpoints:**
+  - `GET /api/candidates/{id}/opportunities` — Curated feed grouped by eligibility status (shared with US-R2)
+  - `POST /api/job-specs/{specId}/interest` — Express interest under alias (shared with US-R2)
+  - `GET /api/candidates/{id}/interests` — Candidate tracks their submitted interest signals
+  - `GET /api/candidates/{id}/interests/{interestId}/notifications` — Status updates from recruiter
+- **Phase:** Phase 1 — **Completes the triad with US-R1 and US-R2**
+- **Dependencies:** US-R2 (match engine computes eligibility + gaps), US 1.3a (alias system enforces identity hiding)
+
+---
+
+#### Epic: Class Visibility & Candidate Engagement Messaging (Phase 1)
+
+> **Context:** US 1.4 calculates and stores `CandidateClass` (All-Star, Gold, Silver, Bronze). These two stories wire that class value into recruiter search UX and candidate dashboard UX with structured messaging. They depend on US 1.3a (alias) and US 1.4 (class calculation) being complete.
+
+**US-R3: Recruiter Sees Class Messaging in Candidate Search Results** ✅ *Implemented*
+- **As a** recruiter using the More Opportunities platform
+- **I want to** see clear class labels (All-Star, Gold, Silver, Bronze) with explanatory messaging in search results, candidate cards, and tooltips
+- **So that** I can quickly understand a candidate's activity level, career depth, and readiness without needing to reveal their identity prematurely
+- **Acceptance Criteria:**
+  - ✅ Recruiter search results display candidate alias + class badge
+  - ✅ Hovering over the badge shows a static tier-definition tooltip (per-class description)
+  - ✅ Activity Status column shows candidate-specific `classTooltip` text (truncated 50 chars)
+  - ✅ Recruiters can filter by class (All / All-Star / Gold / Silver / Bronze) AND experience group (All / < 5 Years / 5+ Years) — filters combine with AND
+  - ✅ Real names/emails not returned — `CandidateSearchResultDto` enforces zero-PII contract
+  - ✅ Living CV modal: clicking "View CV" opens `PublicLivingCv` with stats, experience, education, skills, certifications
+- **Messaging Matrix (Recruiter-Facing):**
+
+  | Class | Search Results (List View) | Candidate Card Message | Tooltip / Hover Message |
+  |---|---|---|---|
+  | All-Star ⭐ | Alias + `⭐ All-Star` badge | "All-Star: actively growing and deeply experienced." | "This candidate has 5+ years of career depth, 10+ proof items, and is actively logging new goals. Elite tier." |
+  | Gold 🥇 | Alias + `🥇 Gold` badge | "Gold: either actively growing or already career-proven." | "This candidate meets either activity-driven criteria (recent goals/proof) or career-depth criteria (solid track record)." |
+  | Silver 🥈 | Alias + `🥈 Silver` badge | "Silver: developing profile with moderate activity or career proof." | "This candidate is building momentum—some goals/proof, moderate experience. Emerging talent." |
+  | Bronze 🥉 | Alias + `🥉 Bronze` badge | "Bronze: early-stage or currently inactive." | "This candidate has limited goals/proof or hasn't updated recently. Entry-level or dormant profile." |
+
+- **Implemented Components:**
+  - ✅ `CandidateSearchComponent` (`recruiter/candidate-search/`) — gradient header, filter section, table, pagination
+  - ✅ `CandidateClassBadgeComponent` (`shared/components/candidate-class-badge/`) — reusable badge with tier tooltip
+  - ✅ `RecruiterLayoutComponent` — 80px dark sidebar, single "Pool" nav item
+  - `CandidateCardComponent` / `ClassFilterComponent` — not needed; filters built into `CandidateSearchComponent`
+- **Implemented Services:**
+  - ✅ `CandidateSearchService` — `searchCandidates(classFilter, experienceGroup, page)`, sends `candidateClass` + `experienceGroup` params
+  - ✅ `LivingCvService.getPublicLivingCv(alias)` — fetches `PublicLivingCv` for modal
+- **Implemented Data Model:**
+  ```typescript
+  CandidateSearchResult {
+    publicAlias: string
+    candidateClass: CandidateClass       // ALL_STAR | GOLD | SILVER | BRONZE
+    experienceGroup: ExperienceGroup | null  // EARLY_CAREER | EXPERIENCED
+    roleCategory: string
+    jobTitle: string | null
+    industry: string | null
+    classCardMessage: string             // Recruiter card narrative
+    classTooltip: string                 // Activity status text
+  }
+  ```
+- **Implemented Endpoints:**
+  - ✅ `GET /api/recruiters/candidates?candidateClass=GOLD&experienceGroup=EXPERIENCED&page=0&size=20`
+  - ✅ `GET /api/candidates/public/{alias}/living-cv` — powers Living CV modal
+- **Phase:** Phase 1
+- **Dependencies:** US 1.3a (alias system), US 1.4 (class calculation), US 1.3 (public Living CV endpoint)
+
+---
+
+**US-C2: Candidate Sees Motivational Class Messaging on Dashboard** ✅ *Implemented*
+- **As a** candidate building my Living CV
+- **I want to** see my current class badge (All-Star, Gold, Silver, Bronze) with motivational messaging and guidance
+- **So that** I understand how recruiters perceive me and what steps I can take to climb to the next tier
+- **Acceptance Criteria:**
+  - ✅ Living CV shows alias + tier badge + motivational message per class
+  - ✅ Each class has a tailored motivational message and a specific next-step action
+  - ✅ Messaging is positive, career-stage aware, and forward-looking
+  - Progress tracker (`ClassProgressTrackerComponent`) — deferred to a follow-up
+  - Nudge notifications (`ClassNudgeNotificationComponent`) — deferred to Phase 1.5
+- **Messaging Matrix (Candidate-Facing):**
+
+  | Class | Dashboard Badge | Motivational Message | Next Step Guidance |
+  |---|---|---|---|
+  | All-Star ⭐ | `⭐ All-Star` | "You're All-Star: recruiters see you as actively growing and deeply experienced. You're at the very top of the talent pool." | Keep logging new goals and proof items to maintain your elite status. |
+  | Gold 🥇 | `🥇 Gold` | "You've reached Gold: recruiters see you as career-proven or actively growing. You're a trusted candidate." | Add more proof items or update goals regularly to aim for All-Star. |
+  | Silver 🥈 | `🥈 Silver` | "You're Silver: recruiters see you as developing your profile. You're building momentum." | Log at least one new goal and proof item this month to move up to Gold. |
+  | Bronze 🥉 | `🥉 Bronze` | "You're Bronze: recruiters see you as early-stage or currently inactive. This is your starting point." | Add proof items and set goals to climb into Silver and beyond. |
+
+- **Implemented Components:**
+  - ✅ `ClassBadgeDashboardComponent` (`living-cv/class-badge-dashboard/`) — alias + badge + motivational message + next-step card; tier-accented left border; embedded in `LivingCvComponent` as first panel
+  - ✅ *(Reuses `CandidateClassBadgeComponent` from US-R3 for the badge itself)*
+  - `ClassProgressTrackerComponent` — deferred
+  - `ClassNudgeNotificationComponent` — deferred to Phase 1.5
+- **Implemented Endpoints:** None — `candidateClass` and `publicAlias` already returned in `GET /api/candidates/living-cv`
+- **Phase:** Phase 1
+- **Dependencies:** US 1.4 (class field on Living CV response), US 1.3a (alias visible on dashboard)
+
+---
+
+#### Epic: Talent Search — Full Registry Browse (Phase 2)
+
+> **Context:** The Candidate Pool (US-R3) surfaces only pre-classified, vetted talent. Talent Search is the complementary search-first tool that exposes the full registered candidate base — including unclassified applicants who have not yet earned a class. This matters for recruiters who want to discover early-stage candidates, reach into a broader pool, or search by role and industry rather than tier.
+>
+> **Candidate Pool vs Talent Search distinction:**
+> - **Candidate Pool** — browse-first, class-filtered, classified candidates only. Living CV modal. Route: `/recruiter/candidates`
+> - **Talent Search** — search-first, keyword + role + experience filters, all registered candidates (class shown where available). Route: `/search`
+
+**US-R4: Recruiter Can Search the Full Candidate Registry**
+- **As a** recruiter (Talent Search - there's already a tile under 'Quick Access')
+- **I want to** search across all registered candidates by keyword, role, industry, and experience level — not just those with a class assigned
+- **So that** I can discover early-stage talent, fill niche roles, and broaden my pipeline beyond the curated Candidate Pool
+- **Acceptance Criteria:**
+  - Search bar accepts free-text (matched against role category, job title, industry)
+  - Filters: Role Category, Industry, Experience Group (< 5 years / 5+ years), Class (All-Star / Gold / Silver / Bronze / Unclassified)
+  - Results include all candidates with a `publicAlias`, including those with no class assigned
+  - Unclassified candidates display a neutral "Unclassified" badge — no tier colour
+  - Class badge shown where assigned; tooltip explains tier (same as Candidate Pool badge)
+  - Results are paginated (20 per page, sorted by last-updated descending by default)
+  - Clicking a result opens the Living CV modal (same `PublicLivingCv` endpoint as Candidate Pool)
+  - No PII returned — alias only until reveal workflow (US 1.8)
+- **UX distinction from Candidate Pool:**
+  - Candidate Pool: filter-pill UI, assumes recruiter is browsing; starts with full list
+  - Talent Search: search-bar-first UI, results appear after input; broader and less curated
+- **Components to Create:**
+  - `TalentSearchComponent` (search bar + combined filter bar + results table; `recruiter/talent-search/talent-search.component.ts`)
+  - Reuse `CandidateClassBadgeComponent` for tier badges
+  - Reuse Living CV modal pattern from `CandidateSearchComponent`
+- **Services to Create / Update:**
+  - Extend `CandidateSearchService.searchCandidates()` to accept `keyword`, `roleCategory`, `industry` params — OR create a dedicated `TalentSearchService` if query shape diverges significantly
+- **Backend changes required:**
+  - New optional `keyword`, `roleCategory`, `industry` query params on `GET /api/recruiters/candidates`
+  - `candidateClass` filter must accept `UNCLASSIFIED` as a sentinel (or `classAssigned=false` param) to explicitly filter to candidates with no class
+  - `CandidateSearchResultDto` — no structural change needed; `candidateClass` can be `null` for unclassified results
+- **Data Model changes:**
+  ```typescript
+  // candidateClass is already nullable on CandidateSearchResult
+  // Add to frontend model:
+  type ClassFilterExtended = CandidateClass | 'UNCLASSIFIED' | null;
+
+  // New search params:
+  interface TalentSearchParams {
+    keyword?: string;
+    roleCategory?: string;
+    industry?: string;
+    candidateClass?: ClassFilterExtended;
+    experienceGroup?: ExperienceGroup;
+    page: number;
+    size: number;
+  }
+  ```
+- **Estimated Endpoints:**
+  - `GET /api/recruiters/candidates?keyword=java&roleCategory=BACKEND&industry=Fintech&page=0&size=20`
+  - `GET /api/recruiters/candidates?classAssigned=false&page=0&size=20` — unclassified-only filter
+- **Phase:** Phase 2 — **Candidate Pool (US-R3) must be stable before Talent Search is built**
+- **Dependencies:** US-R3 (Candidate Pool established; `CandidateClassBadgeComponent` and Living CV modal reusable), US 1.3a (alias system)
+
+---
+
 #### Epic: Identity Reveal & Monetization (Phase 2)
+
+> **⚠️ Backend Security Pre-Condition (already implemented — US 1.3a)**
+>
+> The anonymization layer is already enforced server-side. As of US 1.3a:
+> - `GET /api/candidates/living-cv` (`APPLICANT` only) — returns full `LivingCvDto` with real name, social URLs, referee contacts.
+> - `GET /api/candidates/public/{alias}/living-cv` (`RECRUITER` only) — returns `PublicLivingCvDto` with **zero PII**: no real name, no LinkedIn/portfolio URL, no profile image, no referee fullName/email/phone.
+>
+> The reveal endpoint **does not yet exist**. When US 1.8 is implemented, the following items must be updated to wire the reveal response through the security layer:
+>
+> **Backend (more-api) — must create/update:**
+> - New `RevealedLivingCvDto` (or reuse `LivingCvDto`) — returned only after payment/subscription validated.
+> - `POST /api/companies/{id}/reveal-requests` — creates a `RevealAuditLog` row before returning any identity fields; reject if subscription/payment check fails.
+> - `ILivingCvService.getRevealedLivingCv(String candidateAlias, String companyId)` — validates reveal authorization, writes audit log, then returns real-name DTO.
+> - `LivingCvController` — new `COMPANY` / `RECRUITER`-role endpoint that calls the above; must **never** return `LivingCvDto` directly to a recruiter without going through this method.
+> - `RevealAuditLog` entity + Flyway migration — log every reveal with companyId, candidateId, timestamp, pathway, fee.
+> - Stripe webhook handler to confirm payment before reveal is served.
+>
+> **Frontend (more-frontend) — must update:**
+> - `MatchedCandidateCardComponent` — currently shows alias only; add "Request Reveal" button (only visible post-interest, post-match).
+> - `IdentityRevealButtonComponent` (new) — triggers reveal request; shows subscription pathway or payment redirect.
+> - `RevealRequestListComponent` (new, candidate-facing) — candidate sees who has requested their reveal.
+> - Any service that calls `/api/candidates/public/{alias}/living-cv` must **not** be reused for the reveal path; a separate `RevealService` should call the reveal endpoint.
 
 **US 1.8: Company Can Request Candidate Identity Reveal** *(Business Logic)*
 - **As a** company
@@ -339,6 +653,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 - **So that** we can enforce Terms of Service and track revenue
 - **Acceptance Criteria:**
   - Log every reveal with: company, candidate, timestamp, pathway, fee
+  - **Pre-condition:** `RevealAuditLog` must be written atomically with the reveal response — the backend must never return real identity fields unless the audit log write succeeds (wrap in a single transaction).
   - Track off-platform hire violations (future: candidate reports when hired outside platform)
   - Generate audit reports: reveals per month, revenue by pathway, subscription vs contingency split
   - Terms of Service acceptance required before first reveal (company portal)
@@ -390,20 +705,258 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 | Story | Focus | Phase | Dependencies | Estimated Effort |
 |-------|-------|-------|--------------|------------------|
-| **US 1.3a** | Technical: Alias generation | Phase 1 | None | 1 sprint |
-| **US 1.5** | UX: Privacy settings (simplified) | Phase 1 | US 1.3 | 1 sprint |
+| **US 1.3a** | Technical: Alias generation | Phase 1 ✅ | None | 1 sprint |
+| **US 1.5** | UX: Privacy settings (simplified) | Phase 1.5 ⏳ | US 1.3 | 1 sprint |
+| **US-R4** | Recruiter: Talent Search — full registry | Phase 2 | US-R3, US 1.3a | 1 sprint |
+| **US-R5** | Job Ad: Company Alumni multi-select from Companies table | Phase 2 | US-R1, Companies table | 1 sprint |
+| **US-R6** | Recruiter: View applicants who expressed interest + their CVs | Phase 2 | US-R1, US-C1, US 1.3a | 1 sprint |
+| **US-H1** | UX: Dynamic & Personalised Quick Access (all roles) | Phase 2 | Home component stable | 1 sprint |
 | **US 1.8** | Business: Reveal workflow | Phase 2 | US 1.3a, 1.5 | 2 sprints |
 | **US 1.9** | Payment: Subscription validation | Phase 2 | US 1.8, Stripe setup | 2 sprints |
 | **US 1.10** | Compliance: Audit logging | Phase 3 | US 1.8, 1.9 | 1 sprint |
 | **US 1.11** | UX: Trust messaging | Phase 1.5 | US 1.3a | 0.5 sprint |
 
+---
+
+#### US-H1: Dynamic & Personalised Quick Access (Phase 2)
+
+**As a** user of the More platform (any role: APPLICANT, RECRUITER, MO_ADMIN),
+**I want** the "Quick Access" section on my home screen to adapt to how I actually use the app, and to let me customise it myself,
+**So that** the features I reach most are always one click away — not buried under a generic static list.
+
+**Acceptance Criteria:**
+
+*Behaviour — learning mode:*
+- Every time a user navigates to a section via a Quick Access tile or the sidebar, the platform records that navigation event (route + timestamp + userId) in the backend.
+- After a user has accumulated enough events (threshold: 10+ navigation events), the platform computes a "top 5 most visited" list and surfaces that as the user's personalised Quick Access order.
+- New items that the user starts visiting frequently bubble up automatically; items the user never visits sink below the fold (collapsed into a "More" expander).
+- Learning updates run on login or on a lightweight debounce (e.g. recalculate after every 5th navigation event).
+
+*Behaviour — customisation mode:*
+- A "Customise" button (pencil icon) appears in the Quick Access section header.
+- Clicking it opens an edit mode: tiles become draggable; the user can reorder, pin, or hide any tile.
+- Pinned tiles always appear first and are immune to the learning algorithm's reordering.
+- Hidden tiles disappear from Quick Access but remain accessible via main navigation.
+- A "Reset to defaults" option reverts both manual customisations and learned order.
+
+*Role awareness:*
+- The available tile set is still filtered by role (APPLICANT tiles are never shown to RECRUITER users etc.); only the order and visibility within the user's allowed set are personalised.
+- If a role change adds new tiles, those appear at the bottom of Quick Access (unranked) until the learning algorithm or user promotes them.
+
+*Persistence:*
+- Customisation choices (pinned tiles, hidden tiles, manual order) persist in the backend against the user's profile — not just localStorage — so they survive device changes.
+- Learned order is stored server-side as a ranked tile list, recalculated periodically.
+
+**Components to Create / Update:**
+- `QuickAccessSectionComponent` (replaces the static tile grid in `HomeComponent`; supports edit mode, drag-to-reorder, pin/hide per tile)
+- `TileCustomiseModalComponent` (full-screen or panel edit mode: draggable tile list, toggle visibility, drag handle, "Reset" button)
+- `QuickAccessService` (fetches personalised tile config from backend; POST navigation events; PUT custom order)
+
+**Backend changes required:**
+- New entity: `UserNavigationEvent (id, userId, route, visitedAt)` — append-only log, 90-day retention.
+- New entity: `UserQuickAccessConfig (userId, tileId, pinned, hidden, manualOrder)` — one row per tile per user.
+- Endpoint: `POST /api/users/me/navigation-events` — record a navigation event (called silently from `QuickAccessService` and sidebar service).
+- Endpoint: `GET /api/users/me/quick-access` — returns ordered tile list (merged: manual pins first → learned order → defaults for unvisited tiles).
+- Endpoint: `PUT /api/users/me/quick-access` — save full custom configuration (pinned, hidden, manual order).
+- Endpoint: `DELETE /api/users/me/quick-access` — reset to defaults.
+- Background job (or on-demand): recalculate learned order from `UserNavigationEvent` aggregate.
+
+**Data Model:**
+```typescript
+QuickAccessTile {
+  tileId: string               // Stable identifier e.g. 'interactions', 'jobs', 'recruiter-job-ads'
+  title: string
+  description: string
+  icon: string
+  route: string
+  color: string
+  pinned: boolean              // User explicitly pinned this tile
+  hidden: boolean              // User explicitly hid this tile
+  manualOrder?: number         // User drag order (null = use learned order)
+  visitCount: number           // Derived from UserNavigationEvent aggregate
+  learnedRank: number          // Computed rank (lower = more visited)
+}
+
+UserNavigationEvent {
+  id: string
+  userId: string
+  tileId: string               // Maps to QuickAccessTile.tileId
+  visitedAt: Date
+}
+
+UserQuickAccessConfig {
+  userId: string
+  tileId: string
+  pinned: boolean
+  hidden: boolean
+  manualOrder: number | null
+}
+```
+
+**UX Notes:**
+- In learning mode (< 10 events), show the default role-filtered tile set in its default order with a subtle hint: *"Your Quick Access will personalise as you use the app."*
+- In customise mode, tiles that are hidden show as greyed-out cards with a "Show" toggle — so users can see everything available to them, not just what's visible.
+- Drag-and-drop should feel lightweight — consider the Angular CDK `DragDropModule`.
+
+**Phase:** Phase 2 — depends on the `HomeComponent` static tile grid being stable (complete).
+**Dependencies:** None beyond stable home page; no Phase 1 stories block this.
+
+---
+
+#### US-R5: Job Ad — Company Alumni Multi-Select from Companies Table (Phase 2)
+
+**As a** recruiter creating or editing a job advertisement,  
+**I want to** select preferred company alumni from a searchable list of known companies in the platform's companies table,  
+**So that** the selection is consistent, avoids typos, and links to real company records.
+
+**Acceptance Criteria:**
+- The "Company Alumni" field in the Job Ad form is replaced with a searchable multi-select (PrimeNG `p-multiselect` or `p-autocomplete`) backed by a `GET /api/companies?search=<term>` endpoint.
+- If a recruiter's desired company is not found, they can enter the company's **website URL** instead; the platform will enqueue a background job to look up / create a company record from that URL.
+- Selected companies are stored as `company_id` references (not free-text strings) on the job advertisement.
+- Existing free-text `companyAlumni` field on `JobAdvertisementCreateRequest` / `JobAdvertisementUpdateRequest` is deprecated and removed as part of this story.
+- The backend enforces that at most 10 company alumni can be selected per advert.
+
+**Backend changes required:**
+- New endpoint: `GET /api/companies?search=<term>&size=20` — returns `id`, `name`, `logoUrl` for dropdown display.
+- New join table: `job_advertisement_company_alumni (job_advertisement_id, company_id)` — replaces any free-text column.
+- `JobAdvertisementDto` gains `companyAlumni: { id, name, logoUrl }[]`.
+
+**Frontend changes required:**
+- Replace the current free-text `companyInput` / chip pattern in `job-ad-form.component` with a PrimeNG `p-multiselect` or `p-autoComplete`.
+- "Not found? Enter website URL" fallback triggers a modal or inline input that submits to a `POST /api/companies/from-url` endpoint.
+
+**Phase:** Phase 2 — depends on US-R1 (job ad form stable) and the existing Companies table being queryable via API.
+
+---
+
+#### US-R6: Recruiter Views Applicants Who Have Shown Interest *(Phase 2)*
+
+**As a** recruiter who has posted a job advertisement,
+**I want to** see a list of candidates who have expressed interest in my job ad
+**So that** I can review their Living CVs and decide who to advance in the hiring process.
+
+**Acceptance Criteria:**
+- Recruiter can navigate to a job ad and see a list of candidates who have clicked "Show Interest" (status: APPLIED)
+- Each applicant is shown under their alias — no real identity exposed
+- Recruiter can open a candidate's Living CV (public, alias-safe view) directly from the applicants list
+- The list shows: alias, class badge, date of interest, and a "View CV" action
+- Recruiter can filter the list by class (All-Star / Gold / Silver / Bronze)
+- Identity reveal from this screen follows the existing reveal workflow (US 1.8)
+- Candidates who have withdrawn their interest are not shown
+
+**Phase:** Phase 2 — depends on US-C1 (interest expression exists), US-R1 (job ad exists), US 1.3a (alias system)
+
+---
+
 **Strategic Flow:**
-1. **Phase 1:** Build foundation (alias + basic privacy)
+1. **Phase 1:** Build foundation (alias + basic privacy) + Global navigation (US-NAV1 — unblocks all roles from section silos)
 2. **Phase 1.5:** Add trust layer (authenticity warnings, onboarding)
-3. **Phase 2:** Implement monetization (reveal requests + subscription validation)
+3. **Phase 2:** Implement monetization (reveal requests + subscription validation) + Talent Search (US-R4) + Dynamic Quick Access (US-H1)
 4. **Phase 3:** Add compliance (audit logs, ToS enforcement)
 
-**Key Insight:** The alias system (US 1.3a) is the technical foundation that makes monetization defensible. Without it, candidates could expose their identity and bypass the platform.
+---
+
+#### US-NAV1: Global Hamburger Navigation Drawer *(Phase 1)*
+
+**As a** user of the More platform (any role),
+**I want** a globally accessible navigation drawer I can open from any page in the app,
+**So that** I can jump directly to any section or sub-page without having to return to the home screen first.
+
+**Problem it solves:**
+Currently the only way to reach a section is via a Quick Access tile on the home screen. Once inside a section (e.g. `/jobs/opportunities`) there is no way to navigate to a different section (e.g. `/personal-development/living-cv`) without first going back to home. This makes the app feel like a collection of isolated silos rather than a coherent product.
+
+---
+
+**Acceptance Criteria:**
+
+*Trigger & placement:*
+- A hamburger icon (☰) sits at the far-left of the `TopbarComponent`, before the logo, on every authenticated page.
+- Clicking it toggles the drawer open/closed. Clicking the overlay also closes it.
+- The drawer is always hamburger-triggered — it never opens automatically or pins itself open on desktop.
+
+*Drawer content — hierarchy per role (merged when user holds multiple roles):*
+```
+All roles
+  └── Home                        →  /home
+
+APPLICANT
+  ├── Job Opportunities
+  │     ├── Opportunities          →  /jobs/opportunities
+  │     └── My Applications        →  /jobs/applications
+  └── Personal Development
+        ├── Living CV               →  /personal-development/living-cv
+        ├── Goals                   →  /personal-development/goals
+        ├── Work Experience         →  /personal-development/work-experience
+        ├── Education               →  /personal-development/education
+        ├── Certifications          →  /personal-development/certifications
+        ├── Skills                  →  /personal-development/skills
+        └── References              →  /personal-development/references
+
+RECRUITER
+  └── Recruitment
+        ├── Job Ads                 →  /recruiter/job-ads
+        └── Candidate Pool         →  /recruiter/candidates
+
+MO_ADMIN
+  └── Admin
+        └── Outreach ML Export     →  /admin/outreach-ml
+```
+- If a user holds multiple roles, all permitted sections are merged into one ordered list (Home first, then role-grouped sections).
+- Sections the user's roles do not permit are never rendered — no greyed-out items.
+
+*Active state:*
+- The section group header (e.g. "Job Opportunities") is highlighted when the current route is anywhere under its prefix.
+- The specific child item (e.g. "My Applications") is highlighted when the current route matches exactly.
+- Both highlights are visible simultaneously (parent accent + child solid highlight).
+
+*Interaction with per-section sidebars:*
+- The drawer is **additive** — the existing 80px per-section sidebars are not removed.
+- When the drawer opens, the per-section sidebar on the current page hides for the duration the drawer is open, then restores when it closes. This prevents two simultaneous navigation panels competing for left-side space.
+
+*Logout:*
+- A "Logout" button appears at the bottom of the drawer.
+- The existing logout in the home sidebar is **not removed** — both co-exist.
+
+*Animations:*
+- Drawer slides in from the left (`transform: translateX(-100%)` → `translateX(0)`).
+- A semi-transparent overlay covers the rest of the page while the drawer is open.
+- Transition: 250–300ms ease.
+
+*Responsive:*
+- Same toggle behaviour on all screen sizes — no persistent/pinned mode.
+
+---
+
+**Components to Create / Update:**
+
+| Component / Service | Action | Location |
+|---|---|---|
+| `NavDrawerComponent` | Create | `shared/components/nav-drawer/nav-drawer.component.ts` |
+| `NavDrawerService` | Create | `shared/services/nav-drawer.service.ts` |
+| `TopbarComponent` | Update — add hamburger button | existing |
+| `JobsLayoutComponent` | Update — hide sidebar when drawer open | existing |
+| `InteractionsLayoutComponent` | Update — hide sidebar when drawer open | existing |
+| `RecruiterLayoutComponent` | Update — hide sidebar when drawer open | existing |
+| `RecruitmentLayoutComponent` | Update — hide sidebar when drawer open | existing |
+
+`NavDrawerService` exposes: `toggle()`, `close()`, `isOpen: Signal<boolean>`.
+
+`NavDrawerComponent` uses a static `NAV_SECTIONS: NavSection[]` constant (no API calls). Role filtering calls `AuthService.hasRole()`.
+
+```typescript
+interface NavSection {
+  id: string;                  // e.g. 'jobs'
+  label: string;
+  requiredRoles: string[];     // empty = visible to all authenticated users
+  routePrefix: string;         // used for active-state detection
+  children: { label: string; route: string }[];
+}
+```
+
+**No backend changes required.**
+
+**Phase:** Phase 1 — usability gap; users cannot freely navigate without it.
+**Dependencies:** `TopbarComponent` and `AuthService` (both stable).
 
 ---
 

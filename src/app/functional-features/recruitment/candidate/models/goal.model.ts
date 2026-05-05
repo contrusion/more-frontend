@@ -102,9 +102,34 @@ export interface CreateProofItemRequest {
 
 // ---- Living CV (US 1.3) ----
 
-export type CandidateClass = 'GOLD' | 'SILVER' | 'BRONZE';
+export type CandidateClass = 'ALL_STAR' | 'GOLD' | 'SILVER' | 'BRONZE';
+export type ExperienceGroup = 'EARLY_CAREER' | 'EXPERIENCED';
+
+// ---- Recruiter candidate search (US-R3) ----
+
+export interface CandidateSearchResult {
+  publicAlias: string;
+  candidateClass: CandidateClass;
+  experienceGroup: ExperienceGroup | null;
+  roleCategory: string;         // AliasRoleTag enum value
+  jobTitle: string | null;
+  industry: string | null;
+  classCardMessage: string;     // Server-computed recruiter card narrative
+  classTooltip: string;         // Server-computed tooltip/hover text
+}
+
+export interface CandidateSearchPage {
+  content: CandidateSearchResult[];
+  totalElements: number;
+  totalPages: number;
+  number: number;               // 0-based current page
+  size: number;
+  first: boolean;
+  last: boolean;
+}
 
 export interface ProfileSummary {
+  publicAlias: string;            // US 1.3a: shown to recruiters instead of real name
   firstName: string;
   lastName: string;
   jobTitle: string;
@@ -166,6 +191,7 @@ export interface WorkExperience {
   isCurrent: boolean;
   location: string | null;
   description: string | null;
+  gapReason: string | null;
   includeInCv: boolean;
   createdAt: string;
   updatedAt: string;
@@ -192,6 +218,7 @@ export interface UpdateWorkExperienceRequest {
   isCurrent?: boolean;
   location?: string;
   description?: string;
+  gapReason?: string;
   includeInCv?: boolean;
 }
 
@@ -322,6 +349,7 @@ export interface CandidateSkill {
   isVerified: boolean;
   endorsementCount: number;
   includeInCv: boolean;
+  lastUsed: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -331,11 +359,52 @@ export interface AddSkillRequest {
   proficiencyLevel: ProficiencyLevel;
   yearsExperience?: number;
   includeInCv?: boolean;
+  lastUsed?: string;
+}
+
+// ---- Public (recruiter-facing) Living CV ----
+
+export interface PublicProfileSummary {
+  publicAlias: string;
+  roleCategory: string;
+  jobTitle: string | null;
+  industry: string | null;
+  biography: string | null;
+}
+
+export interface PublicCandidateReference {
+  jobTitle: string;
+  company: string;
+  relationship: ReferenceRelationship;
+}
+
+export interface PublicLivingCvStats {
+  totalGoals: number;
+  completedGoals: number;
+  inProgressGoals: number;
+  notStartedGoals: number;
+  abandonedGoals: number;
+  totalMilestones: number;
+  totalProofItems: number;
+  verifiedProofItems: number;
+}
+
+export interface PublicLivingCv {
+  profile: PublicProfileSummary;
+  candidateClass: CandidateClass;
+  workExperience: WorkExperience[];
+  education: Education[];
+  skills: CandidateSkill[];
+  certifications: Certification[];
+  references: PublicCandidateReference[];
+  stats: PublicLivingCvStats;
+  lastUpdated: string | null;
 }
 
 export interface UpdateSkillRequest {
   proficiencyLevel?: ProficiencyLevel;
   yearsExperience?: number;
   includeInCv?: boolean;
+  lastUsed?: string;
 }
 

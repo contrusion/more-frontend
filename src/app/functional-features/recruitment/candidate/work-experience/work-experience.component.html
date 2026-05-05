@@ -64,6 +64,10 @@
             <label>Description</label>
             <textarea [(ngModel)]="form.description" rows="4" placeholder="Key responsibilities and achievements…"></textarea>
           </div>
+          <div class="form-field form-field--full">
+            <label>Career Gap Reason <span class="form-field__hint">(optional — explain any gap before this role)</span></label>
+            <textarea [(ngModel)]="form.gapReason" rows="2" placeholder="e.g. Took time off for personal development, travel, family care…"></textarea>
+          </div>
         </div>
         <div class="form-actions">
           <button class="btn-secondary" (click)="cancel()">Cancel</button>

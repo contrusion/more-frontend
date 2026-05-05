@@ -324,6 +324,33 @@ For Companies: Reduced risk, stronger employer branding, and market intelligence
 
 Together, these features make the platform not just a recruitment tool, but a career growth ecosystem—harder to replicate and more valuable over time.
 
+# DOMAIN
+
+I think www.mo-opps.co.za works really well for your concept. Here’s why:
+
+✅ Strengths of the Domain
+Short & Memorable: “mo-opps” is compact, easy to type, and catchy.
+
+Brand Alignment: It ties directly to your app identity—MO = More Opportunities. Recruiters and candidates will immediately connect the domain to the platform’s value proposition.
+
+Professional Tone: Using .co.za anchors it in South Africa, which is perfect for your initial market. It signals local trust and credibility.
+
+Scalable Identity: Even if you expand globally later, “mo-opps” can scale as a recognizable brand shorthand. You could add .com or regional TLDs without losing consistency.
+
+⚠️ Considerations
+Hyphen vs. No Hyphen: Some users may forget the hyphen. If possible, secure both moopps.co.za and mo-opps.co.za to avoid confusion.
+
+Global Expansion: If you plan to scale beyond South Africa, consider also registering mo-opps.com for international reach.
+
+SEO & Branding: “opps” is short for “opportunities,” but make sure your messaging always reinforces that meaning so it doesn’t get misread as “oops.”
+
+🎯 Strategic Angle
+The domain itself becomes part of your trust moat: every alias starts with MO-CANDIDATE, every recruiter interaction is branded with “More Opportunities,” and the domain reinforces that identity. It’s consistent across product, alias system, and web presence.
+
+👉 My recommendation: lock down both versions (mo-opps.co.za and moopps.co.za) if available, and consider grabbing .com for future-proofing.
+
+Would you like me to draft a quick brand consistency checklist (alias system, domain, recruiter UI, candidate dashboard) so you can see how “MO” ties everything together end-to-end?
+
 
 ## Conclusion
 By hiring through our platform, companies gain access to talent that is not only qualified but also proven to be continuously improving. This ensures stronger hires, reduced risk, and a workforce built for resilience and adaptability.

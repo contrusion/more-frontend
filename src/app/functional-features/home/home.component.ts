@@ -53,14 +53,30 @@ export class HomeComponent implements OnInit, OnDestroy {
       icon: 'briefcase',
       route: '/jobs',
       color: '#10b981',
-      roles: ['APPLICANT', 'RECRUITER']
+      roles: ['APPLICANT']
+    },
+    {
+      title: 'Job Ads',
+      description: 'Post and manage job advertisements to attract matched candidates from the pool.',
+      icon: 'briefcase',
+      route: '/recruiter/job-ads',
+      color: '#f97316',
+      roles: ['RECRUITER']
     },
     {
       title: 'Talent Search',
-      description: 'Find and connect with qualified candidates',
+      description: 'Search all registered candidates across the platform, including unclassified applicants.',
       icon: 'search',
       route: '/search',
       color: '#f59e0b',
+      roles: ['RECRUITER']
+    },
+    {
+      title: 'Candidate Pool',
+      description: 'Browse pre-classified top talent — candidates vetted through goals and milestone achievements.',
+      icon: 'users',
+      route: '/recruiter/candidates',
+      color: '#0ea5e9',
       roles: ['RECRUITER']
     },
     {

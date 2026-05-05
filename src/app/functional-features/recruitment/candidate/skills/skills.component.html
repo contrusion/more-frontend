@@ -33,6 +33,10 @@
             <label>Years of Experience</label>
             <input type="number" [(ngModel)]="addYears" min="0" max="50" placeholder="e.g. 3" />
           </div>
+          <div class="form-field">
+            <label>Last Used</label>
+            <input type="date" [(ngModel)]="addLastUsed" />
+          </div>
           <div class="form-field form-field--checkbox">
             <label><input type="checkbox" [(ngModel)]="addIncludeInCv" /> Include in CV</label>
           </div>
@@ -64,6 +68,7 @@
                 }
               </select>
               <input type="number" [(ngModel)]="editForm.yearsExperience" min="0" placeholder="Years" />
+              <input type="date" [(ngModel)]="editForm.lastUsed" title="Last Used" />
               <label><input type="checkbox" [(ngModel)]="editForm.includeInCv" /> In CV</label>
               <div class="skill-card__edit-actions">
                 <button class="btn-primary btn-sm" (click)="saveEdit()">Save</button>

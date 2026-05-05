@@ -3,6 +3,7 @@
   <!-- ── HERO ─────────────────────────────────────────── -->
   <header class="cv-hero">
     @if (cv()) {
+      <div class="cv-hero__top">
       <div class="cv-hero__profile">
         <div class="cv-hero__avatar">
           @if (cv()!.profile.profileImageUrl) {
@@ -66,6 +67,53 @@
           }
         </div>
       </div>
+      </div><!-- /cv-hero__top -->
+
+      <div class="cv-hero__stats">
+        <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-goals')">
+          <span class="cv-hero__stat-icon">🎯</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ cv()!.stats.completedGoals }}<span class="cv-hero__stat-sub">/{{ cv()!.stats.totalGoals }}</span></span>
+            <span class="cv-hero__stat-label">Goals</span>
+          </div>
+          <div class="cv-hero__stat-bar"><div class="cv-hero__stat-fill" [style.width]="goalCompletionPct() + '%'"></div></div>
+        </div>
+        <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-work')">
+          <span class="cv-hero__stat-icon">💼</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ cv()!.workExperience.length }}</span>
+            <span class="cv-hero__stat-label">Roles</span>
+          </div>
+        </div>
+        <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-education')">
+          <span class="cv-hero__stat-icon">🎓</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ cv()!.education.length }}</span>
+            <span class="cv-hero__stat-label">Qualifications</span>
+          </div>
+        </div>
+        <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-skills')">
+          <span class="cv-hero__stat-icon">⚡</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ cv()!.skills.length }}</span>
+            <span class="cv-hero__stat-label">Skills</span>
+          </div>
+        </div>
+        <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-certs')">
+          <span class="cv-hero__stat-icon">🏅</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ cv()!.certifications.length }}</span>
+            <span class="cv-hero__stat-label">Certifications</span>
+          </div>
+        </div>
+        <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-refs')">
+          <span class="cv-hero__stat-icon">👥</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ cv()!.references.length }}</span>
+            <span class="cv-hero__stat-label">References</span>
+          </div>
+        </div>
+      </div>
     } @else if (loading()) {
       <div class="cv-hero__loading">
         <div class="cv-spinner"></div>
@@ -73,12 +121,6 @@
       </div>
     }
   </header>
-
-  <!-- ── TAGLINE STRIP ─────────────────────────────────── -->
-  <div class="cv-tagline">
-    <h2 class="cv-tagline__title">Your Living CV</h2>
-    <p class="cv-tagline__sub">Track goals, log milestones, and showcase proof — every step strengthens your Living CV, builds trust, and earns your class badge as you evolve.</p>
-  </div>
 
   <!-- ── BODY ─────────────────────────────────────────── -->
   <div class="cv-body">
@@ -98,54 +140,12 @@
       <div class="cv-layout">
       <div class="cv-main">
 
-      <!-- ── DASHBOARD ─────────────────────────────────── -->
-      <div class="cv-dashboard">
-        <div class="dash-card">
-          <div class="dash-card__icon">🎯</div>
-          <div class="dash-card__data">
-            <span class="dash-card__value">{{ cv()!.stats.completedGoals }}<span class="dash-card__total">/{{ cv()!.stats.totalGoals }}</span></span>
-            <span class="dash-card__label">Goals</span>
-          </div>
-          <div class="dash-card__bar">
-            <div class="dash-card__fill" [style.width]="goalCompletionPct() + '%'"></div>
-          </div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card__icon dash-card__icon--work">💼</div>
-          <div class="dash-card__data">
-            <span class="dash-card__value">{{ cv()!.workExperience.length }}</span>
-            <span class="dash-card__label">Roles</span>
-          </div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card__icon dash-card__icon--edu">🎓</div>
-          <div class="dash-card__data">
-            <span class="dash-card__value">{{ cv()!.education.length }}</span>
-            <span class="dash-card__label">Qualifications</span>
-          </div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card__icon dash-card__icon--skills">⚡</div>
-          <div class="dash-card__data">
-            <span class="dash-card__value">{{ cv()!.skills.length }}</span>
-            <span class="dash-card__label">Skills</span>
-          </div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card__icon dash-card__icon--certs">🏅</div>
-          <div class="dash-card__data">
-            <span class="dash-card__value">{{ cv()!.certifications.length }}</span>
-            <span class="dash-card__label">Certifications</span>
-          </div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card__icon dash-card__icon--refs">👥</div>
-          <div class="dash-card__data">
-            <span class="dash-card__value">{{ cv()!.references.length }}</span>
-            <span class="dash-card__label">References</span>
-          </div>
-        </div>
-      </div>
+      <!-- ── CLASS STATUS ──────────────────────────────── -->
+      @if (cv()!.candidateClass) {
+        <app-class-badge-dashboard
+          [candidateClass]="cv()!.candidateClass"
+          [publicAlias]="cv()!.profile.publicAlias" />
+      }
 
       <!-- ── GOALS ─────────────────────────────────────── -->
       <section id="cv-goals" class="cv-panel">
@@ -173,6 +173,21 @@
             </div>
           </div>
 
+          @if (overdueGoals().length > 0) {
+            <p-message
+              severity="error"
+              [text]="overdueGoals().length + ' goal' + (overdueGoals().length > 1 ? 's are' : ' is') + ' past their target date'"
+              styleClass="goals-message"
+            />
+          }
+          @if (staleGoals().length > 0) {
+            <p-message
+              severity="warn"
+              [text]="staleGoals().length + ' goal' + (staleGoals().length > 1 ? 's are' : ' is') + ' falling behind expected pace'"
+              styleClass="goals-message"
+            />
+          }
+
           <div class="goal-list">
             @for (goal of cv()!.goals; track goal.id) {
               <div class="goal-row" [class.goal-row--expanded]="isGoalExpanded(goal.id)">
@@ -190,6 +205,11 @@
                     <span class="goal-mini-pct">{{ progressFor(goal) }}%</span>
                   </div>
                   <span class="goal-badge goal-badge--{{ goal.status | lowercase }}">{{ getStatusLabel(goal.status) }}</span>
+                  @if (isGoalOverdue(goal)) {
+                    <p-tag severity="danger" value="Overdue" styleClass="goal-alert-tag" />
+                  } @else if (isGoalStale(goal)) {
+                    <p-tag severity="warn" value="Falling Behind" styleClass="goal-alert-tag" />
+                  }
                   <button class="goal-toggle" [attr.aria-expanded]="isGoalExpanded(goal.id)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          [style.transform]="isGoalExpanded(goal.id) ? 'rotate(180deg)' : 'rotate(0)'">
@@ -254,7 +274,7 @@
 
         @if (cv()!.workExperience.length > 0) {
           <div class="career-timeline">
-            @for (job of cv()!.workExperience; track job.id; let last = $last) {
+            @for (job of sortedWorkExperience(); track job.id; let last = $last) {
               <div class="ct-item">
                 <div class="ct-left">
                   <div class="ct-dot" [class.ct-dot--active]="job.isCurrent"></div>
@@ -281,6 +301,28 @@
                   @if (job.description) { <p class="ct-card__desc">{{ job.description }}</p> }
                 </div>
               </div>
+              @if (!last) {
+                @let gap = gapAfterJob(job.id);
+                @if (gap) {
+                  <div class="gap-indicator" [class.gap-indicator--explained]="gap.isExplained">
+                    <div class="gap-indicator__line"></div>
+                    <div class="gap-indicator__body">
+                      <span class="gap-indicator__label">
+                        {{ gap.gapMonths }}-month gap
+                      </span>
+                      @if (gap.isExplained) {
+                        <p-tag severity="success" value="Explained" />
+                        @if (gap.gapReason) {
+                          <span class="gap-indicator__reason">{{ gap.gapReason }}</span>
+                        }
+                      } @else {
+                        <p-tag severity="warn" value="Unexplained" />
+                        <a routerLink="/personal-development/work-experience" class="gap-indicator__fix">Add reason →</a>
+                      }
+                    </div>
+                  </div>
+                }
+              }
             }
           </div>
         } @else {
@@ -359,22 +401,71 @@
         </div>
 
         @if (cv()!.skills.length > 0) {
-          <div class="skills-grid">
-            @for (skill of cv()!.skills; track skill.id) {
-              <div class="skill-item skill-item--{{ skill.proficiencyLevel | lowercase }}">
-                <div class="skill-item__head">
-                  <span class="skill-item__name">{{ skill.skillName }}</span>
-                  <span class="skill-item__level">{{ skill.proficiencyLevel | titlecase }}</span>
+          @if (skillProficiencyBreakdown().length > 1) {
+            <div class="skill-breakdown">
+              @for (level of skillProficiencyBreakdown(); track level.level) {
+                <div class="skill-breakdown__row">
+                  <span class="skill-breakdown__label">{{ level.label }}</span>
+                  <div class="skill-breakdown__bar">
+                    <div class="skill-breakdown__fill"
+                         [style.width]="level.pct + '%'"
+                         [style.backgroundColor]="level.color"></div>
+                  </div>
+                  <span class="skill-breakdown__stats">{{ level.count }} <span class="skill-breakdown__pct">({{ level.pct }}%)</span></span>
                 </div>
-                <div class="skill-bar">
-                  <div class="skill-bar__fill skill-bar__fill--{{ skill.proficiencyLevel | lowercase }}"
-                       [style.width]="proficiencyPct(skill.proficiencyLevel) + '%'"></div>
-                </div>
-                @if (skill.yearsExperience) {
-                  <span class="skill-item__years">{{ skill.yearsExperience }} yr{{ skill.yearsExperience !== 1 ? 's' : '' }} exp.</span>
-                }
-              </div>
-            }
+              }
+            </div>
+          }
+          <div class="skills-matrix">
+            <table class="sm-table">
+              <thead>
+                <tr>
+                  <th class="sm-th sm-th--skill">Skill</th>
+                  <th class="sm-th sm-th--category">Category</th>
+                  <th class="sm-th sm-th--level">Proficiency</th>
+                  <th class="sm-th sm-th--bar"></th>
+                  <th class="sm-th sm-th--exp">Experience</th>
+                  <th class="sm-th sm-th--lastused">Last Used</th>
+                </tr>
+              </thead>
+              @for (group of skillsByCategory(); track group.category) {
+                <tbody>
+                  <tr class="sm-group-row">
+                    <td colspan="6" class="sm-group-label">{{ group.category }}</td>
+                  </tr>
+                  @for (skill of group.skills; track skill.id) {
+                    <tr class="sm-row">
+                      <td class="sm-td sm-td--skill">{{ skill.skillName }}</td>
+                      <td class="sm-td sm-td--category">{{ skill.skillCategory || '—' }}</td>
+                      <td class="sm-td sm-td--level">
+                        <span class="sm-badge" [style.background]="proficiencyColor(skill.proficiencyLevel) + '22'" [style.color]="proficiencyColor(skill.proficiencyLevel)">
+                          {{ skill.proficiencyLevel | titlecase }}
+                        </span>
+                      </td>
+                      <td class="sm-td sm-td--bar">
+                        <div class="sm-bar">
+                          <div class="sm-bar__fill" [style.width]="proficiencyPct(skill.proficiencyLevel) + '%'" [style.background]="proficiencyColor(skill.proficiencyLevel)"></div>
+                        </div>
+                      </td>
+                      <td class="sm-td sm-td--exp">
+                        @if (skill.yearsExperience) {
+                          {{ skill.yearsExperience }} yr{{ skill.yearsExperience !== 1 ? 's' : '' }}
+                        } @else {
+                          <span class="sm-muted">—</span>
+                        }
+                      </td>
+                      <td class="sm-td sm-td--lastused">
+                        @if (skill.lastUsed) {
+                          {{ skill.lastUsed | date:'MMM y' }}
+                        } @else {
+                          <span class="sm-muted">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              }
+            </table>
           </div>
         } @else {
           <div class="cv-empty">
@@ -546,6 +637,24 @@
           </ul>
         </div>
 
+        <!-- Recommended Actions -->
+        @if (getRecommendedActions().length > 0) {
+          <div class="sidebar-card actions-card">
+            <div class="sidebar-card__head">
+              <span class="sidebar-card__icon">💡</span>
+              <h3 class="sidebar-card__title">Recommended Actions</h3>
+            </div>
+            <ul class="action-list">
+              @for (action of getRecommendedActions(); track action.text) {
+                <li class="action-item action-item--{{ action.severity }}" (click)="navigateAction(action.href)">
+                  <p-tag [severity]="action.severity === 'danger' ? 'danger' : action.severity === 'warn' ? 'warn' : 'info'" styleClass="action-tag" />
+                  <span>{{ action.text }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
         <!-- Jump to Section -->
         <div class="sidebar-card nav-card">
           <div class="sidebar-card__head">
@@ -553,36 +662,36 @@
             <h3 class="sidebar-card__title">Jump to</h3>
           </div>
           <nav class="cv-nav">
-            <a href="#cv-goals" class="cv-nav__item">
+            <div class="cv-nav__item" (click)="scrollTo('cv-goals')">
               <span class="cv-nav__icon">🎯</span>
               <span class="cv-nav__label">Goals</span>
               <span class="cv-nav__count">{{ cv()!.stats.totalGoals }}</span>
-            </a>
-            <a href="#cv-work" class="cv-nav__item">
+            </div>
+            <div class="cv-nav__item" (click)="scrollTo('cv-work')">
               <span class="cv-nav__icon">💼</span>
               <span class="cv-nav__label">Career</span>
               <span class="cv-nav__count">{{ cv()!.workExperience.length }}</span>
-            </a>
-            <a href="#cv-education" class="cv-nav__item">
+            </div>
+            <div class="cv-nav__item" (click)="scrollTo('cv-education')">
               <span class="cv-nav__icon">🎓</span>
               <span class="cv-nav__label">Education</span>
               <span class="cv-nav__count">{{ cv()!.education.length }}</span>
-            </a>
-            <a href="#cv-skills" class="cv-nav__item">
+            </div>
+            <div class="cv-nav__item" (click)="scrollTo('cv-skills')">
               <span class="cv-nav__icon">⚡</span>
               <span class="cv-nav__label">Skills</span>
               <span class="cv-nav__count">{{ cv()!.skills.length }}</span>
-            </a>
-            <a href="#cv-certs" class="cv-nav__item">
+            </div>
+            <div class="cv-nav__item" (click)="scrollTo('cv-certs')">
               <span class="cv-nav__icon">🏅</span>
               <span class="cv-nav__label">Certifications</span>
               <span class="cv-nav__count">{{ cv()!.certifications.length }}</span>
-            </a>
-            <a href="#cv-refs" class="cv-nav__item">
+            </div>
+            <div class="cv-nav__item" (click)="scrollTo('cv-refs')">
               <span class="cv-nav__icon">👥</span>
               <span class="cv-nav__label">References</span>
               <span class="cv-nav__count">{{ cv()!.references.length }}</span>
-            </a>
+            </div>
           </nav>
         </div>
 

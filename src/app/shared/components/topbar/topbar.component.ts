@@ -201,6 +201,15 @@ export class TopbarComponent implements OnInit, OnDestroy {
     return this.authService.hasRole('MO_ADMIN');
   }
 
+  isRecruiter(): boolean {
+    return this.authService.hasRole('RECRUITER');
+  }
+
+  goToCandidates(): void {
+    this.navigateTo('/recruiter/candidates');
+    this.closeMenus();
+  }
+
   logout(): void {
     this.authService.logout();
     this.closeMenus();
