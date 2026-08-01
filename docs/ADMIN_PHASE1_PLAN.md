@@ -42,6 +42,7 @@ The existing admin shell (`AdminComponent`) is already wired with a sidebar card
 - Shows all `AppUser` fields: name, email, phone, group, LinkedIn/portfolio URLs, DOB, account types
 - For `APPLICANT` users: link to view their Living CV summary (read-only)
 - For `RECRUITER` users: shows company association and posted job advertisements count
+- Show last login
 
 **Backend:** `GET /api/admin/users/{userId}`
 
@@ -257,17 +258,44 @@ The existing admin shell (`AdminComponent`) is already wired with a sidebar card
 
 ---
 
-### US-017 · User registration trend report
+### US-017 · User registration & login trend report
 **As** an admin  
-**I want** to see how user registrations trend over time, broken down by account type  
-**So that** I can understand platform growth and which user type is growing fastest
+**I want** to see how user registrations and logins trend over time, broken down by account type  
+**So that** I can understand platform growth, engagement, and which user type is most active
 
 **Acceptance criteria:**
-- Line chart: registrations per week for the last 6 months
-- Colour-coded by account type
-- Export to CSV
+- Dual-series line chart: registrations per week **and** logins per week for the last 6 months
+- Toggle to switch between registration view, login view, or combined view
+- Both series colour-coded by account type (Applicant / Recruiter / MO_Admin)
+- Login trend shows unique active users (deduplicated per period) vs raw session count
+- Date-range picker to adjust the reporting window (default: last 6 months)
+- Export to CSV (includes both registrations and login counts)
 
-**Backend:** `GET /api/admin/analytics/registrations?from=&to=&groupBy=week`
+**Backend:**
+- `GET /api/admin/analytics/registrations?from=&to=&groupBy=week`
+- `GET /api/admin/analytics/logins?from=&to=&groupBy=week`
+
+---
+
+### US-020 · Admin Views Placement Trends
+**As** an admin of the More Opportunities platform  
+**I want** to view the number of candidate placements and placement trends over time  
+**So that** I can measure platform effectiveness, showcase success to candidates, and provide recruiters with evidence of hiring outcomes
+
+**Acceptance criteria:**
+- Admin dashboard includes a **Placement Trends** section
+- Metrics displayed:
+  - Total placements (all-time, monthly, quarterly)
+  - Placements by tier (Bronze, Silver, Gold, All-Star)
+  - Placements by domain (Finance, Health, Automotive, etc.)
+  - Placements by company alumni (e.g., ex-Microsoft, ex-Standard Bank)
+- Visualisations:
+  - Line chart for placement trends over time
+  - Bar chart for placements by tier and by domain
+- Export option: CSV or PDF for reporting
+- Data refresh: near real-time or daily batch
+
+**Backend:** `GET /api/admin/analytics/placements?from=&to=&groupBy=month`
 
 ---
 
@@ -317,6 +345,7 @@ All admin child routes are lazy-loaded under the existing `/admin` parent:
 /admin/recruiters             → RecruiterPerformanceComponent (US-012)
 /admin/outreach-ml            → DatasetExportComponent (US-013) ← exists
 /admin/ml/history             → MlExportHistoryComponent (US-014, US-015)
+/admin/analytics/placements   → PlacementTrendsComponent (US-020)
 /admin/config/classes         → ClassThresholdConfigComponent (US-018)
 /admin/config/flags           → FeatureFlagsComponent (US-019)
 ```
@@ -327,10 +356,10 @@ All admin child routes are lazy-loaded under the existing `/admin` parent:
 
 | Story | Value | Effort | Priority |
 |-------|-------|--------|----------|
-| US-001 User list | High | Low | 🔴 P1 |
-| US-002 User profile | High | Low | 🔴 P1 |
-| US-016 KPI dashboard | High | Medium | 🔴 P1 |
-| US-004 Suspend account | High | Low | 🔴 P1 |
+| US-001 User list | High | Low | ✅ Done |
+| US-002 User profile | High | Low | ✅ Done |
+| US-016 KPI dashboard | High | Medium | ✅ Done |
+| US-004 Suspend account | High | Low | ✅ Done |
 | US-003 Assign roles | High | Medium | 🔴 P1 |
 | US-005 View all job ads | Medium | Low | 🟡 P2 |
 | US-006 Remove job ad | Medium | Low | 🟡 P2 |
@@ -342,6 +371,85 @@ All admin child routes are lazy-loaded under the existing `/admin` parent:
 | US-010 Inactive candidates | Low | Medium | 🟢 P3 |
 | US-012 Recruiter performance | Low | Medium | 🟢 P3 |
 | US-014/015 ML history | Low | Medium | 🟢 P3 |
-| US-017 Registration trends | Low | Medium | 🟢 P3 |
+| US-017 Registration & login trends | Low | Medium | 🟢 P3 |
+| US-020 Placement trends | High | Medium | 🔴 P1 |
 | US-018 Class thresholds | Low | High | 🟢 P3 |
 | US-019 Feature flags | Low | High | 🟢 P3 |
+
+
+
+
+
+Admin Hamburger Menu Structure
+1. Account Management
+Manage Recruiter Accounts
+
+View, approve, suspend, or delete recruiter profiles.
+
+Manage Candidate Accounts
+
+View, verify, or deactivate candidate profiles.
+
+Role Assignment
+
+Assign admin, recruiter, or candidate roles.
+
+Access Logs
+
+View login history and account activity.
+
+2. Platform Operations
+Goal Library Management
+
+Add/edit built‑in goals, adjust weights, retire outdated goals.
+
+Class System Configuration
+
+Modify tier thresholds (Bronze, Silver, Gold, All‑Star).
+
+Proof Validation Rules
+
+Define acceptable proof types per goal.
+
+Placement Trends Dashboard
+
+View placement metrics and trends (monthly, quarterly, by tier/domain).
+
+3. Technical & System Settings
+Audit Logs
+
+Track admin actions for compliance.
+
+System Health
+
+Monitor API uptime, database status, and error logs.
+
+Data Sync & Backup
+
+Trigger manual syncs or backups.
+
+Feature Flags
+
+Enable/disable experimental features.
+
+4. Communication & Content
+Announcements
+
+Post updates or alerts visible to recruiters/candidates.
+
+Feedback Review
+
+View and respond to user feedback.
+
+Help Articles
+
+Manage platform documentation and FAQs.
+
+🧩 UI Implementation Tips (Angular + PrimeNG)
+Use PrimeNG PanelMenu (p-panelMenu) for collapsible sections.
+
+Group items under submenus with icons (e.g., pi pi-users for accounts, pi pi-cog for system).
+
+Add role-based visibility so only super‑admins see technical tools.
+
+Consider lazy loading for heavy dashboards like placement trends.

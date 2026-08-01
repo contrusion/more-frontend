@@ -64,7 +64,7 @@ describe('EmailSyncComponent', () => {
 
   it('should disconnect Gmail successfully', () => {
     spyOn(window, 'confirm').and.returnValue(true);
-    emailSyncService.revokeGmailAccess.and.returnValue(of(void 0));
+    emailSyncService.revokeGmailAccess.and.returnValue(of({ message: 'ok', status: 'success' }));
     
     component.disconnectGmail();
     

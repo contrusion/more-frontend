@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../../none-functional-features/authentication-and-authorization/services/auth.service';
 import { DailyDigestService, DailyDigest } from '../../../functional-features/interactions/services/daily-digest.service';
+import { NavDrawerService } from '../../services/nav-drawer.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 interface Breadcrumb {
@@ -39,7 +40,8 @@ export class TopbarComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private activatedRoute: ActivatedRoute,
-    private dailyDigestService: DailyDigestService
+    private dailyDigestService: DailyDigestService,
+    public navDrawerService: NavDrawerService
   ) {}
 
   ngOnInit(): void {
@@ -178,6 +180,11 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
     this.isNotificationsOpen = false;
     this.isDigestOpen = false;
+  }
+
+  toggleDrawer(): void {
+    this.navDrawerService.toggle();
+    this.closeMenus();
   }
 
   navigateTo(url: string): void {

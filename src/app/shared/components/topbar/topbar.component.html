@@ -1,6 +1,17 @@
 <nav class="topbar">
   <div class="topbar-container">
-    <!-- Left Section: Logo & Breadcrumbs -->
+    <!-- Hamburger: far left, outside left group -->
+    <button
+      class="hamburger-btn"
+      (click)="toggleDrawer()"
+      [class.drawer-open]="navDrawerService.isOpen()"
+      aria-label="Toggle navigation">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+
+    <!-- Centre-left: Logo & Breadcrumbs -->
     <div class="topbar-left">
       <div class="logo" (click)="navigateTo('/home')">
         <svg viewBox="0 0 40 40" class="logo-icon">

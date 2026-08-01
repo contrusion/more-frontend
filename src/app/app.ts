@@ -3,11 +3,12 @@ import { RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from './none-functional-features/authentication-and-authorization/services/auth.service';
 import { TopbarComponent } from './shared/components/topbar/topbar.component';
+import { NavDrawerComponent } from './shared/components/nav-drawer/nav-drawer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, TopbarComponent],
+  imports: [RouterOutlet, CommonModule, TopbarComponent, NavDrawerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

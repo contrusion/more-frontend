@@ -1,0 +1,250 @@
+<div class="detail-page">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <div class="detail-header">
+    <div class="detail-header__content">
+      <button class="back-btn" (click)="goBack()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Back to Users
+      </button>
+      @if (user()) {
+        <div class="detail-header__title">
+          <h1>{{ user()!.firstName }} {{ user()!.lastName }}</h1>
+          <p>{{ user()!.email }}</p>
+        </div>
+        <div class="detail-header__badges">
+          @if (user()!.premium) {
+            <span class="badge badge--premium">⭐ Premium</span>
+          }
+          @if (user()!.enabled) {
+            <span class="badge badge--active">Active</span>
+          } @else {
+            <span class="badge badge--suspended">Suspended</span>
+          }
+        </div>
+        <div class="detail-header__actions">
+          @if (user()!.enabled) {
+            <button class="action-btn action-btn--danger" [disabled]="actionLoading()" (click)="openSuspendDialog()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+              </svg>
+              Suspend Account
+            </button>
+          } @else {
+            <button class="action-btn action-btn--success" [disabled]="actionLoading()" (click)="reactivate()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              @if (actionLoading()) { Reactivating… } @else { Reactivate Account }
+            </button>
+          }
+          @if (actionError()) {
+            <span class="action-error">{{ actionError() }}</span>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Body ───────────────────────────────────────── -->
+  <div class="detail-body">
+
+    <!-- ── Loading ──────────────────────────────────── -->
+    @if (loading()) {
+      <div class="state-block">
+        <div class="spinner"></div>
+        <p>Loading profile…</p>
+      </div>
+    }
+
+    <!-- ── Error ────────────────────────────────────── -->
+    @if (!loading() && error()) {
+      <div class="state-block state-block--error">
+        <p>{{ error() }}</p>
+        <button class="btn-retry" (click)="goBack()">← Back to Users</button>
+      </div>
+    }
+
+    <!-- ── Profile ───────────────────────────────────── -->
+    @if (!loading() && !error() && user(); as u) {
+      <div class="profile-grid">
+
+        <!-- ── Identity card ───────────────────────── -->
+        <section class="card">
+          <h2 class="card__title">Identity</h2>
+          <dl class="field-list">
+            <div class="field-row">
+              <dt>Full Name</dt>
+              <dd>{{ u.firstName }} {{ u.lastName }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Email</dt>
+              <dd>{{ u.email }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Phone</dt>
+              <dd>{{ u.phoneNumber ?? '—' }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Date of Birth</dt>
+              <dd>{{ formatDate(u.dateOfBirth) }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Group</dt>
+              <dd>{{ u.group ?? '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- ── Account card ────────────────────────── -->
+        <section class="card">
+          <h2 class="card__title">Account</h2>
+          <dl class="field-list">
+            <div class="field-row">
+              <dt>Account Types</dt>
+              <dd class="chips-cell">
+                @for (t of u.userTypes; track t) {
+                  <span class="type-chip type-chip--{{ t.toLowerCase() }}">{{ typeLabel(t) }}</span>
+                }
+              </dd>
+            </div>
+            <div class="field-row">
+              <dt>Plan</dt>
+              <dd>{{ u.premium ? '⭐ Premium' : 'Standard' }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Status</dt>
+              <dd>
+                @if (u.enabled) {
+                  <span class="status-dot status-dot--active">Active</span>
+                } @else {
+                  <span class="status-dot status-dot--suspended">Suspended</span>
+                }
+              </dd>
+            </div>
+            <div class="field-row">
+              <dt>Registered</dt>
+              <dd>{{ formatDate(u.createdAt) }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Last Login</dt>
+              <dd>{{ formatDate(u.lastLogin) }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>Total Logins</dt>
+              <dd>{{ u.loginCount }}</dd>
+            </div>
+            @if (!u.enabled && u.suspendReason) {
+              <div class="field-row field-row--warning">
+                <dt>Suspension Reason</dt>
+                <dd>{{ u.suspendReason }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+
+        <!-- ── Online Presence card ────────────────── -->
+        <section class="card">
+          <h2 class="card__title">Online Presence</h2>
+          <dl class="field-list">
+            <div class="field-row">
+              <dt>LinkedIn</dt>
+              <dd>
+                @if (u.linkedinUrl) {
+                  <a [href]="u.linkedinUrl" target="_blank" rel="noopener noreferrer" class="external-link">
+                    {{ u.linkedinUrl }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="link-icon">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+            <div class="field-row">
+              <dt>Portfolio</dt>
+              <dd>
+                @if (u.portfolioUrl) {
+                  <a [href]="u.portfolioUrl" target="_blank" rel="noopener noreferrer" class="external-link">
+                    {{ u.portfolioUrl }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="link-icon">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+
+        @if (u.userTypes.includes('RECRUITER')) {
+          <section class="card">
+            <h2 class="card__title">Recruiter</h2>
+            <dl class="field-list">
+              <div class="field-row">
+                <dt>Company</dt>
+                <dd>{{ u.company ?? '—' }}</dd>
+              </div>
+              <div class="field-row">
+                <dt>Job Advertisements Posted</dt>
+                <dd>{{ u.jobsPosted ?? 0 }}</dd>
+              </div>
+            </dl>
+          </section>
+        }
+
+      </div>
+    }
+
+  </div>
+</div>
+
+<!-- ── Suspend dialog ──────────────────────────────────── -->
+@if (showSuspendDialog()) {
+  <div class="dialog-backdrop" (click)="closeSuspendDialog()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog__header">
+        <h2>Suspend Account</h2>
+        <button class="dialog__close" (click)="closeSuspendDialog()">✕</button>
+      </div>
+      <div class="dialog__body">
+        <p class="dialog__description">
+          This will immediately block <strong>{{ user()!.firstName }} {{ user()!.lastName }}</strong>
+          from accessing the platform. You can reactivate the account at any time.
+        </p>
+        <label class="dialog__label" for="suspend-reason">
+          Reason <span class="required">*</span>
+        </label>
+        <textarea
+          id="suspend-reason"
+          class="dialog__textarea"
+          placeholder="Describe why this account is being suspended…"
+          [(ngModel)]="suspendReason"
+          rows="4"
+          maxlength="1000"
+        ></textarea>
+        <div class="dialog__char-count">{{ suspendReason.length }} / 1000</div>
+        @if (actionError()) {
+          <p class="dialog__error">{{ actionError() }}</p>
+        }
+      </div>
+      <div class="dialog__footer">
+        <button class="dialog__btn dialog__btn--cancel" (click)="closeSuspendDialog()">Cancel</button>
+        <button
+          class="dialog__btn dialog__btn--confirm"
+          [disabled]="!suspendReason.trim() || actionLoading()"
+          (click)="confirmSuspend()">
+          @if (actionLoading()) { Suspending… } @else { Suspend Account }
+        </button>
+      </div>
+    </div>
+  </div>
+}

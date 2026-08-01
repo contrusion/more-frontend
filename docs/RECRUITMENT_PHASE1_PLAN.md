@@ -492,6 +492,43 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 ---
 
+**US-C3: Candidate Logs Built-In Weighted Goals with Proofs**
+- **As a** candidate building my Living CV
+- **I want to** select from a library of built-in, weighted goals (while still being able to add custom goals)
+- **So that** my achievements are standardised, recruiters can compare candidates more easily, and proofs are simplified
+- **Acceptance Criteria:**
+  - Candidate dashboard shows two goal types:
+    - **Built-In Goals:** Predefined, weighted goals (e.g., "Earn AWS Certification", "Complete Finance Project")
+    - **Custom Goals:** Candidate-defined goals (already supported)
+  - Built-In Goals have:
+    - System-assigned weight/score that contributes to class progression
+    - Predefined proof types (certificate upload, project link, badge)
+    - Progress tracker (e.g., % complete, milestone checkboxes)
+  - Recruiters see weighted built-in goals as primary signals; custom goals remain visible as additional context
+  - Class progression (Bronze → Silver → Gold → All-Star) is influenced more heavily by built-in goals
+  - Notifications nudge candidates to complete built-in goals or add proofs (e.g., "You're 1 proof away from Gold!")
+  - Admins can update the goal library (add/remove/edit built-in goals, adjust weights)
+- **Components to Create / Update:**
+  - `GoalLibraryComponent` — browsable list of built-in goals a candidate can add to their profile
+  - `BuiltInGoalCardComponent` — displays goal name, weight, predefined proof types, progress tracker
+  - `GoalProgressTrackerComponent` — milestone checkboxes / % complete indicator
+  - `GoalNudgeNotificationComponent` — contextual nudge when candidate is close to a tier threshold
+  - Update `GoalsPageComponent` to separate built-in and custom goal sections
+- **Backend changes required:**
+  - New entity: `GoalTemplate (id, title, description, weight, proofTypes[], category, active)` — admin-managed library
+  - `CandidateGoal` gains `goalTemplateId` (nullable — null means custom) and `progressPercentage`
+  - Class calculation in `CandidateClassScheduler` weights built-in goal completions more heavily
+  - Endpoints:
+    - `GET /api/goals/library` — returns active built-in goal templates
+    - `POST /api/candidates/me/goals` — updated to accept `goalTemplateId` for built-in goals
+    - `GET /api/admin/goals/library` — admin: full list including inactive
+    - `POST /api/admin/goals/library` — admin: create a new goal template
+    - `PATCH /api/admin/goals/library/{id}` — admin: edit or deactivate a template
+- **Phase:** Phase 2
+- **Dependencies:** US 1.3 (goals exist), US 1.4 (class calculation), US-C2 (class messaging in place)
+
+---
+
 #### Epic: Talent Search — Full Registry Browse (Phase 2)
 
 > **Context:** The Candidate Pool (US-R3) surfaces only pre-classified, vetted talent. Talent Search is the complementary search-first tool that exposes the full registered candidate base — including unclassified applicants who have not yet earned a class. This matters for recruiters who want to discover early-stage candidates, reach into a broader pool, or search by role and industry rather than tier.
@@ -711,6 +748,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 | **US-R5** | Job Ad: Company Alumni multi-select from Companies table | Phase 2 | US-R1, Companies table | 1 sprint |
 | **US-R6** | Recruiter: View applicants who expressed interest + their CVs | Phase 2 | US-R1, US-C1, US 1.3a | 1 sprint |
 | **US-H1** | UX: Dynamic & Personalised Quick Access (all roles) | Phase 2 | Home component stable | 1 sprint |
+| **US-C3** | Candidate: Built-In Weighted Goals with Proofs | Phase 2 | US 1.3, US 1.4, US-C2 | 1.5 sprints |
 | **US 1.8** | Business: Reveal workflow | Phase 2 | US 1.3a, 1.5 | 2 sprints |
 | **US 1.9** | Payment: Subscription validation | Phase 2 | US 1.8, Stripe setup | 2 sprints |
 | **US 1.10** | Compliance: Audit logging | Phase 3 | US 1.8, 1.9 | 1 sprint |
@@ -943,15 +981,7 @@ MO_ADMIN
 
 `NavDrawerComponent` uses a static `NAV_SECTIONS: NavSection[]` constant (no API calls). Role filtering calls `AuthService.hasRole()`.
 
-```typescript
-interface NavSection {
-  id: string;                  // e.g. 'jobs'
-  label: string;
-  requiredRoles: string[];     // empty = visible to all authenticated users
-  routePrefix: string;         // used for active-state detection
-  children: { label: string; route: string }[];
-}
-```
+
 
 **No backend changes required.**
 
@@ -960,168 +990,6 @@ interface NavSection {
 
 ---
 
-## Data Models (New)
-
-```typescript
-// Candidate Goals & Growth
-Goal {
-  id: string
-  candidateId: string
-  title: string                    // "Complete Java Certification"
-  description: string
-  category: GoalCategory           // SKILL | CERTIFICATION | PROJECT | LANGUAGE | OTHER
-  targetDate: Date
-  status: GoalStatus              // NOT_STARTED | IN_PROGRESS | COMPLETED | ABANDONED
-  createdAt: Date
-  updatedAt: Date
-  deletedAt?: Date                // Soft delete for history
-  isPublic: boolean               // Part of Living CV?
-}
-
-Milestone {
-  id: string
-  goalId: string
-  title: string
-  description: string
-  completionPercentage: number    // 0, 25, 50, 75, 100
-  completedAt: Date
-  proofItems: ProofItem[]
-}
-
-ProofItem {
-  id: string
-  goalId: string
-  type: ProofType                 // CERTIFICATE | URL | GITHUB_REPO | PROJECT_LINK | FILE | EMAIL_RECOMMENDATION
-  title: string
-  url?: string
-  fileKey?: string                // S3/blob storage reference
-  uploadedAt: Date
-  verificationStatus: VerificationStatus  // PENDING | VERIFIED | REJECTED (lazy verification on company engagement)
-  isPublic: boolean
-  metadata?: {
-    issueDate?: Date
-    score?: number
-    verifiedAt?: Date
-    verifiedBy?: string            // Recruiter or system ID
-  }
-}
-
-CandidateProfile {
-  id: string
-  userId: string                  // Keycloak user ID (APPLICANT/CANDIDATE)
-  publicAlias: string             // "TechPro_4782" - System-generated, never changes
-  firstName: string               // Hidden from companies until reveal
-  lastName: string                // Hidden from companies until reveal
-  email: string                   // Hidden from companies until reveal
-  currentRole?: string
-  yearsOfExperience?: number
-  bio?: string
-  avatar?: string
-  class: CandidateClass           // GOLD | SILVER | BRONZE (calculated)
-  classLastUpdated: Date
-  goals: Goal[]
-  milestones: Milestone[]
-  proofItems: ProofItem[]
-  createdAt: Date
-  updatedAt: Date
-}
-
-Application {
-  id: string
-  candidateId: string
-  companyId?: string
-  companyName: string
-  jobTitle: string
-  recruiterId?: string
-  applicationDate: Date
-  source: ApplicationSource        // EMAIL_RECEIVED | MANUAL_ENTRY | JOB_BOARD
-  status: ApplicationStatus        // SUBMITTED | INTERVIEW_INVITED | REJECTED | OFFER_RECEIVED | ARCHIVED
-  feedback?: Feedback[]
-  lastUpdateDate: Date
-}
-
-Feedback {
-  id: string
-  applicationId: string
-  source: FeedbackSource          // EMAIL | INTERVIEW_FORM | PHONE_CALL | MANUAL_ENTRY
-  category: FeedbackCategory      // TECHNICAL | COMMUNICATION | FIT | EXPERIENCE | BEHAVIOR
-  sentiment: Sentiment            // POSITIVE | NEUTRAL | NEGATIVE
-  content: string
-  receivedDate: Date
-  recruiterName?: string
-}
-
-PrivacySetting {
-  id: string
-  candidateId: string
-  visibleGoals: string[]          // Goal IDs to show publicly
-  visibleProof: string[]          // Proof item IDs to show publicly
-  updatedAt: Date
-}
-
-// Identity Reveal & Monetization (Phase 2+)
-IdentityRevealRequest {
-  id: string
-  candidateId: string
-  companyId: string
-  requestedAt: Date
-  status: RevealStatus            // PENDING_PAYMENT | REVEALED | REJECTED
-  pathway: MonetizationPathway    // SUBSCRIPTION | CONTINGENCY
-  placementFeePercentage: number  // 10-12% for subscribers, 20-30% for non-subscribers
-  revealedAt?: Date
-  candidateApprovalRequired: boolean  // Future: manual approval flow
-}
-
-CompanySubscription {
-  id: string
-  companyId: string
-  tier: SubscriptionTier          // FREE | PRO | ENTERPRISE
-  revealsRemaining: number        // null for ENTERPRISE (unlimited)
-  billingCycle: BillingCycle      // MONTHLY | ANNUAL
-  subscriptionStart: Date
-  subscriptionEnd: Date
-  stripeSubscriptionId: string
-  stripeCustomerId: string
-}
-
-RevealAuditLog {
-  id: string
-  revealRequestId: string
-  candidateId: string
-  companyId: string
-  revealedAt: Date
-  pathway: MonetizationPathway    // SUBSCRIPTION | CONTINGENCY
-  placementFeePercentage: number
-  subscriptionTier?: string       // PRO | ENTERPRISE (if pathway = SUBSCRIPTION)
-  invoiceId?: string              // Stripe invoice reference
-  notes?: string
-}
-
-// Enums
-enum RevealStatus {
-  PENDING_PAYMENT
-  REVEALED
-  REJECTED
-}
-
-enum MonetizationPathway {
-  SUBSCRIPTION        // Discounted placement fee (10-12%)
-  CONTINGENCY         // Full placement fee (20-30%)
-}
-
-enum SubscriptionTier {
-  FREE                // 0 reveals/month
-  PRO                 // X reveals/month
-  ENTERPRISE          // Unlimited reveals
-}
-
-enum BillingCycle {
-  MONTHLY
-  ANNUAL
-}
-```
-
----
 
 ## Frontend File Structure (New)
 

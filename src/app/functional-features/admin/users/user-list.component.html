@@ -1,0 +1,150 @@
+<div class="users-page">
+
+  <!-- ── Gradient Header ─────────────────────────────── -->
+  <div class="users-header">
+    <div class="users-header__content">
+      <div class="users-header__text">
+        <h1>Platform Users</h1>
+        <p>Browse, search and audit all registered users across every account type.</p>
+      </div>
+      @if (!loading() && totalElements() > 0) {
+        <span class="users-header__count">{{ totalElements() }} users</span>
+      }
+    </div>
+  </div>
+
+  <!-- ── Body ───────────────────────────────────────── -->
+  <div class="users-body">
+
+    <!-- ── Search bar ─────────────────────────────── -->
+    <div class="search-row">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by name or email…"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearch()"
+          class="search-input"
+        />
+      </div>
+    </div>
+
+    <!-- ── Filters ────────────────────────────────── -->
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-group__label">Type</span>
+        <div class="filter-bar">
+          @for (opt of typeOptions; track opt.label) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="activeTypeFilter() === opt.value"
+              (click)="applyTypeFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+      <div class="filter-group filter-group--right">
+        <span class="filter-group__label">Plan</span>
+        <div class="filter-bar">
+          @for (opt of premiumOptions; track opt.label) {
+            <button
+              class="filter-pill filter-pill--premium"
+              [class.filter-pill--active]="activePremiumFilter() === opt.value"
+              (click)="applyPremiumFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Loading ────────────────────────────────── -->
+    @if (loading()) {
+      <div class="state-block">
+        <div class="spinner"></div>
+        <p>Loading users…</p>
+      </div>
+    }
+
+    <!-- ── Error ──────────────────────────────────── -->
+    @if (!loading() && error()) {
+      <div class="state-block state-block--error">
+        <p>{{ error() }}</p>
+        <button class="btn-retry" (click)="load()">Retry</button>
+      </div>
+    }
+
+    <!-- ── Empty state ────────────────────────────── -->
+    @if (!loading() && !error() && users().length === 0) {
+      <div class="state-block">
+        <p>No users found for this filter.</p>
+      </div>
+    }
+
+    <!-- ── Table ──────────────────────────────────── -->
+    @if (!loading() && !error() && users().length > 0) {
+      <div class="table-wrapper">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Account Types</th>
+              <th>Status</th>
+              <th>Registered</th>
+              <th>Last Login</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users(); track user.id) {
+              <tr [class.row--suspended]="!user.enabled" [routerLink]="['/admin/users', user.id]" class="row--clickable">
+                <td class="td-name">
+                  {{ user.firstName }} {{ user.lastName }}
+                  @if (user.premium) {
+                    <span class="badge badge--premium">⭐ Premium</span>
+                  }
+                </td>
+                <td class="td-email">{{ user.email }}</td>
+                <td class="td-types">
+                  @for (t of user.userTypes; track t) {
+                    <span class="type-chip type-chip--{{ t.toLowerCase() }}">{{ typeLabel(t) }}</span>
+                  }
+                </td>
+                <td class="td-status">
+                  @if (user.enabled) {
+                    <span class="status-dot status-dot--active">Active</span>
+                  } @else {
+                    <span class="status-dot status-dot--suspended">Suspended</span>
+                  }
+                </td>
+                <td class="td-date">{{ formatDate(user.createdAt) }}</td>
+                <td class="td-date">{{ formatDate(user.lastLogin) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Pagination ────────────────────────────── -->
+      @if (totalPages() > 1) {
+        <div class="pagination">
+          <button class="pagination__btn" [disabled]="currentPage() === 0" (click)="goToPage(currentPage() - 1)">‹ Prev</button>
+          @for (p of pageNumbers; track p) {
+            <button
+              class="pagination__btn"
+              [class.pagination__btn--active]="p === currentPage()"
+              (click)="goToPage(p)">
+              {{ p + 1 }}
+            </button>
+          }
+          <button class="pagination__btn" [disabled]="currentPage() === totalPages() - 1" (click)="goToPage(currentPage() + 1)">Next ›</button>
+        </div>
+      }
+    }
+
+  </div>
+</div>

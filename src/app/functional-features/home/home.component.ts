@@ -37,14 +37,22 @@ export class HomeComponent implements OnInit, OnDestroy {
       icon: 'clipboard',
       route: '/interactions',
       color: '#0ea5e9',
-      roles: ['APPLICANT', 'RECRUITER', 'MO_ADMIN']
+      roles: ['APPLICANT', 'RECRUITER']
     },
     {
-      title: 'Outreach ML Dataset Export',
-      description: 'Export recruitment emails for machine learning model training',
-      icon: 'database',
-      route: '/admin/outreach-ml',
-      color: '#f59e0b',
+      title: 'Overview',
+      description: 'Platform-wide health metrics and KPI dashboard',
+      icon: 'grid',
+      route: '/admin/dashboard',
+      color: '#0ea5e9',
+      roles: ['MO_ADMIN']
+    },
+    {
+      title: 'User Management',
+      description: 'Browse, search and manage all platform users',
+      icon: 'users',
+      route: '/admin/users',
+      color: '#0284c7',
       roles: ['MO_ADMIN']
     },
     {

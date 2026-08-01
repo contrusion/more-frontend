@@ -57,12 +57,24 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'outreach-ml',
+        redirectTo: 'dashboard',
         pathMatch: 'full'
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./functional-features/admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent)
       },
       {
         path: 'outreach-ml',
         loadComponent: () => import('./functional-features/interactions/dataset-export/dataset-export.component').then(m => m.DatasetExportComponent)
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./functional-features/admin/users/user-list.component').then(m => m.UserListComponent)
+      },
+      {
+        path: 'users/:id',
+        loadComponent: () => import('./functional-features/admin/users/user-detail.component').then(m => m.UserDetailComponent)
       }
     ]
   },

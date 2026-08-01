@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { NavDrawerService } from '../../shared/services/nav-drawer.service';
 
 @Component({
   selector: 'app-recruitment-layout',
@@ -8,7 +9,7 @@ import { RouterModule, Router } from '@angular/router';
   imports: [CommonModule, RouterModule],
   template: `
     <div class="recruitment-layout">
-      <nav class="recruitment-nav">
+      <nav class="recruitment-nav" [class.nav-hidden]="navDrawerService.isOpen()">
         <button
           class="nav-item"
           [class.active]="isActive('living-cv')"
@@ -144,6 +145,10 @@ import { RouterModule, Router } from '@angular/router';
       text-align: center;
     }
 
+    .nav-hidden {
+      display: none;
+    }
+
     .recruitment-content {
       flex: 1;
       overflow-y: auto;
@@ -161,7 +166,7 @@ import { RouterModule, Router } from '@angular/router';
   `]
 })
 export class RecruitmentLayoutComponent {
-  constructor(private router: Router) {}
+  constructor(private router: Router, public navDrawerService: NavDrawerService) {}
 
   isActive(path: string): boolean {
     return this.router.url.includes(`/personal-development/${path}`);

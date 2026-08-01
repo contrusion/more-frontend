@@ -1,0 +1,95 @@
+<!-- Overlay -->
+<div
+  class="drawer-overlay"
+  *ngIf="drawerService.isOpen()"
+  (click)="drawerService.close()">
+</div>
+
+<!-- Drawer Panel -->
+<div class="nav-drawer" [class.open]="drawerService.isOpen()" aria-label="Navigation drawer">
+
+  <!-- Header -->
+  <div class="drawer-header">
+    <div class="drawer-logo" (click)="navigateHome()">
+      <svg viewBox="0 0 40 40" class="drawer-logo-icon">
+        <rect x="2" y="2" width="14" height="14" rx="2" fill="#0ea5e9" opacity="0.8"/>
+        <rect x="18" y="2" width="20" height="20" rx="2" fill="#0ea5e9" opacity="0.6"/>
+        <rect x="2" y="18" width="20" height="20" rx="2" fill="#0ea5e9" opacity="0.9"/>
+        <rect x="24" y="24" width="14" height="14" rx="2" fill="#0ea5e9"/>
+      </svg>
+      <span>More</span>
+    </div>
+    <button class="drawer-close" (click)="drawerService.close()" aria-label="Close navigation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="drawer-body">
+
+    <!-- Home link -->
+    <button
+      class="drawer-home-link"
+      [class.active]="currentUrl === '/home'"
+      (click)="navigateHome()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Home</span>
+    </button>
+
+    <!-- Role-filtered sections -->
+    <div class="drawer-sections">
+      <div *ngFor="let section of visibleSections" class="drawer-section">
+
+        <!-- Section Header -->
+        <button
+          class="section-header"
+          [class.active]="isSectionActive(section)"
+          [class.direct-link]="section.directRoute"
+          (click)="toggleSection(section)">
+          <span class="section-label">{{ section.label }}</span>
+          <svg
+            *ngIf="!section.directRoute"
+            class="section-chevron"
+            [class.expanded]="isSectionExpanded(section)"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+
+        <!-- Children -->
+        <div *ngIf="!section.directRoute" class="section-children" [class.expanded]="isSectionExpanded(section)">
+          <button
+            *ngFor="let child of section.children"
+            class="child-link"
+            [class.active]="isChildActive(child)"
+            (click)="navigateTo(child.route)">
+            {{ child.label }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer: Logout -->
+  <div class="drawer-footer">
+    <button class="drawer-logout" (click)="logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      <span>Logout</span>
+    </button>
+  </div>
+
+</div>

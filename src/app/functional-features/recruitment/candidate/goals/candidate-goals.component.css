@@ -142,6 +142,13 @@
   align-items: center;
 }
 
+.goals-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .filter-select {
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
@@ -211,11 +218,13 @@
 }
 
 .btn--primary {
-  background: #667eea;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0ea5e9 100%);
   color: #fff;
 }
 
-.btn--primary:hover { background: #5a67d8; }
+.btn--primary:hover {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #0284c7 100%);
+}
 
 .btn--outline-white {
   background: transparent;

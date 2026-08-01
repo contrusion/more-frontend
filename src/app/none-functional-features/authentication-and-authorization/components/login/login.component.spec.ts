@@ -177,7 +177,7 @@ describe('LoginComponent', () => {
   describe('Component Cleanup', () => {
     it('should unsubscribe from authentication state on destroy', () => {
       fixture.detectChanges();
-      const subscription = component['authSubscription'];
+      const subscription = component['authSubscription']!;
       spyOn(subscription, 'unsubscribe');
       
       component.ngOnDestroy();

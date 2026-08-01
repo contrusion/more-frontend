@@ -21,7 +21,6 @@
             <span class="stat-label">Completed</span>
           </div>
         </div>
-        <button class="btn btn--outline-white" (click)="openCreateForm()">+ New Goal</button>
       </div>
     </div>
   </div>
@@ -41,6 +40,7 @@
             class="search-input"
           />
         </div>
+        <div class="goals-toolbar__right">
         <div class="goals-toolbar__filters">
           <select [(ngModel)]="statusFilter" class="filter-select">
             @for (opt of statusOptions; track opt.value) {
@@ -60,6 +60,8 @@
           @if (hasActiveFilters) {
             <button class="btn btn--ghost" (click)="clearFilters()">Clear</button>
           }
+        </div>
+        <button class="btn btn--primary" (click)="openCreateForm()">+ New Goal</button>
         </div>
       </div>
     }
