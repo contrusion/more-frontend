@@ -24,12 +24,13 @@ interface NavigationTile {
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  
+
   userName: string = '';
   userEmail: string = '';
   userBio: string = '';
   userJobTitle: string = '';
   userRoles: string[] = [];
+  userPersona: string = '';
   isSidebarOpen = false;
   marketReadiness: MarketReadinessBreakdown | null = null;
 
@@ -120,18 +121,21 @@ export class HomeComponent implements OnInit, OnDestroy {
         if (userData) {
           this.userName = userData.name || userData.preferred_username || 'User';
           this.userEmail = userData.email || '';
+          this.userPersona = this.authService.getUserPersona();
           // Bio and jobTitle would need to come from your backend API
           // You may need to create a service to fetch user profile details
         }
 
         this.userRoles = this.authService.getUserRoles();
+        this.userPersona = this.authService.getUserPersona();
         this.loadMarketReadinessSummary();
       });
 
     this.userRoles = this.authService.getUserRoles();
+    this.userPersona = this.authService.getUserPersona();
     this.loadMarketReadinessSummary();
   }
-  
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -191,13 +195,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   getMarketReadinessLabel(): string {
-    if (!this.marketReadiness) {
-      return 'Market readiness';
-    }
-
-    return this.marketReadiness.pointsToNextTier > 0
-      ? `Points to ${this.getNextTierLabel()}`
-      : 'Top tier';
+    return 'Market Readiness';
   }
 
   getMarketReadinessValue(): string {
@@ -206,8 +204,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     return this.marketReadiness.pointsToNextTier > 0
-      ? this.marketReadiness.pointsToNextTier.toString()
-      : 'Top tier';
+      ? `${this.marketReadiness.pointsToNextTier}`
+      : 'Top tier reached';
   }
 
   getMarketReadinessSubtext(): string {
@@ -216,7 +214,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     return this.marketReadiness.pointsToNextTier > 0
-      ? `Current tier: ${this.marketReadiness.marketReadinessTier}`
+      ? `Points to ${this.getNextTierLabel()} • Current tier: ${this.marketReadiness.marketReadinessTier}`
       : 'You have reached the highest tier';
   }
 

@@ -193,6 +193,7 @@ Candidates self-select a persona that signals their intent to the system and to 
 - "Passive Prospect" sets profile visibility to `VERIFIED_RECRUITERS_ONLY` by default (can be overridden in privacy settings)
 - Persona change is logged as an audit event
 - Notification frequency is adjusted by persona (system-side — no UI control for this; it is automatic)
+- The candidate's selected persona is also shown in the existing user metadata area (the same metadata block that displays the user's type/role context), alongside job title and role, so the current user persona is visible without opening profile settings
 
 **Components to Create:**
 - `PersonaSelectorComponent` (`candidate/settings/persona-selector/`) — card-based selector with persona descriptions; timeline slider for Warm Lead
@@ -201,12 +202,14 @@ Candidates self-select a persona that signals their intent to the system and to 
 **Components to Update:**
 - `CandidateSearchResultDto` / `CandidateSearchComponent` — show `AvailabilityBadgeComponent` where persona is Active or Warm Lead
 - `OnboardingTutorialComponent` — add persona selection as step 2
+- `UserMetaComponent` / welcome profile metadata block — include the selected `TalentPersona` in the visible metadata summary next to the current user type and role
 
 **Backend changes required:**
 - `Applicant` entity: add `talentPersona: TalentPersona` enum, `availableInMonths: int` (nullable)
 - `TalentPersona` enum: `PASSIVE_PROSPECT | WARM_LEAD | ACTIVE_JOB_SEEKER`
 - `PATCH /api/candidates/me/persona` — update persona + availability timeline
 - `CandidateSearchResultDto` — include `talentPersona` and `availableInMonths`
+- `UserMetaDto` / profile metadata payload — include `talentPersona` for the dashboard/header display
 - Flyway migration
 
 **Phase:** Phase 3  
