@@ -27,27 +27,48 @@
 
   @if (breakdown(); as data) {
     <section class="score-summary">
-      <div class="score-summary__tier">
-        <app-candidate-class-badge
-          [marketReadinessTier]="data.marketReadinessTier"
-          [isAllStar]="data.isAllStar"
-          [tooltip]="'Your current market readiness tier'" />
-        <p class="tier-line">{{ scoreHeadline() }}</p>
+      <div class="score-summary__stats">
+        <article class="figure-card">
+          <span class="figure-card__label">Current score</span>
+          <strong class="figure-card__value">{{ data.totalScore | number }}</strong>
+        </article>
+        <article class="figure-card">
+          <span class="figure-card__label">Current tier</span>
+          <strong class="figure-card__value">{{ data.marketReadinessTier }}</strong>
+        </article>
+        <article class="figure-card">
+          <span class="figure-card__label">To next tier</span>
+          <strong class="figure-card__value">{{ data.pointsToNextTier | number }}</strong>
+        </article>
+        <article class="figure-card">
+          <span class="figure-card__label">Progress</span>
+          <strong class="figure-card__value">{{ data.progressPercentToNextTier }}%</strong>
+        </article>
       </div>
 
-      <div class="score-summary__progress">
-        <div class="progress-meta">
-          <span>Progress to next tier</span>
-          <strong>{{ data.progressPercentToNextTier }}%</strong>
+      <div class="score-summary__main">
+        <div class="score-summary__tier">
+          <app-candidate-class-badge
+            [marketReadinessTier]="data.marketReadinessTier"
+            [isAllStar]="data.isAllStar"
+            [tooltip]="'Your current market readiness tier'" />
+          <p class="tier-line">{{ scoreHeadline() }}</p>
         </div>
-        <div class="progress-track" role="progressbar" [attr.aria-valuenow]="data.progressPercentToNextTier" aria-valuemin="0" aria-valuemax="100">
-          <div class="progress-fill" [style.width.%]="data.progressPercentToNextTier"></div>
+
+        <div class="score-summary__progress">
+          <div class="progress-meta">
+            <span>Progress to next tier</span>
+            <strong>{{ data.progressPercentToNextTier }}%</strong>
+          </div>
+          <div class="progress-track" role="progressbar" [attr.aria-valuenow]="data.progressPercentToNextTier" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-fill" [style.width.%]="data.progressPercentToNextTier"></div>
+          </div>
+          @if (data.pointsToNextTier > 0) {
+            <p class="progress-caption">{{ data.pointsToNextTier }} points to reach {{ data.nextTierThreshold | number }}</p>
+          } @else {
+            <p class="progress-caption">You are at the top tier threshold.</p>
+          }
         </div>
-        @if (data.pointsToNextTier > 0) {
-          <p class="progress-caption">{{ data.pointsToNextTier }} points to reach {{ data.nextTierThreshold | number }}</p>
-        } @else {
-          <p class="progress-caption">You are at the top tier threshold.</p>
-        }
       </div>
     </section>
 
