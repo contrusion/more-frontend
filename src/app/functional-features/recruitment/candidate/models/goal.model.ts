@@ -103,6 +103,7 @@ export interface CreateProofItemRequest {
 // ---- Living CV (US 1.3) ----
 
 export type MarketReadinessTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+export type TalentPersona = 'PASSIVE_PROSPECT' | 'WARM_LEAD' | 'ACTIVE_JOB_SEEKER';
 export type ExperienceGroup = 'EARLY_CAREER' | 'EXPERIENCED';
 
 // ---- Recruiter candidate search (US-R3) ----

@@ -31,6 +31,28 @@ Phase 3 completes the core recruiter tooling and platform-wide UX features that 
 
 ### Epic: Recruiter Discovery Tooling
 
+#### US-R4b: Recruiter Sees Talent Persona and Availability in Search Results
+
+**As a** recruiter  
+**I want to** see a candidate's Talent Persona and availability signal in search and candidate cards  
+**So that** I can prioritize outreach based on whether someone is actively seeking work, warming up, or effectively passive
+
+**Acceptance Criteria:**
+- Candidate rows and detail modals show a persona badge: Passive Prospect / Warm Lead / Active Job Seeker
+- Active Job Seeker shows an "Available Immediately" indicator; Warm Lead shows "Available in X months"
+- Passive Prospect remains visible only to verified recruiters and is labelled as low-visibility / not immediately available
+- Recruiter filters can sort by persona and availability state, without exposing private candidate data beyond the alias-safe summary
+- Persona is included in the candidate card summary and any recruiter-facing analytics export
+
+**Backend changes required:**
+- Extend `CandidateSearchResultDto` to include `talentPersona` and `availableInMonths`
+- Filter and sort logic considers talent persona when ranking or prioritising candidate cards
+
+**Phase:** Phase 3  
+**Dependencies:** US-P3, US-R4, US 1.3a
+
+---
+
 #### US-R4: Recruiter Can Search the Full Candidate Registry
 
 **As a** recruiter

@@ -15,6 +15,7 @@ describe('Home', () => {
   beforeEach(async () => {
     mockAuthService = jasmine.createSpyObj('AuthService', [
       'getUserRoles',
+      'getUserPersona',
       'hasRole',
       'logout'
     ], {
@@ -26,6 +27,7 @@ describe('Home', () => {
     });
 
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockAuthService.getUserPersona.and.returnValue('WARM_LEAD');
     mockMarketReadinessService = jasmine.createSpyObj('MarketReadinessService', ['getMyMarketReadiness']);
     mockMarketReadinessService.getMyMarketReadiness.and.returnValue(of({
       totalScore: 85,
@@ -142,5 +144,16 @@ describe('Home', () => {
     expect(marketReadinessCard?.textContent).toContain('Market Readiness');
     expect(marketReadinessCard?.textContent).toContain('GOLD');
     expect(marketReadinessCard?.textContent).toContain('15 pts to next tier');
+  });
+
+  it('should show the selected talent persona in the user metadata', () => {
+    mockAuthService.getUserRoles.and.returnValue(['APPLICANT']);
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'APPLICANT');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const metaText = compiled.querySelector('.user-meta')?.textContent ?? '';
+
+    expect(metaText).toContain('Warm Lead');
   });
 });

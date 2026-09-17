@@ -80,6 +80,29 @@ export class AuthService {
     return [];
   }
 
+  public getUserPersona(): string | null {
+    const userData = this.userDataSubject.value;
+    const candidate = userData?.candidate ?? userData?.applicant ?? userData?.profile ?? userData;
+    const rawPersona =
+      candidate?.talentPersona ??
+      candidate?.talent_persona ??
+      candidate?.persona ??
+      candidate?.userPersona ??
+      userData?.talentPersona ??
+      userData?.talent_persona ??
+      userData?.persona ??
+      userData?.userPersona ??
+      null;
+
+    if (!rawPersona) {
+      return null;
+    }
+
+    const normalized = String(rawPersona).trim();
+    const valid = ['PASSIVE_PROSPECT', 'WARM_LEAD', 'ACTIVE_JOB_SEEKER'];
+    return valid.includes(normalized) ? normalized : null;
+  }
+
   public hasRole(role: string): boolean {
     return this.getUserRoles().includes(role);
   }

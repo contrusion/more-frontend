@@ -390,9 +390,15 @@ The existing admin shell (`AdminComponent`) is already wired with a sidebar card
 **Backend:**
 - `GET /api/admin/analytics/market-readiness` — tier + All-Star distribution
 - `GET /api/admin/analytics/personas` — persona distribution + trend
+- `GET /api/admin/analytics/personas/availability` — Warm Lead / Active Job Seeker availability breakout by months to availability and urgency
 - `GET /api/admin/analytics/active-excellence` — score histogram
 - `GET /api/admin/analytics/assessments` — assessment engagement
 - `GET /api/admin/analytics/career-pathways` — Career Pathway Adoption
+
+**Admin meaning:**
+- Talent Persona is not an admin-controlled field; it is a candidate-side market signal reflecting intent and openness.
+- Admin reporting should treat it as an operational insight: how much of the pool is passive, warming, or actively available, and how that shifts over time.
+- This is used to monitor platform health, recruitment funnel quality, and candidate urgency without conflating persona with user roles or Keycloak permissions.
 
 **Phase dependency:** Phase 2 (US-P1, US-P3, US-P8)
 

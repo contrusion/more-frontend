@@ -24,13 +24,13 @@ interface NavigationTile {
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-
+  
   userName: string = '';
   userEmail: string = '';
   userBio: string = '';
   userJobTitle: string = '';
   userRoles: string[] = [];
-  userPersona: string = '';
+  userPersona: string | null = null;
   isSidebarOpen = false;
   marketReadiness: MarketReadinessBreakdown | null = null;
 
@@ -121,7 +121,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         if (userData) {
           this.userName = userData.name || userData.preferred_username || 'User';
           this.userEmail = userData.email || '';
-          this.userPersona = this.authService.getUserPersona();
           // Bio and jobTitle would need to come from your backend API
           // You may need to create a service to fetch user profile details
         }
@@ -135,7 +134,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.userPersona = this.authService.getUserPersona();
     this.loadMarketReadinessSummary();
   }
-
+  
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -195,7 +194,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   getMarketReadinessLabel(): string {
-    return 'Market Readiness';
+    if (!this.marketReadiness) {
+      return 'Market readiness';
+    }
+
+    return this.marketReadiness.pointsToNextTier > 0
+      ? `Points to ${this.getNextTierLabel()}`
+      : 'Top tier';
   }
 
   getMarketReadinessValue(): string {
@@ -204,8 +209,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     return this.marketReadiness.pointsToNextTier > 0
-      ? `${this.marketReadiness.pointsToNextTier}`
-      : 'Top tier reached';
+      ? this.marketReadiness.pointsToNextTier.toString()
+      : 'Top tier';
   }
 
   getMarketReadinessSubtext(): string {
@@ -214,7 +219,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     return this.marketReadiness.pointsToNextTier > 0
-      ? `Points to ${this.getNextTierLabel()} • Current tier: ${this.marketReadiness.marketReadinessTier}`
+      ? `Current tier: ${this.marketReadiness.marketReadinessTier}`
       : 'You have reached the highest tier';
   }
 
@@ -236,5 +241,22 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   getVisibleTiles(): NavigationTile[] {
     return this.navigationTiles.filter(tile => this.canAccessTile(tile));
+  }
+
+  getUserPersonaLabel(): string {
+    if (!this.userPersona) {
+      return 'Talent Persona';
+    }
+
+    switch (this.userPersona) {
+      case 'PASSIVE_PROSPECT':
+        return 'Passive Prospect';
+      case 'WARM_LEAD':
+        return 'Warm Lead';
+      case 'ACTIVE_JOB_SEEKER':
+        return 'Active Job Seeker';
+      default:
+        return 'Talent Persona';
+    }
   }
 }
