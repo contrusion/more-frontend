@@ -187,9 +187,8 @@
 }
 
 .cv-hero__stat {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
   padding: 0.65rem 1rem;
   display: flex;
@@ -199,11 +198,13 @@
   flex: 1;
   min-width: 90px;
   text-align: center;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
 }
 
 .cv-hero__stat-icon {
   font-size: 1.3rem;
   line-height: 1;
+  color: #0f172a;
 }
 
 .cv-hero__stat-data {
@@ -216,28 +217,28 @@
 .cv-hero__stat-value {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #fff;
+  color: #0f172a;
   line-height: 1;
 }
 
 .cv-hero__stat-sub {
   font-size: 0.9rem;
   font-weight: 400;
-  color: rgba(255,255,255,0.55);
+  color: #64748b;
 }
 
 .cv-hero__stat-label {
   font-size: 0.7rem;
-  color: rgba(255,255,255,0.65);
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .cv-hero__stat-bar {
   width: 100%;
   height: 3px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
   overflow: hidden;
   margin-top: 0.25rem;

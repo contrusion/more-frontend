@@ -180,7 +180,7 @@ Candidates self-select a persona that signals their intent to the system and to 
 
 ---
 
-#### US-P3: Candidate Selects Their Talent Persona
+#### US-P3: Candidate Selects Their Talent Persona ✅
 
 **As a** candidate  
 **I want to** set my talent persona (Passive Prospect / Warm Lead / Active Job Seeker)  
@@ -550,7 +550,7 @@ Candidates self-select a persona that signals their intent to the system and to 
 | **US-C3** | System Issues Vitality-Style Goal Challenges to Candidates | 7 | US 1.3, US 1.4, US-C2 | 1.5 sprints | ✅
 | **US-P1** | Market Readiness Score & Tier engine | 8 | US 1.4, US-C3 | 2 sprints | ✅
 | **US-P2** | Candidate score breakdown + next steps | 8 | US-P1 | 1 sprint | ✅
-| **US-P3** | Talent Personas (Passive/Warm/Active) | 9 | US 1.5, US 1.11 | 1 sprint |
+| **US-P3** | Talent Personas (Passive/Warm/Active) | 9 | US 1.5, US 1.11 | 1 sprint | ✅ |
 | **US-P4** | System-Guided Career Pathway activation | 10 | US-P1, US-C3 | 2 sprints |
 | **US-P5** | career pathway execution points + streak | 10 | US-P4, US-P1 | 0.5 sprint |
 | **US-P6** | Recruiter Watchlist (stealth handshake) | 11 | US-P4, US 1.3a | 2 sprints |

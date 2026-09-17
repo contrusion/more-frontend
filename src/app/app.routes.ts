@@ -140,6 +140,11 @@ export const routes: Routes = [
     ]
   },
   {
+    path: 'settings',
+    loadComponent: () => import('./none-functional-features/authentication-and-authorization/components/settings/settings.component').then(m => m.SettingsComponent),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'unauthorized',
     loadComponent: () => import('./shared/components/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent)
   },

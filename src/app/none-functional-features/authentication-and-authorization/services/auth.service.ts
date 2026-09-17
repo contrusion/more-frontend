@@ -92,7 +92,7 @@ export class AuthService {
       userData?.talent_persona ??
       userData?.persona ??
       userData?.userPersona ??
-      null;
+      this.getStoredPersona();
 
     if (!rawPersona) {
       return null;
@@ -101,6 +101,61 @@ export class AuthService {
     const normalized = String(rawPersona).trim();
     const valid = ['PASSIVE_PROSPECT', 'WARM_LEAD', 'ACTIVE_JOB_SEEKER'];
     return valid.includes(normalized) ? normalized : null;
+  }
+
+  public setUserPersona(persona: string | null): void {
+    if (!persona) {
+      localStorage.removeItem('more.user.persona');
+      return;
+    }
+
+    const valid = ['PASSIVE_PROSPECT', 'WARM_LEAD', 'ACTIVE_JOB_SEEKER'];
+    const normalized = valid.includes(persona) ? persona : null;
+
+    if (!normalized) {
+      localStorage.removeItem('more.user.persona');
+      return;
+    }
+
+    localStorage.setItem('more.user.persona', normalized);
+    const current = this.userDataSubject.value ?? {};
+    this.userDataSubject.next({
+      ...current,
+      talentPersona: normalized,
+      persona: normalized
+    });
+  }
+
+  public getUserAvailabilityInMonths(): number {
+    const stored = Number(localStorage.getItem('more.user.availableInMonths'));
+    if (!Number.isFinite(stored) || stored < 1 || stored > 12) {
+      return 3;
+    }
+
+    return stored;
+  }
+
+  public setUserAvailabilityInMonths(months: number | null): void {
+    if (months === null || !Number.isFinite(months) || months < 1 || months > 12) {
+      localStorage.removeItem('more.user.availableInMonths');
+      return;
+    }
+
+    localStorage.setItem('more.user.availableInMonths', String(months));
+    const current = this.userDataSubject.value ?? {};
+    this.userDataSubject.next({
+      ...current,
+      availableInMonths: months
+    });
+  }
+
+  private getStoredPersona(): string | null {
+    const stored = localStorage.getItem('more.user.persona');
+    if (!stored) {
+      return null;
+    }
+
+    return ['PASSIVE_PROSPECT', 'WARM_LEAD', 'ACTIVE_JOB_SEEKER'].includes(stored) ? stored : null;
   }
 
   public hasRole(role: string): boolean {

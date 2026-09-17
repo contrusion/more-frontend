@@ -130,6 +130,44 @@ export class LivingCvComponent implements OnInit {
     });
   }
 
+  private monthsBetween(startDate: string | null, endDate: string | null): number {
+    if (!startDate) return 0;
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : new Date();
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+      return 0;
+    }
+
+    const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+    return end.getDate() < start.getDate() ? Math.max(months - 1, 0) : months;
+  }
+
+  averageTenureMonths(): number {
+    const durations = (this.cv()?.workExperience ?? [])
+      .map(item => this.monthsBetween(item.startDate, item.isCurrent ? null : item.endDate))
+      .filter(months => months > 0);
+
+    if (!durations.length) return 0;
+    return Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length);
+  }
+
+  totalBigCompanies(): number {
+    return (this.cv()?.workExperience ?? []).filter(item => this.isBigCompany(item)).length;
+  }
+
+  isBigCompany(item: WorkExperience): boolean {
+    return Boolean(item.isBigCompany ?? item.company?.isBigCompany ?? false);
+  }
+
+  formatTenure(months: number): string {
+    if (!months) return '0m';
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    if (years && remainingMonths) return `${years}y ${remainingMonths}m`;
+    if (years) return `${years}y`;
+    return `${remainingMonths}m`;
+  }
+
   goalCompletionPct(): number {
     const s = this.cv()?.stats;
     if (!s || !s.totalGoals) return 0;

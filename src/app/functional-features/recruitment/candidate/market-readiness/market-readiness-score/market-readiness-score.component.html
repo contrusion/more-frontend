@@ -68,6 +68,29 @@
           } @else {
             <p class="progress-caption">You are at the top tier threshold.</p>
           }
+
+          <div class="tier-stepper" aria-label="Market readiness progression">
+            <div class="tier-stepper__label-row">
+              <span>Tier path</span>
+            </div>
+            <div class="tier-stepper__track">
+              @for (step of tierSteps(); track step.tier) {
+                <div class="tier-step"
+                     [class.is-complete]="step.isComplete"
+                     [class.is-current]="step.isCurrent"
+                     [class.is-upcoming]="step.isUpcoming">
+                  @if (step.isCurrent) {
+                    <span class="tier-step__node tier-step__node--current">
+                      <span class="tier-step__icon">💼</span>
+                    </span>
+                  } @else {
+                    <span class="tier-step__node"></span>
+                  }
+                  <span class="tier-step__label">{{ step.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
         </div>
       </div>
     </section>

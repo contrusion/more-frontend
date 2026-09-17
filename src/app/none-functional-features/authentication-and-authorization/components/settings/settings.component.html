@@ -1,0 +1,68 @@
+<div class="settings-page">
+  <div class="settings-shell">
+    <header class="settings-header">
+      <div>
+        <p class="eyebrow">Profile settings</p>
+        <h1>Talent persona</h1>
+      </div>
+      <a class="back-link" routerLink="/home">Back to home</a>
+    </header>
+
+    <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="settings-form">
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>How are you currently looking for opportunities?</h2>
+        </div>
+
+        <div class="persona-grid">
+          <button
+            type="button"
+            *ngFor="let option of personaOptions"
+            class="persona-card"
+            [class.selected]="profileForm.value.persona === option.value"
+            (click)="profileForm.patchValue({ persona: option.value })">
+            <div class="persona-header">
+              <span class="persona-badge">{{ option.label }}</span>
+              <span class="checkmark" *ngIf="profileForm.value.persona === option.value">✓</span>
+            </div>
+            <p>{{ option.description }}</p>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel timeline-panel" *ngIf="profileForm.value.persona === 'WARM_LEAD'">
+        <div class="panel-heading">
+          <h2>When are you planning to move?</h2>
+        </div>
+
+        <div class="slider-row">
+          <label for="availableInMonths">Available in {{ availabilityMonths }} month{{ availabilityMonths === 1 ? '' : 's' }}</label>
+          <input
+            id="availableInMonths"
+            type="range"
+            min="1"
+            max="12"
+            formControlName="availableInMonths"
+            class="availability-slider" />
+        </div>
+      </section>
+
+      <section class="panel summary-panel">
+        <div class="summary-row">
+          <span class="summary-label">Selected persona</span>
+          <strong>{{ selectedPersonaLabel }}</strong>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Visibility</span>
+          <strong>{{ availabilitySummary }}</strong>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="submit" class="primary-btn">Save changes</button>
+      </div>
+
+      <p class="success-message" *ngIf="savedMessage">{{ savedMessage }}</p>
+    </form>
+  </div>
+</div>

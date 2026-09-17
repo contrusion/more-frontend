@@ -25,6 +25,7 @@ import { PointsHistoryComponent } from '../points-history/points-history.compone
 })
 export class MarketReadinessScoreComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly tierOrder = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'] as const;
 
   readonly breakdown = signal<MarketReadinessBreakdown | null>(null);
   readonly loading = signal(true);
@@ -35,6 +36,34 @@ export class MarketReadinessScoreComponent implements OnInit {
     const value = this.breakdown();
     return value ? `${value.totalScore.toLocaleString()} points` : '0 points';
   });
+
+  readonly tierSteps = computed(() => {
+    const currentTier = this.breakdown()?.marketReadinessTier ?? 'BRONZE';
+    const currentIndex = this.tierOrder.indexOf(currentTier);
+
+    return this.tierOrder.map((tier, index) => ({
+      tier,
+      label: this.formatTierLabel(tier),
+      isComplete: index < currentIndex,
+      isCurrent: index === currentIndex,
+      isUpcoming: index > currentIndex
+    }));
+  });
+
+  readonly nextTierLabel = computed(() => {
+    const currentTier = this.breakdown()?.marketReadinessTier ?? 'BRONZE';
+    const currentIndex = this.tierOrder.indexOf(currentTier);
+
+    if (currentIndex >= this.tierOrder.length - 1) {
+      return 'Top tier reached';
+    }
+
+    return this.formatTierLabel(this.tierOrder[currentIndex + 1]);
+  });
+
+  private formatTierLabel(tier: string): string {
+    return tier.charAt(0) + tier.slice(1).toLowerCase();
+  }
 
   constructor(private readonly marketReadinessService: MarketReadinessService) {}
 

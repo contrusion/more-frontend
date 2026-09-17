@@ -20,6 +20,23 @@
       <div class="loading-state"><div class="spinner"></div><p>Loading…</p></div>
     }
 
+    @if (!isLoading) {
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-card__label">Roles</span>
+          <strong class="summary-card__value">{{ items.length }}</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Average tenure</span>
+          <strong class="summary-card__value">{{ formatTenure(averageTenureMonths()) }}</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Big companies</span>
+          <strong class="summary-card__value">{{ totalBigCompanies() }}</strong>
+        </div>
+      </div>
+    }
+
     <!-- Form -->
     @if (showForm) {
       <div class="form-card">

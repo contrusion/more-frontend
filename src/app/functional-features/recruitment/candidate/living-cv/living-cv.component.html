@@ -85,6 +85,20 @@
             <span class="cv-hero__stat-label">Roles</span>
           </div>
         </div>
+        <div class="cv-hero__stat">
+          <span class="cv-hero__stat-icon">📈</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ formatTenure(averageTenureMonths()) }}</span>
+            <span class="cv-hero__stat-label">Avg. tenure</span>
+          </div>
+        </div>
+        <div class="cv-hero__stat">
+          <span class="cv-hero__stat-icon">🏢</span>
+          <div class="cv-hero__stat-data">
+            <span class="cv-hero__stat-value">{{ totalBigCompanies() }}</span>
+            <span class="cv-hero__stat-label">Big companies</span>
+          </div>
+        </div>
         <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-education')">
           <span class="cv-hero__stat-icon">🎓</span>
           <div class="cv-hero__stat-data">
@@ -266,6 +280,7 @@
             Career Journey
             @if (cv()!.workExperience.length > 0) {
               <span class="cv-panel__count">{{ cv()!.workExperience.length }} role{{ cv()!.workExperience.length !== 1 ? 's' : '' }}</span>
+              <span class="cv-panel__count">Avg. {{ formatTenure(averageTenureMonths()) }}</span>
             }
           </div>
           <a routerLink="/personal-development/work-experience" class="cv-panel__action">

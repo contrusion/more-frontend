@@ -228,6 +228,10 @@ export interface WorkExperience {
   description: string | null;
   gapReason: string | null;
   includeInCv: boolean;
+  isBigCompany?: boolean | null;
+  company?: {
+    isBigCompany?: boolean | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

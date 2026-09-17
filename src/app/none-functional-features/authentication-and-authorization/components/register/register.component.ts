@@ -17,6 +17,24 @@ export class RegisterComponent {
   isSubmitting = false;
   errorMessage: string | null = null;
 
+  readonly personaOptions = [
+    {
+      value: 'PASSIVE_PROSPECT',
+      label: 'Passive Prospect',
+      description: 'Currently employed and only open to standout opportunities.'
+    },
+    {
+      value: 'WARM_LEAD',
+      label: 'Warm Lead',
+      description: 'Preparing to move and open to conversations in the next few months.'
+    },
+    {
+      value: 'ACTIVE_JOB_SEEKER',
+      label: 'Active Job Seeker',
+      description: 'Actively interviewing and prioritising fast opportunities.'
+    }
+  ];
+
   roleCategoryOptions = [
     { value: 'FRONTEND_ENGINEER', label: 'Frontend Engineer' },
     { value: 'BACKEND_ENGINEER', label: 'Backend Engineer' },
@@ -87,6 +105,8 @@ export class RegisterComponent {
       roleCategory: ['', Validators.required],
       companyWebsite: [''],
       bio: ['', [Validators.required, Validators.minLength(20)]],
+      persona: ['PASSIVE_PROSPECT', Validators.required],
+      availableInMonths: [3, [Validators.required, Validators.min(1), Validators.max(12)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required]
     }, { validators: this.passwordMatchValidator });
@@ -95,16 +115,34 @@ export class RegisterComponent {
     this.registerForm.get('userType')?.valueChanges.subscribe(userType => {
       const companyWebsiteControl = this.registerForm.get('companyWebsite');
       const roleCategoryControl = this.registerForm.get('roleCategory');
+      const personaControl = this.registerForm.get('persona');
+      const availabilityControl = this.registerForm.get('availableInMonths');
+
       if (userType === 'RECRUITER') {
         companyWebsiteControl?.setValidators([Validators.required]);
         roleCategoryControl?.clearValidators();
+        personaControl?.clearValidators();
+        availabilityControl?.clearValidators();
       } else {
         companyWebsiteControl?.clearValidators();
         roleCategoryControl?.setValidators([Validators.required]);
+        personaControl?.setValidators([Validators.required]);
+        availabilityControl?.setValidators([Validators.required, Validators.min(1), Validators.max(12)]);
       }
       companyWebsiteControl?.updateValueAndValidity();
       roleCategoryControl?.updateValueAndValidity();
+      personaControl?.updateValueAndValidity();
+      availabilityControl?.updateValueAndValidity();
     });
+  }
+
+  get isApplicantRegistration(): boolean {
+    return this.registerForm.get('userType')?.value !== 'RECRUITER';
+  }
+
+  get selectedPersonaLabel(): string {
+    const selected = this.registerForm.get('persona')?.value ?? 'PASSIVE_PROSPECT';
+    return this.personaOptions.find(option => option.value === selected)?.label ?? 'Passive Prospect';
   }
   
   passwordMatchValidator(form: FormGroup) {
@@ -121,17 +159,28 @@ export class RegisterComponent {
     
     this.isSubmitting = true;
     this.errorMessage = null;
+
+    const userType = this.registerForm.value.userType;
+    const persona = this.registerForm.value.persona ?? 'PASSIVE_PROSPECT';
+    const availableInMonths = Number(this.registerForm.value.availableInMonths ?? 3);
+
+    if (userType === 'APPLICANT') {
+      this.authService.setUserPersona(persona);
+      this.authService.setUserAvailabilityInMonths(availableInMonths);
+    }
     
     const userData = {
       email: this.registerForm.value.email,
       firstName: this.registerForm.value.firstName,
       lastName: this.registerForm.value.lastName,
       enabled: true,
-      userTypes: [this.registerForm.value.userType],
+      userTypes: [userType],
       jobTitle: this.registerForm.value.jobTitle,
       roleCategory: this.registerForm.value.roleCategory || undefined,
       companyWebsite: this.registerForm.value.companyWebsite || undefined,
       bio: this.registerForm.value.bio,
+      persona: userType === 'APPLICANT' ? persona : undefined,
+      availableInMonths: userType === 'APPLICANT' ? availableInMonths : undefined,
       credentials: [
         {
           type: 'password',

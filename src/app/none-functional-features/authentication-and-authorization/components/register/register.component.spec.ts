@@ -16,7 +16,7 @@ describe('RegisterComponent', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(async () => {
-    mockAuthService = jasmine.createSpyObj('AuthService', ['login']);
+    mockAuthService = jasmine.createSpyObj('AuthService', ['login', 'setUserPersona', 'setUserAvailabilityInMonths']);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
@@ -49,8 +49,11 @@ describe('RegisterComponent', () => {
         lastName: '',
         userType: 'APPLICANT',
         jobTitle: '',
+        roleCategory: '',
         companyWebsite: '',
         bio: '',
+        persona: 'PASSIVE_PROSPECT',
+        availableInMonths: 3,
         password: '',
         confirmPassword: ''
       });
@@ -266,6 +269,32 @@ describe('RegisterComponent', () => {
           }
         ]
       });
+    });
+
+    it('should persist applicant persona and availability at onboarding', () => {
+      component.registerForm.patchValue({
+        userType: 'APPLICANT',
+        roleCategory: 'SOFTWARE_ENGINEER',
+        persona: 'WARM_LEAD',
+        availableInMonths: 4,
+        email: 'applicant@example.com',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        jobTitle: 'Frontend Developer',
+        bio: 'Experienced frontend developer building high-quality products',
+        password: 'password123',
+        confirmPassword: 'password123'
+      });
+
+      component.onSubmit();
+
+      const req = httpMock.expectOne('http://localhost:8081/api/v1/accounts/register');
+      expect(req.request.body.persona).toBe('WARM_LEAD');
+      expect(req.request.body.availableInMonths).toBe(4);
+      req.flush({ success: true });
+
+      expect(mockAuthService.setUserPersona).toHaveBeenCalledWith('WARM_LEAD');
+      expect(mockAuthService.setUserAvailabilityInMonths).toHaveBeenCalledWith(4);
     });
 
     it('should send undefined for companyWebsite when empty', () => {
