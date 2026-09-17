@@ -1,0 +1,28 @@
+<section class="panel">
+  <header class="panel-head">
+    <h2>Points History</h2>
+    <span>Recent score changes</span>
+  </header>
+
+  @if (pointsHistory.length === 0) {
+    <p class="empty">No score events yet.</p>
+  } @else {
+    <div class="history-list">
+      @for (item of pointsHistory; track item.createdAt + item.description) {
+        <article class="history-item">
+          <div class="history-item__top">
+            <strong>{{ categoryLabel(item.category) }}</strong>
+            <span class="delta" [class.delta--positive]="item.delta > 0" [class.delta--negative]="item.delta < 0">
+              {{ item.delta > 0 ? '+' : '' }}{{ item.delta }} pts
+            </span>
+          </div>
+          <p class="description">{{ item.description || item.triggeredBy }}</p>
+          <div class="meta">
+            <span>{{ item.createdAt | date:'MMM d, y HH:mm' }}</span>
+            <span>{{ item.triggeredBy }}</span>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

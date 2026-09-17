@@ -1,12 +1,12 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CandidateClassBadgeComponent } from '../../../../../shared/components/candidate-class-badge/candidate-class-badge.component';
-import { CandidateClass } from '../../models/goal.model';
+import { MarketReadinessTier } from '../../models/goal.model';
 
 interface ClassConfig {
   motivationalMessage: string;
   nextStep: string;
-  accentClass: string;  // CSS modifier
+  accentClass: string;
 }
 
 @Component({
@@ -17,41 +17,42 @@ interface ClassConfig {
   styleUrls: ['./class-badge-dashboard.component.css']
 })
 export class ClassBadgeDashboardComponent {
-  @Input({ required: true }) candidateClass!: CandidateClass;
+  @Input({ required: true }) marketReadinessTier!: MarketReadinessTier;
+  @Input() isAllStar = false;
   @Input({ required: true }) publicAlias!: string;
 
-  private readonly configs: Record<CandidateClass, ClassConfig> = {
-    ALL_STAR: {
+  private readonly configs: Record<MarketReadinessTier, ClassConfig> = {
+    PLATINUM: {
       motivationalMessage:
-        "You're All-Star: recruiters see you as actively growing and deeply experienced. You're at the very top of the talent pool.",
+        "You've reached Platinum: recruiters see you as an elite, market-ready professional with deep career proof. You're at the very top of the talent pool.",
       nextStep:
-        'Keep logging new goals and proof items to maintain your elite status.',
-      accentClass: 'accent--all-star',
+        'Maintain your certifications and keep your profile fresh to stay at Platinum.',
+      accentClass: 'accent--platinum',
     },
     GOLD: {
       motivationalMessage:
-        "You've reached Gold: recruiters see you as career-proven or actively growing. You're a trusted candidate.",
+        "You've reached Gold: recruiters see you as highly market-ready with strong experience and skills. You're a trusted candidate.",
       nextStep:
-        'Add more proof items or update goals regularly to aim for All-Star.',
+        'Add more certifications or years of experience proof to aim for Platinum.',
       accentClass: 'accent--gold',
     },
     SILVER: {
       motivationalMessage:
-        "You're Silver: recruiters see you as developing your profile. You're building momentum.",
+        "You're Silver: recruiters see you as actively building your market readiness. You're making solid progress.",
       nextStep:
-        'Log at least one new goal and proof item this month to move up to Gold.',
+        'Add certifications and expand your skills portfolio to move up to Gold.',
       accentClass: 'accent--silver',
     },
     BRONZE: {
       motivationalMessage:
-        "You're Bronze: recruiters see you as early-stage or currently inactive. This is your starting point.",
+        "You're Bronze: recruiters see you as early-stage. This is your starting point on the journey to market readiness.",
       nextStep:
-        'Add proof items and set goals to climb into Silver and beyond.',
+        'Fill in your work experience and add skills to climb into Silver and beyond.',
       accentClass: 'accent--bronze',
     },
   };
 
   get config(): ClassConfig {
-    return this.configs[this.candidateClass];
+    return this.configs[this.marketReadinessTier];
   }
 }

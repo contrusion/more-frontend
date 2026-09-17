@@ -1,0 +1,20 @@
+<section class="panel">
+  <header class="panel-head">
+    <h2>Score Breakdown</h2>
+    <span>Earned vs max</span>
+  </header>
+
+  <div class="rows">
+    @for (item of categories; track item.category) {
+      <article class="row">
+        <div class="row__meta">
+          <strong>{{ categoryLabel(item.category) }}</strong>
+          <span>{{ item.earnedPoints }} / {{ item.maxPoints }}</span>
+        </div>
+        <div class="row__track" role="progressbar" [attr.aria-valuenow]="percent(item)" aria-valuemin="0" aria-valuemax="100">
+          <div class="row__fill" [style.width.%]="percent(item)"></div>
+        </div>
+      </article>
+    }
+  </div>
+</section>

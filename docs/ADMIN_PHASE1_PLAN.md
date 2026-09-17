@@ -1,5 +1,7 @@
 # Admin Phase 1 — User Stories & Feature Plan
 
+> Admin Phase 1 gives platform operators full control — user management, content moderation, candidate class oversight, recruiter performance monitoring, ML dataset pipeline tooling, and platform-wide analytics dashboards.
+
 > **Role in focus:** `ADMIN` (`MO_ADMIN` Keycloak role)  
 > **Guarded by:** `RoleGuard` on the `/admin` route in `app.routes.ts`  
 > **Backend:** `@PreAuthorize("hasRole('ADMIN')")` — all endpoints under `/api/admin/**`  
@@ -127,30 +129,32 @@ The existing admin shell (`AdminComponent`) is already wired with a sidebar card
 
 ### US-008 · View candidate class distribution
 **As** an admin  
-**I want** to see a breakdown of how many candidates are Gold, Silver, and Bronze class  
+**I want** to see a breakdown of how many candidates are in each Market Readiness tier  
 **So that** I can monitor platform engagement and the effectiveness of the ranking system
 
 **Acceptance criteria:**
-- Summary card shows counts and percentages for each class
+- Summary card shows counts and percentages for each tier: Bronze, Silver, Gold, Platinum, and All-Star overlay count
 - Bar/pie chart visualisation
 - Trend over time (last 30 / 90 days)
-- Drilldown to list of candidates in each class
+- Drilldown to list of candidates in each tier
+- Separate All-Star count card (candidates with `isAllStar = true` across all base tiers)
 
 **Backend:** `GET /api/admin/analytics/candidate-classes`
 
 ---
 
-### US-009 · View top-performing candidates (Gold class leaderboard)
+### US-009 · View top-performing candidates (tier leaderboard)
 **As** an admin  
-**I want** to see which candidates are ranked Gold and understand their engagement metrics  
+**I want** to see which candidates are ranked Gold, Platinum, or All-Star and understand their engagement metrics  
 **So that** I can showcase platform success and identify users for case studies
 
 **Acceptance criteria:**
-- Sortable table: name, class, total goals, completed goals, verified proofs, last active
+- Filterable by tier: Bronze / Silver / Gold / Platinum / All-Star
+- Sortable table: alias, tier, All-Star flag, Market Readiness score, Active Excellence score, total goals, verified proofs, last active
 - Export to CSV
 - Links to read-only candidate Living CV
 
-**Backend:** `GET /api/admin/candidates/leaderboard?class=GOLD&page=&size=`
+**Backend:** `GET /api/admin/candidates/leaderboard?tier=GOLD&allStar=true&page=&size=`
 
 ---
 
@@ -301,21 +305,211 @@ The existing admin shell (`AdminComponent`) is already wired with a sidebar card
 
 ## Epic 7 — System Configuration
 
-### US-018 · Manage candidate class thresholds
+### US-018 · Manage Market Readiness tier thresholds & All-Star threshold
 **As** an admin  
-**I want** to configure the scoring thresholds that determine Gold / Silver / Bronze class  
+**I want** to configure the points thresholds that determine Bronze / Silver / Gold / Platinum tiers and the Active Excellence score required for the All-Star designation  
 **So that** I can tune the ranking system as the platform matures
 
 **Acceptance criteria:**
-- Three editable numeric fields: Gold minimum score, Silver minimum score
-- Preview shows how the current candidate base would redistribute under new thresholds
-- Confirmation before saving; change is logged
+- Four editable numeric fields for tier minimum scores: Bronze (floor), Silver, Gold, Platinum
+- One editable field: **All-Star Active Excellence threshold** — the `activeExcellenceScore` a candidate must reach to receive the All-Star ⭐ overlay at any base tier
+- Preview shows how the current candidate base would redistribute under new thresholds (count per tier before/after)
+- Preview shows how many candidates would gain or lose All-Star status under new Active Excellence threshold
+- Confirmation before saving; change is logged as an admin audit event
 
-**Backend:** `GET/PUT /api/admin/config/class-thresholds`
+**Backend:** `GET/PUT /api/admin/config/class-thresholds` — extend response to include `allStarThreshold`
 
 ---
 
-### US-019 · View and manage feature flags
+---
+
+## Epic 8 — Market Readiness Engine Administration
+
+> These stories are unlocked when Phase 2 (Market Readiness Engine) is deployed. They give admin operators control over the content and configuration that drives candidate scoring and engagement.
+
+### US-A21 · Create & Manage Knowledge Freshness Assessments
+**As** an admin  
+**I want** to author and publish knowledge assessments triggered by new technology releases  
+**So that** candidates can earn Active Excellence points and demonstrate market currency
+
+**Acceptance criteria:**
+- Admin can create an assessment: topic, technology, version, pass mark, validity period (months), question list, **type** (`FULL_ASSESSMENT` / `DID_YOU_KNOW`)
+- For `FULL_ASSESSMENT`: each question has question text, up to 5 options, correct answer, point value. Multi-question; pass/fail graded; awards +250 Active Excellence points on pass
+- For `DID_YOU_KNOW`: single-question awareness card. Each question has a `funFact` field (the explanation revealed to the candidate after they answer — correct or not). Awards +25 Active Excellence points for a correct answer. No pass/fail; no penalty for wrong answers
+- Assessment status: Draft / Published / Retired — only Published assessments are visible to candidates
+- Publishing a `FULL_ASSESSMENT` notifies all candidates with relevant skills (via skill-match on Living CV); publishing a `DID_YOU_KNOW` card queues it for the next weekly card rotation
+- Retiring an assessment marks existing results as historical (points are retained)
+- Admin can preview an assessment before publishing (for DYK cards: preview shows the flip-card UX with funFact reveal)
+- Table of all assessments with: topic, technology, version, type, published date, total attempts, pass rate (full assessments) / answer rate + correct % (DYK cards)
+
+**Components to Create:**
+- `AssessmentManagementComponent` (`admin/assessments/`) — list with status filter; create/edit/retire actions
+- `AssessmentEditorComponent` (`admin/assessments/editor/`) — form for topic, questions, pass mark, validity
+
+**Backend:** `GET/POST /api/admin/assessments`, `PUT /api/admin/assessments/{id}`, `PATCH /api/admin/assessments/{id}/status`
+
+**Phase dependency:** Phase 2 (US-P8)
+
+---
+
+### US-A22 · Manage Career Pathway Library
+**As** an admin  
+**I want** to create and maintain the library of Career Pathways that candidates activate as structured roadmaps  
+**So that** candidates have accurate, market-aligned paths to follow for any target role
+
+**Acceptance criteria:**
+- Admin can create a career pathway: target role name, required skills[], common certifications[], expected proof types[], market context summary
+- career pathway steps can be reordered, edited, or retired without deleting existing candidate career pathways
+- career pathway status: Draft / Active / Deprecated — candidates cannot activate Deprecated career pathways; existing activations are unaffected
+- Admin can view adoption stats per career pathway: total activations, average progress %, completion rate
+- career pathway changes do not retroactively alter a candidate's active career pathway steps — only new activations use updated content
+
+**Components to Create:**
+- `PathwayLibraryComponent` (`admin/career-pathways/`) — list with adoption stats
+- `PathwayEditorComponent` (`admin/career-pathways/editor/`) — steps editor with drag-to-reorder
+
+**Backend:** `GET/POST /api/admin/career-pathways`, `PUT /api/admin/career-pathways/{id}`, `PATCH /api/admin/career-pathways/{id}/status`, `GET /api/admin/career-pathways/{id}/stats`
+
+**Phase dependency:** Phase 2 (US-P4)
+
+---
+
+### US-A23 · Market Readiness & Talent Persona Analytics
+**As** an admin  
+**I want** to see a breakdown of candidate Market Readiness tiers, All-Star counts, Talent Persona distribution, and Active Excellence score spread  
+**So that** I can assess platform engagement depth and the effectiveness of the points engine
+
+**Acceptance criteria:**
+- **Tier Distribution** panel: counts + % for Bronze / Silver / Gold / Platinum; All-Star overlay count and % within each tier
+- **Talent Persona** panel: Passive Prospect / Warm Lead / Active Job Seeker counts and trend over last 90 days
+- **Active Excellence** histogram: distribution of Active Excellence scores across all candidates
+- **Assessment Engagement**: total assessments taken (last 30 days), pass rate, top 5 most-taken assessments
+- **Career Pathway Adoption**: total active career pathways, average completion %, career pathways completed (last 30 days)
+- All panels support date-range filtering and CSV export
+
+**Backend:**
+- `GET /api/admin/analytics/market-readiness` — tier + All-Star distribution
+- `GET /api/admin/analytics/personas` — persona distribution + trend
+- `GET /api/admin/analytics/active-excellence` — score histogram
+- `GET /api/admin/analytics/assessments` — assessment engagement
+- `GET /api/admin/analytics/career-pathways` — Career Pathway Adoption
+
+**Phase dependency:** Phase 2 (US-P1, US-P3, US-P8)
+
+---
+
+## Epic 9 — Platform Data Management
+
+> These stories are unlocked when Phase 3 (Platform Feature Completion) is deployed.
+
+### US-A24 · Manage Company Registry
+**As** an admin  
+**I want** to review, approve, and merge company records created by the background URL-lookup job  
+**So that** the companies table remains clean and free of duplicates before being used in job ad alumni selection
+
+**Acceptance criteria:**
+- Table shows all companies with status: `VERIFIED` / `PENDING_REVIEW` / `REJECTED`
+- Pending companies (created via `POST /api/companies/from-url`) appear in a review queue
+- Admin can: Approve (sets status to `VERIFIED`), Reject (removes from job ad selection), or Merge into an existing verified company
+- Edit company name and logo URL before approving
+- Merged companies redirect any existing `job_advertisement_company_alumni` references to the canonical record
+- Only `VERIFIED` companies appear in the `p-multiselect` on the recruiter job ad form
+
+**Components to Create:**
+- `CompanyRegistryComponent` (`admin/companies/`) — list with status filter; approve / reject / merge actions
+- `CompanyMergeModalComponent` (`admin/companies/merge-modal/`) — search existing verified companies; confirm merge target
+
+**Backend:**
+- `GET /api/admin/companies?status=PENDING_REVIEW` — review queue
+- `PATCH /api/admin/companies/{id}/status` — approve or reject
+- `POST /api/admin/companies/{id}/merge` — merge into target `{ targetCompanyId }`
+
+**Phase dependency:** Phase 3 (US-R5)
+
+---
+
+### US-A25 · Watchlist Moderation & Abuse Detection
+**As** an admin  
+**I want** to monitor recruiter watchlist activity and detect abnormal watch patterns  
+**So that** I can prevent abuse of the stealth handshake feature and protect candidate experience
+
+**Acceptance criteria:**
+- Dashboard shows: total active watchlist entries, new entries (last 7 days), expired entries, decline rate per recruiter
+- **Abuse flag**: recruiters with > 50 active watch entries, or a decline rate > 40%, are automatically surfaced in an alerts panel
+- Admin can view a recruiter's full watchlist (alias-only — no candidate PII)
+- Admin can force-expire specific watchlist entries with a reason (logged)
+- Admin can place a recruiter on a watchlist restriction (max entries capped, or feature disabled)
+
+**Backend:**
+- `GET /api/admin/watchlist/overview` — totals and abuse-flagged recruiters
+- `GET /api/admin/watchlist/recruiters/{id}` — full watchlist for a specific recruiter
+- `DELETE /api/admin/watchlist/entries/{entryId}` — force-expire with reason
+- `PATCH /api/admin/recruiters/{id}/watchlist-restriction` — restrict or unrestrict
+
+**Phase dependency:** Phase 3 (US-P6)
+
+---
+
+### ✅ US-A26 · Manage Peer Differentiation Challenge Library (US-C3) AI Elligible (future)
+**As** an admin  
+**I want** to author and manage the library of vitality-style peer differentiation challenges that the system issues to candidates  
+**So that** candidates within each tier have structured, time-boxed growth challenges with built-in milestones and assessments that help them stand out among their peers
+
+> **Distinction from US-A22 (Career Pathways):** Career Pathways (US-A22) are aspirational — they map the gap between a candidate’s current state and a *target role* (e.g. “I want to be a Tech Lead”). Peer Differentiation Challenges (this story) are lateral — they help a candidate stand out *within their current tier* through short, structured sprints. Example: “Master SOLID Principles in 2 weeks — Week 1: SRP + OCP, Week 2: Liskov + ISP + DIP” with an assessment at the end.
+
+**Acceptance criteria:**
+
+*Challenge authoring:*
+- Admin creates a challenge with: title, description, category (`ACTIVITY` / `PROFILE` / `CERTIFICATION` / `SKILL_SPRINT` / `ASSESSMENT`), duration (days), `trackingType` (`AUTO` / `PROOF_REQUIRED`), `triggerEvent` (for auto-enrol), `completionCriteria` (JSON), `rewardPoints`, `allStarPoints` (Active Excellence points awarded on completion), `active`
+- For `SKILL_SPRINT` challenges, admin defines **structured milestone steps**: each step has a title, target week/day, description, and an optional linked assessment
+- Each milestone step can have an associated `Assessment` (from US-A21) — passing the assessment auto-completes the milestone
+- Admin can preview the candidate-facing challenge card before publishing
+- Challenge status: `DRAFT` / `ACTIVE` / `RETIRED` — only `ACTIVE` challenges are issued to candidates
+
+*Milestone step editor:*
+- Admin adds ordered steps to a challenge (e.g. Week 1: SRP, Week 2: Liskov...)
+- Each step: title, description, `dueOffsetDays` (days from enrolment), `linkedAssessmentId` (optional), `requiresProof` (boolean)
+- Steps are reorderable; minimum 1 step required to publish
+- Challenge timeline preview shows all steps plotted on a mini calendar
+
+*Assessment linking:*
+- Admin can attach an existing assessment (from US-A21) to any step as the completion gate
+- Passing the linked assessment awards both the step completion and the assessment’s Active Excellence points
+- If no assessment is linked, step is completed by proof upload or auto-detection
+
+*Lifecycle management:*
+- Retiring a challenge: existing `IN_PROGRESS` enrolments run to natural completion; no new enrolments
+- Admin can view adoption stats: total enrolments, completion rate, average time to complete, drop-off step (which step most candidates abandon)
+- Admin can clone a challenge as a starting point for a new one
+
+*Challenge rewards (beyond points):*
+- Each challenge can have one or more **tangible rewards** triggered on completion (or on hitting a defined milestone threshold)
+- Admin configures rewards from a set of reward types. Examples:
+  - `SKIP_QUEUE_INTERVIEW_INVITE` — candidate who completes the challenge receives an automatic, skip-the-queue invitation to a final-stage interview with a participating recruiter. *("Anyone who completes this challenge gets a direct final-interview invite — no phone screen, no waiting.")*
+  - `VISIBILITY_BOOST` — candidate's profile is surfaced at the top of recruiter search results for a configurable number of days (e.g. 14 days). Recruiters see a "Actively Upskilling" badge on the result card.
+  - `RECRUITER_ALERT` — all recruiters who have this candidate on their watchlist receive a push notification: *"[Alias] just completed the SOLID Principles Sprint — they're in motion."*
+  - `TALENT_SPOTLIGHT` — candidate is featured in the platform's weekly "Rising Talent" digest sent to subscribed recruiters
+  - `FAST_TRACK_UNLOCK` — completing this challenge unlocks access to the next advanced challenge (otherwise locked for candidates who haven't proven the prerequisite)
+  - `BADGE_ON_CV` — a verified completion badge is permanently displayed on the candidate's Living CV and visible to all recruiters (e.g. "SOLID Principles Sprint — Verified Completer")
+  - `PLATFORM_RECOGNITION` — candidate appears in a "This Week's Challenge Champions" panel on the public-facing talent showcase page
+- Admin sets: `rewardType`, `rewardLabel` (custom display text), `triggerOn` (`CHALLENGE_COMPLETE` / `MILESTONE_N_COMPLETE`), and any type-specific config (e.g. `boostDays: 14` for VISIBILITY_BOOST)
+- Multiple rewards can be stacked on a single challenge (e.g. complete the sprint → BADGE_ON_CV + VISIBILITY_BOOST for 7 days)
+- Rewards are shown to the candidate **before** they accept a challenge — the reward is part of the motivation to enrol
+
+**Components to Create:**
+- `ChallengeLibraryComponent` (`admin/challenges/`) — list with status filter, adoption stats column, create/clone/retire actions
+- `ChallengeEditorComponent` (`admin/challenges/editor/`) — challenge metadata form + milestone step list (drag-to-reorder, add/remove steps, link assessment per step)
+- `ChallengeTimelinePreviewComponent` (`admin/challenges/editor/timeline-preview/`) — visual timeline of steps plotted over the challenge duration
+
+**Backend:**
+- `GET /api/admin/challenges` — full challenge library including drafts
+- `POST /api/admin/challenges` — create challenge with milestone steps
+- `PUT /api/admin/challenges/{id}` — update challenge + steps (replaces step list)
+- `PATCH /api/admin/challenges/{id}/status` — publish (DRAFT → ACTIVE) or retire
+- `POST /api/admin/challenges/{id}/clone` — duplicate as new draft
+- `GET /api/admin/challenges/{id}/stats` — enrolment count, completion rate, per-step drop-off
+
+**Phase dependency:** Phase 2 (US-C3)
 **As** an admin  
 **I want** to toggle platform features on or off without a deployment  
 **So that** I can safely roll out new features to subsets of users
@@ -348,6 +542,17 @@ All admin child routes are lazy-loaded under the existing `/admin` parent:
 /admin/analytics/placements   → PlacementTrendsComponent (US-020)
 /admin/config/classes         → ClassThresholdConfigComponent (US-018)
 /admin/config/flags           → FeatureFlagsComponent (US-019)
+/admin/assessments            → AssessmentManagementComponent (US-A21)
+/admin/assessments/:id/edit   → AssessmentEditorComponent (US-A21)
+/admin/career-pathways             → PathwayLibraryComponent (US-A22)
+/admin/career-pathways/:id/edit    → PathwayEditorComponent (US-A22)
+/admin/analytics/market-readiness → MarketReadinessAnalyticsComponent (US-A23)
+/admin/companies              → CompanyRegistryComponent (US-A24)
+/admin/watchlist              → WatchlistModerationComponent (US-A25)
+/admin/challenges             → ChallengeLibraryComponent (US-A26)
+/admin/challenges/:id/edit    → ChallengeEditorComponent (US-A26)
+/admin/team-templates         → TeamTemplateLibraryComponent (US-A27)
+/admin/team-templates/:id/edit → TeamTemplateEditorComponent (US-A27)
 ```
 
 ---
@@ -375,6 +580,13 @@ All admin child routes are lazy-loaded under the existing `/admin` parent:
 | US-020 Placement trends | High | Medium | 🔴 P1 |
 | US-018 Class thresholds | Low | High | 🟢 P3 |
 | US-019 Feature flags | Low | High | 🟢 P3 |
+| US-A21 Knowledge assessment authoring | High | Medium | 🔴 P1 (Phase 2 unlock) |
+| US-A22 Career Pathway library | High | Medium | 🔴 P1 (Phase 2 unlock) |
+| US-A23 Market Readiness analytics | High | Medium | 🔴 P1 (Phase 2 unlock) |
+| US-A24 Company Registry management | Medium | Low | 🟡 P2 (Phase 3 unlock) |
+| US-A25 Watchlist moderation | Medium | Low | 🟡 P2 (Phase 3 unlock) |
+| ✅ US-A26 Peer Differentiation Challenge library | High | Medium | ✅ Done |
+| US-A27 Team Template Library | Medium | Low | 🟡 P2 (Phase 4 unlock) |
 
 
 

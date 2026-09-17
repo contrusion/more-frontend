@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CandidateClass, CandidateSearchPage, ExperienceGroup } from '../../candidate/models/goal.model';
+import { CandidateSearchPage, ExperienceGroup, MarketReadinessTier } from '../../candidate/models/goal.model';
 import { environment } from '../../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -11,7 +11,7 @@ export class CandidateSearchService {
   constructor(private http: HttpClient) {}
 
   searchCandidates(
-    classFilter: CandidateClass | null,
+    tierFilter: MarketReadinessTier | null,
     experienceGroup: ExperienceGroup | null,
     page = 0,
     size = 20
@@ -20,8 +20,8 @@ export class CandidateSearchService {
       .set('page', page.toString())
       .set('size', size.toString());
 
-    if (classFilter) {
-      params = params.set('candidateClass', classFilter);
+    if (tierFilter) {
+      params = params.set('tierFilter', tierFilter);
     }
     if (experienceGroup) {
       params = params.set('experienceGroup', experienceGroup);

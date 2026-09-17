@@ -1,0 +1,102 @@
+<div class="challenge-card" [class]="'challenge-card--' + userStatus().toLowerCase()">
+  @if (_challenge(); as c) {
+    <div class="challenge-card__header">
+      <div class="challenge-card__meta">
+        <span class="category-label">{{ categoryLabel() }}</span>
+        <span class="tracking-badge" [class.tracking-badge--proof]="c.trackingType === 'PROOF_REQUIRED'">
+          {{ trackingLabel() }}
+        </span>
+      </div>
+      <p-tag [value]="statusLabel()" [severity]="statusSeverity()" />
+    </div>
+
+    <div class="challenge-card__body">
+      <h3 class="challenge-title">{{ c.title }}</h3>
+      @if (c.description) {
+        <p class="challenge-description">{{ c.description }}</p>
+      }
+      @if (c.completionCriteria) {
+        <p class="completion-criteria">
+          <strong>Criteria:</strong> {{ c.completionCriteria }}
+        </p>
+      }
+    </div>
+
+    <div class="challenge-card__rewards">
+      <span class="reward-chip reward-chip--points" [pTooltip]="'Reward points on completion'">
+        +{{ c.rewardPoints }} pts
+      </span>
+      @if (c.allStarPoints > 0) {
+        <span class="reward-chip reward-chip--star" [pTooltip]="'Active Excellence points'">
+          ⭐ +{{ c.allStarPoints }}
+        </span>
+      }
+      @if (c.durationDays) {
+        <span class="reward-chip reward-chip--duration">{{ c.durationDays }}d</span>
+      }
+    </div>
+
+    @if (userStatus() === 'IN_PROGRESS' && c.progressSnapshot) {
+      <div class="progress-section">
+        <p-progressBar [value]="50" styleClass="progress-bar" />
+        <span class="progress-label">In progress</span>
+      </div>
+    }
+
+    @if (userStatus() === 'COMPLETED') {
+      <div class="proof-summary">
+        @if (c.proofTitle) {
+          <p class="proof-title">Proof: {{ c.proofTitle }}</p>
+          <span class="verification-badge"
+            [class.verification-badge--pending]="c.proofVerificationStatus === 'PENDING'"
+            [class.verification-badge--verified]="c.proofVerificationStatus === 'VERIFIED'">
+            {{ c.proofVerificationStatus ?? 'Pending' }}
+          </span>
+        }
+        <p class="points-awarded">Points awarded: {{ c.pointsAwarded }}</p>
+      </div>
+    }
+
+    <div class="challenge-card__actions">
+      @if (userStatus() === 'AVAILABLE') {
+        <p-button label="Opt In" icon="pi pi-check" (onClick)="onEnrol()" severity="primary" size="small" />
+      }
+      @if (userStatus() === 'IN_PROGRESS' && c.trackingType === 'PROOF_REQUIRED') {
+        <p-button
+          [label]="showProofForm() ? 'Cancel' : 'Submit Proof'"
+          icon="pi pi-upload"
+          (onClick)="toggleProofForm()"
+          severity="secondary"
+          size="small" />
+      }
+    </div>
+
+    @if (showProofForm()) {
+      <form class="proof-form" [formGroup]="proofForm" (ngSubmit)="onSubmitProof()">
+        <div class="proof-form__field">
+          <label>Proof Type</label>
+          <select formControlName="proofType" class="proof-select">
+            @for (type of proofTypes; track type) {
+              <option [value]="type">{{ type.replace('_', ' ') }}</option>
+            }
+          </select>
+        </div>
+        <div class="proof-form__field">
+          <label>Title</label>
+          <input formControlName="proofTitle" placeholder="e.g. AWS Certificate 2026" class="proof-input" />
+        </div>
+        <div class="proof-form__field">
+          <label>URL</label>
+          <input formControlName="proofUrl" placeholder="https://credential.example.com" class="proof-input" />
+        </div>
+        <p-button
+          type="submit"
+          label="Submit"
+          icon="pi pi-send"
+          severity="primary"
+          size="small"
+          [disabled]="proofForm.invalid" />
+      </form>
+    }
+  }
+</div>

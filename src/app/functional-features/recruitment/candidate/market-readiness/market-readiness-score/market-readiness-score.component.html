@@ -1,0 +1,61 @@
+<section class="readiness-page">
+  <header class="readiness-header">
+    <div class="readiness-header__left">
+      <h1>Market Readiness</h1>
+      <p>Track your current tier, score contributors, and your highest-impact next actions.</p>
+    </div>
+    <div class="readiness-header__right">
+      <button class="refresh-btn" type="button" (click)="refreshNow()" [disabled]="loading()">
+        Refresh
+      </button>
+      @if (lastRefreshedAt()) {
+        <span class="refreshed-at">Updated {{ lastRefreshedAt() | date:'HH:mm:ss' }}</span>
+      }
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading() && !breakdown()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Calculating your score breakdown...</p>
+    </div>
+  }
+
+  @if (breakdown(); as data) {
+    <section class="score-summary">
+      <div class="score-summary__tier">
+        <app-candidate-class-badge
+          [marketReadinessTier]="data.marketReadinessTier"
+          [isAllStar]="data.isAllStar"
+          [tooltip]="'Your current market readiness tier'" />
+        <p class="tier-line">{{ scoreHeadline() }}</p>
+      </div>
+
+      <div class="score-summary__progress">
+        <div class="progress-meta">
+          <span>Progress to next tier</span>
+          <strong>{{ data.progressPercentToNextTier }}%</strong>
+        </div>
+        <div class="progress-track" role="progressbar" [attr.aria-valuenow]="data.progressPercentToNextTier" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill" [style.width.%]="data.progressPercentToNextTier"></div>
+        </div>
+        @if (data.pointsToNextTier > 0) {
+          <p class="progress-caption">{{ data.pointsToNextTier }} points to reach {{ data.nextTierThreshold | number }}</p>
+        } @else {
+          <p class="progress-caption">You are at the top tier threshold.</p>
+        }
+      </div>
+    </section>
+
+    <div class="grid-layout">
+      <app-score-breakdown [categories]="data.categories" />
+      <app-next-steps-recommendation [nextSteps]="data.nextSteps" />
+    </div>
+
+    <app-points-history [pointsHistory]="data.pointsHistory" />
+  }
+</section>

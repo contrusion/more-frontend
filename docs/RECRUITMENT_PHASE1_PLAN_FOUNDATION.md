@@ -1,5 +1,7 @@
 # Recruitment App Extension - Phase 1 Plan & User Stories
 
+> Phase 1 builds the foundation — candidate profiles (Living CV, Goals, Milestones), the alias/zero-PII system, job ads, and basic recruiter search.
+
 ## Context
 
 **Problem:** The existing "More" app is a recruiter-facing email management and interaction tracking platform. The recruitment app extension transforms this into a **comprehensive talent ecosystem** that includes:
@@ -41,7 +43,15 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 **Launch Order (6-8 sprints):**
 1. **Sprint 1-2 (Phase 1):** ✅ *COMPLETED*
    - ✅ Backend: Candidate Goals, Milestones, Alias generation (US 1.3a), Living CV endpoints (US 1.3)
-   - ✅ Frontend: Goal management UI, Living CV display with aliases, `publicAlias` in all DTOs
+   - ✅ Frontend: Goal management UI, Living CV display with aliases, `publicAlias` in all DTOs *Auto-tracking (system detects completion without manual input):*
+  - **Streak challenges** — system tracks weekly milestone/goal activity; awards points when streak threshold is hit (e.g. "Log progress 10 consecutive weeks")
+  - **Profile completeness challenges** — system recalculates profile completion % whenever a section is saved; auto-completes challenge when threshold is crossed (e.g. "Complete your profile to 80%")
+  - **Certification count challenges** — auto-detected when a new certification is saved (e.g. "Add 3 verified certifications")
+  - **Activity volume challenges** — e.g. "Add 5 proof items in a single month" — system counts proof items with `createdAt` in the window *Auto-tracking (system detects completion without manual input):*
+  - **Streak challenges** — system tracks weekly milestone/goal activity; awards points when streak threshold is hit (e.g. "Log progress 10 consecutive weeks")
+  - **Profile completeness challenges** — system recalculates profile completion % whenever a section is saved; auto-completes challenge when threshold is crossed (e.g. "Complete your profile to 80%")
+  - **Certification count challenges** — auto-detected when a new certification is saved (e.g. "Add 3 verified certifications")
+  - **Activity volume challenges** — e.g. "Add 5 proof items in a single month" — system counts proof items with `createdAt` in the window
 2. **Sprint 2-3 (Phase 1 continued):** ✅ *COMPLETED*
    - ✅ Backend: Class calculation weekly batch (`CandidateClassScheduler`, `TwoGroupCandidateClassifier`)
    - ✅ Frontend: Candidate Pool UI (US-R3) — class badges, tier + experience filters, Living CV modal, recruiter sidebar layout
@@ -60,7 +70,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 6. **Sprint 6 (Phase 2):**
    - Trust Layer: Onboarding tutorials, authenticity warnings (US 1.11)
    - Privacy controls (US 1.5)
-7. **Sprint 7-8 (Phase 2):**
+7. **Sprint 7-8 (Phase 2):** done last to include all other features when determing monitization
    - Monetization Core: Identity reveal workflow (US 1.8), Stripe integration (US 1.9)
    - Company subscription dashboard, reveal request flow
    - Keycloak COMPANY role support
@@ -267,7 +277,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 ---
 
-#### Epic: Role Matching & Interest Expression (Phase 1)
+#### Epic: Role Matching & Interest Expression (Phase 1) - will need other phases so that the match can also consider tier/scores/points
 
 > **The Triad:** Recruiter (US-R1) creates structured job specs → System (US-R2) matches them to Living CVs → Candidate (US-C1) sees curated matches and expresses interest under alias → Recruiter reveal workflow (US 1.8) monetises the interaction. These three stories form a closed loop: recruiters get structured, high-quality signals; candidates get curated, motivating opportunities; the platform enforces alias + reveal, protecting trust and driving monetisation.
 
@@ -492,40 +502,124 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 ---
 
-**US-C3: Candidate Logs Built-In Weighted Goals with Proofs**
+**US-C3: System Issues Discovery Vitality-Style (Don't use the word vitality, chose something else) Goal Challenges to Candidates** ✅ *Implemented*
 - **As a** candidate building my Living CV
-- **I want to** select from a library of built-in, weighted goals (while still being able to add custom goals)
-- **So that** my achievements are standardised, recruiters can compare candidates more easily, and proofs are simplified
+- **I want to** see a set of system-issued goal challenges (like Discovery Vitality goals) that I can work toward — each with clear completion criteria, automatic progress tracking where possible, and points awarded on completion
+- **So that** I know exactly what the platform values, my growth is measured consistently across all candidates, and I am motivated by visible progress toward tier milestones
+
+- this is different from: za.co.contrusion.apis.more.candidate.domain.CandidateGoal. What we have in this US is challenges.
+> **Model:** The system presents challenges — candidates do not create them. Think Discovery Vitality: *"Reach your weekly active points 10 consecutive weeks"*, *"Add a verified certification this quarter"*, *"Complete your profile to 100%"*. Candidates opt in to a challenge or are auto-enrolled when eligible. Progress is tracked automatically wherever the system can detect it; only where it cannot is manual proof required.
+
 - **Acceptance Criteria:**
-  - Candidate dashboard shows two goal types:
-    - **Built-In Goals:** Predefined, weighted goals (e.g., "Earn AWS Certification", "Complete Finance Project")
-    - **Custom Goals:** Candidate-defined goals (already supported)
-  - Built-In Goals have:
-    - System-assigned weight/score that contributes to class progression
-    - Predefined proof types (certificate upload, project link, badge)
-    - Progress tracker (e.g., % complete, milestone checkboxes)
-  - Recruiters see weighted built-in goals as primary signals; custom goals remain visible as additional context
-  - Class progression (Bronze → Silver → Gold → All-Star) is influenced more heavily by built-in goals
-  - Notifications nudge candidates to complete built-in goals or add proofs (e.g., "You're 1 proof away from Gold!")
-  - Admins can update the goal library (add/remove/edit built-in goals, adjust weights)
+
+  *Challenge feed:*
+  - Candidate sees a **"Challenges"** section on their dashboard distinct from their custom goals (US 1.1)
+  - Challenges are displayed as cards: title, description, completion criteria, reward points, progress indicator, deadline (if time-boxed)
+  - Challenge states: `AVAILABLE` / `IN_PROGRESS` / `COMPLETED` / `EXPIRED`
+  - Candidate can **opt in** to an `AVAILABLE` challenge; once opted in it moves to `IN_PROGRESS`
+  - Some challenges are **auto-enrolled** on trigger (e.g. "Maintain a 4-week milestone streak" activates automatically when the system detects the first week of activity)
+  - Completed challenges show a ✅ badge and the points awarded; they remain visible as a trophy record
+
+  *Auto-tracking (system detects completion without manual input):*
+  - **Streak challenges** — system tracks weekly milestone/goal activity; awards points when streak threshold is hit (e.g. "Log progress 10 consecutive weeks")
+  - **Profile completeness challenges** — system recalculates profile completion % whenever a section is saved; auto-completes challenge when threshold is crossed (e.g. "Complete your profile to 80%")
+  - **Certification count challenges** — auto-detected when a new certification is saved (e.g. "Add 3 verified certifications")
+  - **Activity volume challenges** — e.g. "Add 5 proof items in a single month" — system counts proof items with `createdAt` in the window
+  - ** Skill verification challange**
+  - ** Responsiveness Challenge*
+
+  *Proof-required challenges (system cannot auto-detect):*
+  - **Externally verified achievements** — e.g. "Pass an industry-recognised assessment" — candidate uploads certificate or badge; proof enters `PENDING` verification (lazy model, consistent with US 1.2)
+  - Proof upload uses the same `MilestoneProofItem` model already in place
+  - Proof requirement is declared on the `GoalChallenge` template: `requiresProof: boolean`, `acceptedProofTypes: ProofType[]`
+
+  *Points & tier impact:*
+  - Each challenge has a system-assigned `rewardPoints` value (set by admin on the template)
+  - Points awarded on completion feed directly into the Market Readiness Score (Phase 2 — US-P1)
+  - Challenge completions are weighted more heavily than custom goal completions in the score calculation
+  - Candidates near a tier threshold see a nudge: *"Complete 'Log progress 8 consecutive weeks' (+40 pts) to reach Silver"*
+
+  *Recruiter visibility:*
+  - Completed challenges appear on the candidate's public Living CV as a **"Challenges Completed"** section (alias-safe; no PII)
+  - Challenge title and points shown; proof detail not exposed publicly
+
+  *Admin control:*
+  - Admin creates and manages the challenge library via **US-A26** in Admin Phase 1 — this is a dedicated story specifically for peer differentiation challenges (distinct from US-A22 which manages Career Pathways for career-gap filling)
+  - Each template has: title, description, category, `trackingType` (`AUTO` / `PROOF_REQUIRED`), `triggerEvent` (for auto-enrol), `completionCriteria`, `rewardPoints`, `allStarPoints` (Active Excellence points), `validityDays` (null = no expiry), `active`
+  - For `SKILL_SPRINT` challenges, admin defines **structured milestone steps** with target days/weeks and optional linked assessments — passing the assessment auto-completes that milestone
+  - Admin can retire a challenge (existing `IN_PROGRESS` entries run to natural completion; no new enrolments)
+
+- **Challenge Examples:**
+
+  | Challenge | Tracking | Reward | Notes |
+  |-----------|----------|--------|-------|
+  | "Log progress every week for 10 consecutive weeks" | AUTO — streak tracker | +80 pts | Resets if a week is missed |
+  | "Complete your Living CV profile to 100%" | AUTO — profile completeness | +100 pts | One-time |
+  | "Add 3 verified certifications" | AUTO — certification count | +120 pts | Cumulative; awards when 3rd cert is saved |
+  | "Add 5 proof items in a single month" | AUTO — proof item count in window | +60 pts | Resets monthly |
+  | "Pass an industry-recognised assessment" | PROOF — certificate upload | +150 pts | Manual proof; lazy verification |
+  | "Add a testimonial reference from a manager or client" | PROOF — reference added | +80 pts | One-time per reference type |
+  | "Update your Living CV after a career event (new role, cert, project)" | AUTO — CV section updated within 14 days of a date-field event | +40 pts | Recurring; re-awards each time |
+  | "Reach Silver tier for the first time" | AUTO — tier promotion event | +200 pts | Milestone bonus |
+
 - **Components to Create / Update:**
-  - `GoalLibraryComponent` — browsable list of built-in goals a candidate can add to their profile
-  - `BuiltInGoalCardComponent` — displays goal name, weight, predefined proof types, progress tracker
-  - `GoalProgressTrackerComponent` — milestone checkboxes / % complete indicator
-  - `GoalNudgeNotificationComponent` — contextual nudge when candidate is close to a tier threshold
-  - Update `GoalsPageComponent` to separate built-in and custom goal sections
+  - `ChallengeFeedComponent` (`candidate/challenges/challenge-feed/`) — grid of challenge cards grouped by state (In Progress / Available / Completed)
+  - `ChallengeCardComponent` (`candidate/challenges/challenge-card/`) — title, criteria, progress bar (auto-tracked) or proof upload button (proof-required), reward points, deadline countdown
+  - `ChallengeProofUploadComponent` (`candidate/challenges/challenge-proof-upload/`) — reuses `MilestoneProofItem` model; only shown for `PROOF_REQUIRED` challenges
+  - `ChallengeStreakTrackerComponent` (`candidate/challenges/challenge-streak-tracker/`) — weekly activity calendar strip (e.g. 10 circles, filled = active week)
+  - `ChallengeNudgeComponent` (`shared/components/challenge-nudge/`) — inline nudge card surfaced on dashboard when candidate is within N points of a tier; links directly to the highest-value incomplete challenge
+  - Update `GoalsPageComponent` (or `DashboardComponent`) to include the Challenges section as a peer panel alongside custom goals
+
 - **Backend changes required:**
-  - New entity: `GoalTemplate (id, title, description, weight, proofTypes[], category, active)` — admin-managed library
-  - `CandidateGoal` gains `goalTemplateId` (nullable — null means custom) and `progressPercentage`
-  - Class calculation in `CandidateClassScheduler` weights built-in goal completions more heavily
+  - New entity: `GoalChallenge (id, title, description, category, trackingType [AUTO|PROOF_REQUIRED], triggerEvent, completionCriteria [JSON], rewardPoints, validityDays, acceptedProofTypes[], active)` — admin-managed
+  - New entity: `CandidateChallengeEnrolment (id, candidateId, challengeId, status [AVAILABLE|IN_PROGRESS|COMPLETED|EXPIRED], progressSnapshot [JSON], enrolledAt, completedAt, proofItemId [nullable], pointsAwarded)`
+  - `CandidateClassScheduler` (and later `MarketReadinessCalculator` — US-P1) weights challenge completions more heavily than custom goals
+  - Auto-tracking listeners:
+    - `MilestoneSavedEvent` → update streak progress on active streak challenges
+    - `CertificationSavedEvent` → check certification-count challenges
+    - `ProofItemSavedEvent` → check proof-volume challenges
+    - `ProfileSectionUpdatedEvent` → recalculate profile completeness challenges
+    - `TierPromotionEvent` → award milestone bonus challenges
   - Endpoints:
-    - `GET /api/goals/library` — returns active built-in goal templates
-    - `POST /api/candidates/me/goals` — updated to accept `goalTemplateId` for built-in goals
-    - `GET /api/admin/goals/library` — admin: full list including inactive
-    - `POST /api/admin/goals/library` — admin: create a new goal template
-    - `PATCH /api/admin/goals/library/{id}` — admin: edit or deactivate a template
+    - `GET /api/challenges` — active challenges available for the candidate (enrolled state merged in)
+    - `POST /api/candidates/me/challenges/{challengeId}/enrol` — opt in to a challenge
+    - `POST /api/candidates/me/challenges/{challengeId}/proof` — submit proof for `PROOF_REQUIRED` challenge (creates `MilestoneProofItem`)
+    - `GET /api/candidates/me/challenges` — candidate's full enrolment list with progress
+    - `GET /api/admin/challenges` — admin: full challenge library
+    - `POST /api/admin/challenges` — admin: create challenge template
+    - `PATCH /api/admin/challenges/{id}` — admin: edit or retire
+
+- **Data Model:**
+  ```typescript
+  GoalChallenge {
+    id: string
+    title: string                       // e.g. "Log progress 10 consecutive weeks"
+    description: string
+    category: ChallengeCategory         // ACTIVITY | PROFILE | CERTIFICATION | ASSESSMENT | MILESTONE
+    trackingType: TrackingType          // AUTO | PROOF_REQUIRED
+    triggerEvent?: string               // Event name that auto-enrols candidate (e.g. 'FIRST_MILESTONE_SAVED')
+    completionCriteria: object          // e.g. { streakWeeks: 10 } or { certCount: 3 }
+    rewardPoints: number
+    validityDays?: number               // null = no expiry
+    acceptedProofTypes?: ProofType[]    // only for PROOF_REQUIRED
+    active: boolean
+  }
+
+  CandidateChallengeEnrolment {
+    id: string
+    candidateId: string
+    challengeId: string
+    status: ChallengeStatus             // AVAILABLE | IN_PROGRESS | COMPLETED | EXPIRED
+    progressSnapshot: object            // e.g. { currentStreak: 6, target: 10 }
+    enrolledAt: Date
+    completedAt?: Date
+    proofItemId?: string                // FK to MilestoneProofItem for PROOF_REQUIRED
+    pointsAwarded: number
+  }
+  ```
+
 - **Phase:** Phase 2
-- **Dependencies:** US 1.3 (goals exist), US 1.4 (class calculation), US-C2 (class messaging in place)
+- **Dependencies:** US 1.3 (goals/milestones exist as event sources for auto-tracking), US 1.4 (class calculation scheduler), US-C2 (class messaging in place), US-P1 (Market Readiness Score — challenges feed into points engine)
 
 ---
 
@@ -748,7 +842,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 | **US-R5** | Job Ad: Company Alumni multi-select from Companies table | Phase 2 | US-R1, Companies table | 1 sprint |
 | **US-R6** | Recruiter: View applicants who expressed interest + their CVs | Phase 2 | US-R1, US-C1, US 1.3a | 1 sprint |
 | **US-H1** | UX: Dynamic & Personalised Quick Access (all roles) | Phase 2 | Home component stable | 1 sprint |
-| **US-C3** | Candidate: Built-In Weighted Goals with Proofs | Phase 2 | US 1.3, US 1.4, US-C2 | 1.5 sprints |
+| **✅ US-C3** | Candidate: Built-In Weighted Goals with Proofs | Phase 2 ✅ Done | US 1.3, US 1.4, US-C2 | 1.5 sprints |
 | **US 1.8** | Business: Reveal workflow | Phase 2 | US 1.3a, 1.5 | 2 sprints |
 | **US 1.9** | Payment: Subscription validation | Phase 2 | US 1.8, Stripe setup | 2 sprints |
 | **US 1.10** | Compliance: Audit logging | Phase 3 | US 1.8, 1.9 | 1 sprint |

@@ -24,6 +24,17 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
         </button>
         <button
           class="nav-item"
+          [class.active]="isActive('market-readiness')"
+          (click)="navigate('market-readiness')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3v18h18"></path>
+            <path d="M7 14l4-4 3 3 5-6"></path>
+          </svg>
+          <span>Readiness</span>
+        </button>
+        <button
+          class="nav-item"
           [class.active]="isActive('goals')"
           (click)="navigate('goals')"
         >
@@ -89,6 +100,18 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
           <span>Refs</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="isActive('challenges')"
+          (click)="navigate('challenges')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"></path>
+            <path d="M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"></path>
+            <path d="M17.5 5.5A8.5 8.5 0 1 1 6.5 5.5"></path>
+          </svg>
+          <span>Challenges</span>
         </button>
       </nav>
       <div class="recruitment-content">

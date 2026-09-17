@@ -1,0 +1,82 @@
+<div class="challenge-feed">
+
+  <!-- Header -->
+  <div class="feed-header">
+    <div class="feed-header__content">
+      <div class="feed-header__text">
+        <h1>Growth Challenges</h1>
+        <p>System-issued challenges that measure what recruiters value most. Earn points and climb to the next tier.</p>
+      </div>
+      <div class="feed-header__stats">
+        <div class="stat-card">
+          <span class="stat-value">{{ inProgressChallenges().length }}</span>
+          <span class="stat-label">In Progress</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ completedChallenges().length }}</span>
+          <span class="stat-label">Completed</span>
+        </div>
+        <div class="stat-card stat-card--points">
+          <span class="stat-value">{{ totalPoints() }}</span>
+          <span class="stat-label">Points Earned</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Streak tracker (shown when there are active enrolments) -->
+  @if (inProgressChallenges().length > 0) {
+    <div class="streak-section">
+      <app-challenge-streak-tracker [enrolments]="inProgressChallenges()" />
+    </div>
+  }
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    @for (opt of filterOptions; track opt.value) {
+      <button
+        class="filter-chip"
+        [class.filter-chip--active]="statusFilter() === opt.value"
+        (click)="setFilter(opt.value)">
+        {{ opt.label }}
+        @if (opt.value === 'IN_PROGRESS') {
+          <span class="filter-count">{{ inProgressChallenges().length }}</span>
+        }
+        @if (opt.value === 'COMPLETED') {
+          <span class="filter-count">{{ completedChallenges().length }}</span>
+        }
+        @if (opt.value === 'AVAILABLE') {
+          <span class="filter-count">{{ availableChallenges().length }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Body -->
+  @if (loading()) {
+    <div class="state-message">
+      <span class="state-message__icon">⏳</span>
+      <p>Loading challenges…</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-message state-message--error">
+      <span class="state-message__icon">⚠️</span>
+      <p>{{ error() }}</p>
+      <p-button label="Retry" severity="secondary" size="small" (onClick)="load()" />
+    </div>
+  } @else if (filteredChallenges().length === 0) {
+    <div class="state-message">
+      <span class="state-message__icon">🎯</span>
+      <p>No challenges in this category yet.</p>
+    </div>
+  } @else {
+    <div class="challenges-grid">
+      @for (challenge of filteredChallenges(); track challenge.id) {
+        <app-challenge-card
+          [challenge]="challenge"
+          (enrol)="onEnrol($event)"
+          (submitProof)="onSubmitProof($event)" />
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,17 @@
+@if (streakChallenges().length > 0) {
+  <div class="streak-tracker">
+    <h4 class="streak-tracker__title">🔥 Activity Streaks</h4>
+    @for (streak of streakChallenges(); track streak.title) {
+      <div class="streak-row">
+        <span class="streak-label">{{ streak.title }}</span>
+        <div class="streak-weeks">
+          @for (week of streak.weeks; track week.index) {
+            <div class="streak-week" [class.streak-week--filled]="week.filled"
+              [title]="'Week ' + (week.index + 1)"></div>
+          }
+        </div>
+        <span class="streak-count">{{ streak.current }}/{{ streak.target }}w</span>
+      </div>
+    }
+  </div>
+}

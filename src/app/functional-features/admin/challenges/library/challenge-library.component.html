@@ -1,0 +1,151 @@
+<div class="challenge-library">
+  <div class="library-header">
+    <div class="header-left">
+      <h1 class="page-title">Challenge Library</h1>
+      <p class="page-subtitle">Manage peer differentiation challenges across the platform</p>
+    </div>
+    <div class="header-actions">
+      <input #csvInput type="file" accept=".csv" class="hidden-input" (change)="onCsvFileSelected($event)" />
+      <button pButton
+              label="Import CSV"
+              icon="pi pi-upload"
+              class="p-button-outlined"
+              [disabled]="importing()"
+              [loading]="importing()"
+              (click)="triggerCsvUpload()">
+      </button>
+      <button pButton
+              label="New Challenge"
+              icon="pi pi-plus"
+              class="p-button-primary"
+              (click)="navigateToCreate()">
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (importResult(); as result) {
+    <div class="import-result-banner" [class.has-failures]="result.failureCount > 0">
+      <div class="import-summary">
+        <strong>Import complete:</strong>
+        {{ result.successCount }} of {{ result.totalRows }} rows imported successfully.
+        @if (result.failureCount > 0) {
+          <span class="failure-count"> {{ result.failureCount }} failed.</span>
+        }
+        <button class="dismiss-btn" (click)="dismissImportResult()">✕</button>
+      </div>
+      @if (result.failureCount > 0) {
+        <ul class="failure-list">
+          @for (row of result.rows; track row.rowNumber) {
+            @if (!row.success) {
+              <li>Row {{ row.rowNumber }}: {{ row.error }}</li>
+            }
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <div class="filter-row">
+    @for (opt of statusOptions; track opt.value) {
+      <button
+        class="filter-chip"
+        [class.active]="statusFilter() === opt.value"
+        (click)="applyFilter(opt.value)">
+        {{ opt.label }}
+      </button>
+    }
+  </div>
+
+  <p-table
+    [value]="filteredChallenges()"
+    [loading]="loading()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    styleClass="p-datatable-sm p-datatable-striped"
+    responsiveLayout="scroll">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Duration</th>
+        <th>Tracking</th>
+        <th>Points</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-challenge>
+      <tr>
+        <td>
+          <span class="challenge-title">{{ challenge.title }}</span>
+        </td>
+        <td>
+          <span class="category-badge">{{ challenge.category }}</span>
+        </td>
+        <td>{{ challenge.durationDays }}d</td>
+        <td>{{ challenge.trackingType === 'AUTO' ? 'Auto' : 'Proof Required' }}</td>
+        <td>{{ challenge.rewardPoints }} pts</td>
+        <td>
+          <p-tag
+            [value]="challenge.status"
+            [severity]="getStatusSeverity(challenge.status)">
+          </p-tag>
+        </td>
+        <td>
+          <div class="action-row">
+            <button pButton
+                    icon="pi pi-pencil"
+                    class="p-button-sm p-button-text"
+                    pTooltip="Edit"
+                    (click)="navigateToEdit(challenge.id)">
+            </button>
+            <button pButton
+                    icon="pi pi-copy"
+                    class="p-button-sm p-button-text"
+                    pTooltip="Clone"
+                    (click)="clone(challenge)">
+            </button>
+            @if (challenge.status === 'DRAFT') {
+              <button pButton
+                      icon="pi pi-check-circle"
+                      class="p-button-sm p-button-text p-button-success"
+                      pTooltip="Activate"
+                      (click)="activate(challenge)">
+              </button>
+            }
+            @if (challenge.status === 'ACTIVE') {
+              <button pButton
+                      icon="pi pi-ban"
+                      class="p-button-sm p-button-text p-button-danger"
+                      pTooltip="Retire"
+                      (click)="retire(challenge)">
+              </button>
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7" class="empty-message">
+          @if (loading()) {
+            Loading challenges...
+          } @else {
+            No challenges found.
+            @if (statusFilter() !== 'ALL') {
+              Try clearing the status filter.
+            }
+          }
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

@@ -102,20 +102,21 @@ export interface CreateProofItemRequest {
 
 // ---- Living CV (US 1.3) ----
 
-export type CandidateClass = 'ALL_STAR' | 'GOLD' | 'SILVER' | 'BRONZE';
+export type MarketReadinessTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
 export type ExperienceGroup = 'EARLY_CAREER' | 'EXPERIENCED';
 
 // ---- Recruiter candidate search (US-R3) ----
 
 export interface CandidateSearchResult {
   publicAlias: string;
-  candidateClass: CandidateClass;
+  marketReadinessTier: MarketReadinessTier;
+  isAllStar: boolean;
+  marketReadinessScore: number;
   experienceGroup: ExperienceGroup | null;
   roleCategory: string;         // AliasRoleTag enum value
   jobTitle: string | null;
   industry: string | null;
-  classCardMessage: string;     // Server-computed recruiter card narrative
-  classTooltip: string;         // Server-computed tooltip/hover text
+  tierCardMessage: string;      // Server-computed recruiter card narrative
 }
 
 export interface CandidateSearchPage {
@@ -126,6 +127,37 @@ export interface CandidateSearchPage {
   size: number;
   first: boolean;
   last: boolean;
+}
+
+export interface MarketReadinessCategoryBreakdown {
+  category: 'PROFILE' | 'CAREER_DEPTH' | 'CERTIFICATIONS' | 'SKILLS' | 'EXPERIENCE' | 'TOTAL';
+  earnedPoints: number;
+  maxPoints: number;
+}
+
+export interface MarketReadinessNextStep {
+  action: string;
+  potentialPoints: number;
+}
+
+export interface MarketReadinessEvent {
+  category: 'PROFILE' | 'CAREER_DEPTH' | 'CERTIFICATIONS' | 'SKILLS' | 'EXPERIENCE' | 'TOTAL';
+  delta: number;
+  triggeredBy: string;
+  createdAt: string;
+  description: string | null;
+}
+
+export interface MarketReadinessBreakdown {
+  totalScore: number;
+  marketReadinessTier: MarketReadinessTier;
+  isAllStar: boolean;
+  nextTierThreshold: number;
+  pointsToNextTier: number;
+  progressPercentToNextTier: number;
+  categories: MarketReadinessCategoryBreakdown[];
+  nextSteps: MarketReadinessNextStep[];
+  pointsHistory: MarketReadinessEvent[];
 }
 
 export interface ProfileSummary {
@@ -166,7 +198,9 @@ export interface LivingCvStats {
 
 export interface LivingCv {
   profile: ProfileSummary;
-  candidateClass: CandidateClass;
+  marketReadinessTier: MarketReadinessTier;
+  isAllStar: boolean;
+  marketReadinessScore: number;
   goals: LivingCvGoal[];
   workExperience: WorkExperience[];
   education: Education[];
@@ -391,7 +425,9 @@ export interface PublicLivingCvStats {
 
 export interface PublicLivingCv {
   profile: PublicProfileSummary;
-  candidateClass: CandidateClass;
+  marketReadinessTier: MarketReadinessTier;
+  isAllStar: boolean;
+  marketReadinessScore: number;
   workExperience: WorkExperience[];
   education: Education[];
   skills: CandidateSkill[];

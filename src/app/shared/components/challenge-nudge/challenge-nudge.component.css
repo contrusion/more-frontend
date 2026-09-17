@@ -1,0 +1,29 @@
+.challenge-nudge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+}
+
+.nudge-icon { font-size: 1.25rem; flex-shrink: 0; }
+
+.nudge-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #78350f;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.nudge-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #b45309;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nudge-link:hover { text-decoration: underline; }

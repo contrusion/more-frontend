@@ -10,7 +10,7 @@ import {
   LivingCvGoal,
   GoalMilestone,
   GoalStatus,
-  CandidateClass,
+  MarketReadinessTier,
   WorkExperience,
   CandidateSkill
 } from '../models/goal.model';
@@ -59,14 +59,14 @@ export class LivingCvComponent implements OnInit {
     return this.expandedGoalIds().has(goalId);
   }
 
-  getClassLabel(cls: CandidateClass): string {
-    const labels: Record<CandidateClass, string> = {
-      ALL_STAR: '⭐ All-Star',
+  getTierLabel(tier: MarketReadinessTier): string {
+    const labels: Record<MarketReadinessTier, string> = {
+      PLATINUM: '💎 Platinum',
       GOLD: '🥇 Gold',
       SILVER: '🥈 Silver',
       BRONZE: '🥉 Bronze'
     };
-    return labels[cls];
+    return labels[tier];
   }
 
   getStatusLabel(status: GoalStatus): string {

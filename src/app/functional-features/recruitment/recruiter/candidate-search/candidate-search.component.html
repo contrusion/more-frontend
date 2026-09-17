@@ -97,10 +97,11 @@
                 </td>
                 <td class="td-class">
                   <app-candidate-class-badge
-                    [candidateClass]="candidate.candidateClass"
-                    [tooltip]="getClassDescription(candidate.candidateClass)" />
+                    [marketReadinessTier]="candidate.marketReadinessTier"
+                    [isAllStar]="candidate.isAllStar"
+                    [tooltip]="getTierDescription(candidate.marketReadinessTier)" />
                 </td>
-                <td class="td-message" [title]="candidate.classTooltip">{{ truncateMessage(candidate.classTooltip) }}</td>
+                <td class="td-message" [title]="candidate.tierCardMessage">{{ truncateMessage(candidate.tierCardMessage) }}</td>
                 <td class="td-action">
                   <button class="btn-view" (click)="openModal(candidate)">View CV</button>
                 </td>
@@ -122,8 +123,9 @@
               @if (modalCandidate()) {
                 <span class="modal-alias">{{ modalCandidate()!.publicAlias }}</span>
                 <app-candidate-class-badge
-                  [candidateClass]="modalCandidate()!.candidateClass"
-                  [tooltip]="modalCandidate()!.classTooltip" />
+                  [marketReadinessTier]="modalCandidate()!.marketReadinessTier"
+                  [isAllStar]="modalCandidate()!.isAllStar"
+                  [tooltip]="modalCandidate()!.tierCardMessage" />
               }
             </div>
             <button class="modal-close" (click)="closeModal()" aria-label="Close">✕</button>

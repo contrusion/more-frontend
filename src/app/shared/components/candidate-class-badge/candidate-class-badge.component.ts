@@ -1,21 +1,23 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CandidateClass } from '../../../functional-features/recruitment/candidate/models/goal.model';
+import { MarketReadinessTier } from '../../../functional-features/recruitment/candidate/models/goal.model';
 
 /**
  * Reusable class badge — shows emoji + label with tier colour.
- * Optional `tooltip` input surfaces the recruiter hover explanation.
+ * The `isAllStar` flag adds a ⭐ overlay on top of the base tier.
  *
  * Usage:
- *   <app-candidate-class-badge [candidateClass]="result.candidateClass"
- *                               [tooltip]="result.classTooltip" />
+ *   <app-candidate-class-badge [marketReadinessTier]="result.marketReadinessTier"
+ *                               [isAllStar]="result.isAllStar"
+ *                               [tooltip]="result.tierCardMessage" />
  */
 @Component({
   selector: 'app-candidate-class-badge',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span class="class-badge class-badge--{{ candidateClass | lowercase }}"
+    <span class="class-badge class-badge--{{ badgeClass }}"
           [title]="tooltip ?? ''">
       {{ label }}
     </span>
@@ -32,10 +34,10 @@ import { CandidateClass } from '../../../functional-features/recruitment/candida
       cursor: default;
     }
 
-    .class-badge--all_star {
-      background: linear-gradient(135deg, #9b59b6, #6c3483);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(155, 89, 182, 0.50);
+    .class-badge--platinum {
+      background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+      color: #1e293b;
+      box-shadow: 0 2px 8px rgba(148, 163, 184, 0.55);
     }
 
     .class-badge--gold {
@@ -58,16 +60,22 @@ import { CandidateClass } from '../../../functional-features/recruitment/candida
   `]
 })
 export class CandidateClassBadgeComponent {
-  @Input({ required: true }) candidateClass!: CandidateClass;
+  @Input() marketReadinessTier: MarketReadinessTier = 'BRONZE';
+  @Input() isAllStar = false;
   @Input() tooltip?: string;
 
+  get badgeClass(): string {
+    return this.marketReadinessTier.toLowerCase();
+  }
+
   get label(): string {
-    const labels: Record<CandidateClass, string> = {
-      ALL_STAR: '⭐ All-Star',
+    const star = this.isAllStar ? '⭐ ' : '';
+    const tierLabels: Record<MarketReadinessTier, string> = {
+      PLATINUM: '💎 Platinum',
       GOLD: '🥇 Gold',
       SILVER: '🥈 Silver',
       BRONZE: '🥉 Bronze'
     };
-    return labels[this.candidateClass];
+    return star + tierLabels[this.marketReadinessTier];
   }
 }

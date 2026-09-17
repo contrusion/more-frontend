@@ -17,8 +17,8 @@
         <div class="cv-hero__info">
           <div class="cv-hero__name-row">
             <h1>{{ cv()!.profile.firstName }} {{ cv()!.profile.lastName }}</h1>
-            <span class="class-badge class-badge--{{ cv()!.candidateClass | lowercase }}">
-              {{ getClassLabel(cv()!.candidateClass) }}
+            <span class="class-badge class-badge--{{ cv()!.marketReadinessTier | lowercase }}">
+              {{ getTierLabel(cv()!.marketReadinessTier) }}
             </span>
           </div>
           <p class="cv-hero__title">
@@ -141,9 +141,10 @@
       <div class="cv-main">
 
       <!-- ── CLASS STATUS ──────────────────────────────── -->
-      @if (cv()!.candidateClass) {
+      @if (cv()!.marketReadinessTier) {
         <app-class-badge-dashboard
-          [candidateClass]="cv()!.candidateClass"
+          [marketReadinessTier]="cv()!.marketReadinessTier"
+          [isAllStar]="cv()!.isAllStar"
           [publicAlias]="cv()!.profile.publicAlias" />
       }
 

@@ -1,0 +1,21 @@
+<section class="panel">
+  <header class="panel-head">
+    <h2>Next Steps</h2>
+    <span>Highest point impact</span>
+  </header>
+
+  @if (nextSteps.length === 0) {
+    <p class="empty">No suggestions right now.</p>
+  } @else {
+    <div class="steps">
+      @for (step of nextSteps; track step.action) {
+        <article class="step-item">
+          <div>
+            <p class="step-action">{{ step.action }}</p>
+          </div>
+          <span class="step-points">+{{ step.potentialPoints }} pts</span>
+        </article>
+      }
+    </div>
+  }
+</section>

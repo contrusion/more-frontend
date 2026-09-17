@@ -1,0 +1,232 @@
+<div class="challenge-editor">
+  <div class="editor-header">
+    <div class="header-left">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit Challenge' : 'New Challenge' }}</h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Modify an existing challenge in the library' : 'Define a new peer differentiation challenge' }}
+      </p>
+    </div>
+    <div class="header-actions">
+      <button pButton label="Cancel" class="p-button-text" (click)="cancel()"></button>
+      <button pButton
+              label="Save Challenge"
+              icon="pi pi-save"
+              [disabled]="saving()"
+              [loading]="saving()"
+              (click)="save()">
+      </button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">Loading challenge...</div>
+  } @else {
+    <form [formGroup]="form" class="editor-form">
+
+      <!-- Core Details -->
+      <section class="form-section">
+        <h2 class="section-title">Challenge Details</h2>
+
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <label for="title">Title <span class="required">*</span></label>
+            <input pInputText id="title" formControlName="title" placeholder="e.g. Sprint to Gold" />
+            @if (form.get('title')?.invalid && form.get('title')?.touched) {
+              <span class="field-error">Title is required</span>
+            }
+          </div>
+
+          <div class="form-field full-width">
+            <label for="description">Description</label>
+            <textarea pTextarea id="description" formControlName="description"
+                      rows="3" placeholder="Describe what candidates need to do..."></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="category">Category <span class="required">*</span></label>
+            <p-select
+              id="category"
+              formControlName="category"
+              [options]="categoryOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select category">
+            </p-select>
+            @if (form.get('category')?.invalid && form.get('category')?.touched) {
+              <span class="field-error">Category is required</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="durationDays">Duration (days) <span class="required">*</span></label>
+            <input pInputText id="durationDays" type="number" formControlName="durationDays"
+                   min="1" placeholder="e.g. 30" />
+            @if (form.get('durationDays')?.invalid && form.get('durationDays')?.touched) {
+              <span class="field-error">Duration must be at least 1 day</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="trackingType">Tracking Type <span class="required">*</span></label>
+            <p-select
+              id="trackingType"
+              formControlName="trackingType"
+              [options]="trackingOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select tracking type">
+            </p-select>
+            @if (form.get('trackingType')?.invalid && form.get('trackingType')?.touched) {
+              <span class="field-error">Tracking type is required</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="rewardPoints">Reward Points</label>
+            <input pInputText id="rewardPoints" type="number" formControlName="rewardPoints" min="0" />
+          </div>
+
+          <div class="form-field">
+            <label for="allStarPoints">All-Star Points</label>
+            <input pInputText id="allStarPoints" type="number" formControlName="allStarPoints" min="0" />
+          </div>
+
+          <div class="form-field">
+            <label for="triggerEvent">Trigger Event</label>
+            <input pInputText id="triggerEvent" formControlName="triggerEvent"
+                   placeholder="e.g. APPLICATION_SUBMITTED" />
+          </div>
+
+          <div class="form-field full-width">
+            <label for="completionCriteria">Completion Criteria (JSON)</label>
+            <textarea pTextarea id="completionCriteria" formControlName="completionCriteria"
+                      rows="2" placeholder='{ "type": "all_milestones" }'></textarea>
+          </div>
+        </div>
+      </section>
+
+      <p-divider></p-divider>
+
+      <!-- Milestone Steps -->
+      <section class="form-section">
+        <div class="section-header">
+          <h2 class="section-title">Milestone Steps</h2>
+          <button pButton label="Add Step" icon="pi pi-plus" class="p-button-sm p-button-outlined"
+                  type="button" (click)="addStep()"></button>
+        </div>
+
+        @if (milestoneSteps.length === 0) {
+          <p class="empty-hint">No milestone steps added yet. Steps guide candidates through the challenge.</p>
+        }
+
+        <div formArrayName="milestoneSteps">
+          @for (step of milestoneSteps.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="step-card">
+              <div class="step-card-header">
+                <span class="step-number">Step {{ i + 1 }}</span>
+                <div class="step-actions">
+                  <button pButton icon="pi pi-arrow-up" class="p-button-sm p-button-text"
+                          type="button" [disabled]="i === 0" (click)="moveStep(i, 'up')"
+                          pTooltip="Move up"></button>
+                  <button pButton icon="pi pi-arrow-down" class="p-button-sm p-button-text"
+                          type="button" [disabled]="i === milestoneSteps.length - 1" (click)="moveStep(i, 'down')"
+                          pTooltip="Move down"></button>
+                  <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
+                          type="button" (click)="removeStep(i)" pTooltip="Remove step"></button>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label>Title <span class="required">*</span></label>
+                  <input pInputText formControlName="title" placeholder="Step title" />
+                  @if (step.get('title')?.invalid && step.get('title')?.touched) {
+                    <span class="field-error">Title is required</span>
+                  }
+                </div>
+                <div class="form-field">
+                  <label>Due Offset (days)</label>
+                  <input pInputText type="number" formControlName="dueOffsetDays" placeholder="e.g. 7" />
+                </div>
+                <div class="form-field full-width">
+                  <label>Description</label>
+                  <textarea pTextarea formControlName="description" rows="2" placeholder="What should candidates do in this step?"></textarea>
+                </div>
+                <div class="form-field">
+                  <label>Linked Assessment ID</label>
+                  <input pInputText formControlName="linkedAssessmentId" placeholder="Optional assessment ID" />
+                </div>
+                <div class="form-field checkbox-field">
+                  <p-checkbox formControlName="requiresProof" [binary]="true" inputId="reqProof-{{i}}"></p-checkbox>
+                  <label for="reqProof-{{i}}">Requires proof of completion</label>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <p-divider></p-divider>
+
+      <!-- Rewards -->
+      <section class="form-section">
+        <div class="section-header">
+          <h2 class="section-title">Rewards</h2>
+          <button pButton label="Add Reward" icon="pi pi-plus" class="p-button-sm p-button-outlined"
+                  type="button" (click)="addReward()"></button>
+        </div>
+
+        @if (rewards.length === 0) {
+          <p class="empty-hint">No rewards configured. Rewards motivate candidates to complete challenges.</p>
+        }
+
+        <div formArrayName="rewards">
+          @for (reward of rewards.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="reward-card">
+              <div class="reward-card-header">
+                <span class="reward-number">Reward {{ i + 1 }}</span>
+                <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
+                        type="button" (click)="removeReward(i)" pTooltip="Remove reward"></button>
+              </div>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label>Reward Type <span class="required">*</span></label>
+                  <p-select
+                    formControlName="rewardType"
+                    [options]="rewardTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select reward type">
+                  </p-select>
+                </div>
+                <div class="form-field">
+                  <label>Label <span class="required">*</span></label>
+                  <input pInputText formControlName="rewardLabel" placeholder="e.g. Skip the queue" />
+                </div>
+                <div class="form-field">
+                  <label>Trigger <span class="required">*</span></label>
+                  <p-select
+                    formControlName="triggerOn"
+                    [options]="rewardTriggerOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select trigger">
+                  </p-select>
+                </div>
+                <div class="form-field">
+                  <label>Milestone Number</label>
+                  <input pInputText type="number" formControlName="milestoneNumber"
+                         placeholder="Required if trigger is milestone" />
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+    </form>
+  }
+</div>
