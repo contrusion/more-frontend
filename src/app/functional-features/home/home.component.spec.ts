@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { HomeComponent } from './home.component';
 import { AuthService } from '../../none-functional-features/authentication-and-authorization/services/auth.service';
+import { MarketReadinessService } from '../recruitment/candidate/services/market-readiness.service';
 import { of } from 'rxjs';
 
 describe('Home', () => {
@@ -9,6 +10,7 @@ describe('Home', () => {
   let fixture: ComponentFixture<HomeComponent>;
   let mockAuthService: jasmine.SpyObj<AuthService>;
   let mockRouter: jasmine.SpyObj<Router>;
+  let mockMarketReadinessService: jasmine.SpyObj<MarketReadinessService>;
 
   beforeEach(async () => {
     mockAuthService = jasmine.createSpyObj('AuthService', [
@@ -24,12 +26,25 @@ describe('Home', () => {
     });
 
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockMarketReadinessService = jasmine.createSpyObj('MarketReadinessService', ['getMyMarketReadiness']);
+    mockMarketReadinessService.getMyMarketReadiness.and.returnValue(of({
+      totalScore: 85,
+      marketReadinessTier: 'GOLD',
+      isAllStar: false,
+      nextTierThreshold: 100,
+      pointsToNextTier: 15,
+      progressPercentToNextTier: 85,
+      categories: [],
+      nextSteps: [],
+      pointsHistory: []
+    }));
 
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
         { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter }
+        { provide: Router, useValue: mockRouter },
+        { provide: MarketReadinessService, useValue: mockMarketReadinessService }
       ]
     }).compileComponents();
 
@@ -113,5 +128,19 @@ describe('Home', () => {
     const tiles = compiled.querySelectorAll('.tile');
     
     expect(tiles.length).toBeGreaterThan(0);
+  });
+
+  it('should show market readiness summary with points to the next tier for applicants', () => {
+    mockAuthService.getUserRoles.and.returnValue(['APPLICANT']);
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'APPLICANT');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const marketReadinessCard = compiled.querySelector('.market-readiness-card');
+
+    expect(marketReadinessCard).not.toBeNull();
+    expect(marketReadinessCard?.textContent).toContain('Market Readiness');
+    expect(marketReadinessCard?.textContent).toContain('GOLD');
+    expect(marketReadinessCard?.textContent).toContain('15 pts to next tier');
   });
 });

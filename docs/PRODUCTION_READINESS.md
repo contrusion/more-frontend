@@ -123,6 +123,15 @@
 - [ ] **Monitor token refresh failures**
   - Alert when refresh tokens expire (user needs to re-authorize)
 
+### Application Refresh Strategy
+- [ ] **Document the refresh strategy for score-based pages**
+  - Current status: the final strategy is still under review and should not be treated as a fixed default yet
+  - Rationale: background polling adds unnecessary network traffic, increases AWS egress cost, and should be kept minimal if used at all
+  - Temporary fallback: a narrow 30s polling refresh may remain acceptable only on the market-readiness page while asynchronous recalculation or cross-device updates are still possible
+  - Future redesign: evaluate a save-triggered refresh, websocket/event-stream updates, or server-published cache invalidation once the product reaches higher scale
+  - Scope note: any polling should remain local to the page that needs near-real-time feedback, not a blanket app-wide polling strategy
+  - Maybe we can just update on load, then provide a last updated date and time (or maybe have a refresh button)
+
 ### Compliance
 - [ ] **Review data retention policies**
   - Encrypted OAuth tokens stored indefinitely

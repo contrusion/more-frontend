@@ -28,6 +28,7 @@ At that point, companies are looking at a scored, alias-protected talent pool th
 4. **`RevealAuditLog` written atomically** — never serve real identity unless the audit row write succeeds (single transaction).
 5. **`RevealService` (frontend) must never reuse `LivingCvService`** — separate service, separate endpoint, no shared code path.
 6. **No optimistic reveals** — Stripe webhook must confirm payment before `REVEALED` status is set.
+7. **Refresh strategy must be costed into monetization** — whichever approach we choose for near-real-time score updates (polling, save-triggered refresh, websocket updates, or another event-driven pattern), the hosting, compute, and operational cost must be included in the monetization model and pricing assumptions. This is not a purely technical decision; it affects customer-facing cost-to-serve as the platform scales.
 
 ---
 

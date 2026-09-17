@@ -160,7 +160,7 @@ Candidates self-select a persona that signals their intent to the system and to 
 - Score breakdown page shows each scoring category (Profile, Career Depth, Certifications, Skills, Experience) with points earned vs maximum possible
 - Progress bar toward next tier threshold
 - Actionable "Next Steps" panel: top 3 actions that would gain the most points (e.g. "Add your salary expectation: +100 pts", "Upload your AWS Certification: +500 pts")
-- Score updates in near real-time when candidate updates their profile (websocket or polling every 30s on this page)
+- Score updates in near real-time when candidate updates their profile. This is still being reevaluated: a short 30s polling fallback on this page may be kept while backend recalculation remains asynchronous or cross-device updates are still possible, but the final design may instead use a save-triggered refresh, websocket updates, or another event-driven mechanism. This is a pragmatic startup trade-off and should be revisited when the platform scales and the extra polling cost becomes material, and the cost impact must be included in the monetization model for whichever option is chosen.
 - "Points History" section: recent events that triggered score changes (e.g. "Certification added — +500 pts")
 
 **Components to Create:**

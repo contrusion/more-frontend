@@ -39,6 +39,13 @@ export class MarketReadinessScoreComponent implements OnInit {
   constructor(private readonly marketReadinessService: MarketReadinessService) {}
 
   ngOnInit(): void {
+    // Temporary polling fallback for the candidate market-readiness card.
+    // This refresh strategy is still being evaluated; it may be replaced by a save-triggered refresh,
+    // a websocket push, or another event-driven approach depending on the final architecture.
+    // For now we keep the short 30s refresh as a pragmatic fallback for async backend recalculations,
+    // delayed upstream updates, and multi-device/profile-edit scenarios. It should be revisited once the
+    // platform grows and the cost of repeated polling becomes material (especially at 10k+ active users
+    // and AWS egress costs).
     timer(0, 30000).pipe(
       tap(() => {
         if (!this.breakdown()) {

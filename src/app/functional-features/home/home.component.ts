@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../none-functional-features/authentication-and-authorization/services/auth.service';
 import { Subject, takeUntil } from 'rxjs';
+import { MarketReadinessBreakdown } from '../recruitment/candidate/models/goal.model';
+import { MarketReadinessService } from '../recruitment/candidate/services/market-readiness.service';
 
 interface NavigationTile {
   title: string;
@@ -29,6 +31,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   userJobTitle: string = '';
   userRoles: string[] = [];
   isSidebarOpen = false;
+  marketReadiness: MarketReadinessBreakdown | null = null;
 
   navigationTiles: NavigationTile[] = [
     {
@@ -106,7 +109,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private marketReadinessService: MarketReadinessService
   ) {}
 
   ngOnInit(): void {
@@ -119,9 +123,13 @@ export class HomeComponent implements OnInit, OnDestroy {
           // Bio and jobTitle would need to come from your backend API
           // You may need to create a service to fetch user profile details
         }
+
+        this.userRoles = this.authService.getUserRoles();
+        this.loadMarketReadinessSummary();
       });
 
     this.userRoles = this.authService.getUserRoles();
+    this.loadMarketReadinessSummary();
   }
   
   ngOnDestroy(): void {
@@ -145,6 +153,83 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
     // Check if user has any of the required roles
     return tile.roles.some(role => this.authService.hasRole(role));
+  }
+
+  private loadMarketReadinessSummary(): void {
+    if (!this.isApplicant()) {
+      this.marketReadiness = null;
+      return;
+    }
+
+    this.marketReadinessService.getMyMarketReadiness()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (readiness) => this.marketReadiness = readiness,
+        error: () => this.marketReadiness = null
+      });
+  }
+
+  isApplicant(): boolean {
+    return this.userRoles.includes('APPLICANT') || this.authService.hasRole('APPLICANT');
+  }
+
+  getNextTierLabel(): string {
+    if (!this.marketReadiness) {
+      return 'next tier';
+    }
+
+    switch (this.marketReadiness.marketReadinessTier) {
+      case 'BRONZE':
+        return 'Silver';
+      case 'SILVER':
+        return 'Gold';
+      case 'GOLD':
+        return 'Platinum';
+      default:
+        return 'next tier';
+    }
+  }
+
+  getMarketReadinessLabel(): string {
+    if (!this.marketReadiness) {
+      return 'Market readiness';
+    }
+
+    return this.marketReadiness.pointsToNextTier > 0
+      ? `Points to ${this.getNextTierLabel()}`
+      : 'Top tier';
+  }
+
+  getMarketReadinessValue(): string {
+    if (!this.marketReadiness) {
+      return '—';
+    }
+
+    return this.marketReadiness.pointsToNextTier > 0
+      ? this.marketReadiness.pointsToNextTier.toString()
+      : 'Top tier';
+  }
+
+  getMarketReadinessSubtext(): string {
+    if (!this.marketReadiness) {
+      return 'Loading...';
+    }
+
+    return this.marketReadiness.pointsToNextTier > 0
+      ? `Current tier: ${this.marketReadiness.marketReadinessTier}`
+      : 'You have reached the highest tier';
+  }
+
+  getMarketReadinessPointsText(): string {
+    if (!this.marketReadiness) {
+      return '—';
+    }
+
+    if (this.marketReadiness.pointsToNextTier > 0) {
+      return `${this.marketReadiness.pointsToNextTier} pts to next tier`;
+    }
+
+    return 'Top tier reached';
   }
 
   logout(): void {

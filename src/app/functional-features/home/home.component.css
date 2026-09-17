@@ -332,6 +332,51 @@
   line-height: 1;
 }
 
+.info-card-subtext {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.market-readiness-card {
+  grid-column: 1 / -1;
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  min-height: 120px;
+}
+
+.market-readiness-card .info-card-label,
+.market-readiness-card .info-card-value,
+.market-readiness-card .info-card-subtext {
+  color: #0f172a;
+}
+
+.market-readiness-card .info-card-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.market-readiness-card .info-card-subtext {
+  opacity: 1;
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.market-readiness-card .info-card-value {
+  font-size: 2.15rem;
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+  color: #0f172a;
+}
+
 /* Tiles Section */
 .tiles-section {
   max-width: 1200px;

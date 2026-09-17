@@ -83,6 +83,19 @@
 
       <div class="welcome-right">
         <div class="info-cards">
+          <div class="info-card market-readiness-card" *ngIf="isApplicant()">
+            <div class="info-card-icon" style="background: rgba(14, 165, 233, 0.15);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+            <div class="info-card-content">
+              <p class="info-card-label">{{ getMarketReadinessLabel() }}</p>
+              <p class="info-card-value">{{ getMarketReadinessValue() }}</p>
+              <p class="info-card-subtext">{{ getMarketReadinessSubtext() }}</p>
+            </div>
+          </div>
+
           <div class="info-card">
             <div class="info-card-icon" style="background: rgba(14, 165, 233, 0.15);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
