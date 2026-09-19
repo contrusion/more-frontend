@@ -1,0 +1,142 @@
+<div class="search-page">
+  <div class="search-header">
+    <div class="search-header__content">
+      <div class="search-header__text">
+        <h1>Talent Search</h1>
+        <p>Search the full registry beyond the role-specific shortlist. This surfaces broader candidate discovery across skill, role, industry, and class signals.</p>
+      </div>
+      @if (!loading() && totalElements() > 0) {
+        <span class="search-header__count">{{ totalElements() }} candidates</span>
+      }
+    </div>
+  </div>
+
+  <div class="search-body">
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-group__label">Tier</span>
+        <div class="filter-bar">
+          @for (opt of filterOptions; track opt.label) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="activeFilter() === opt.value"
+              (click)="applyFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="filter-group filter-group--exp">
+        <span class="filter-group__label">Experience</span>
+        <div class="filter-bar">
+          @for (opt of experienceFilterOptions; track opt.label) {
+            <button
+              class="filter-pill filter-pill--exp"
+              [class.filter-pill--active]="activeExperienceFilter() === opt.value"
+              (click)="applyExperienceFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-section filter-section--search">
+      <label class="search-field">
+        <span>Keyword</span>
+        <input type="text" [value]="keyword()" (input)="keyword.set($any($event.target).value)" placeholder="Role, skill, or title" />
+      </label>
+
+      <label class="search-field">
+        <span>Role</span>
+        <select [value]="roleCategory() ?? ''" (change)="roleCategory.set($any($event.target).value || null)">
+          @for (opt of roleOptions; track opt.label) {
+            <option [value]="opt.value ?? ''">{{ opt.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="search-field">
+        <span>Industry</span>
+        <input type="text" [value]="industry()" (input)="industry.set($any($event.target).value)" placeholder="Fintech, SaaS, Health..." />
+      </label>
+
+      <div class="search-actions">
+        <button class="btn-search" (click)="applySearch()">Search</button>
+        <button class="btn-secondary" (click)="resetFilters()">Reset</button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="state-block">
+        <div class="spinner"></div>
+        <p>Loading talent candidates...</p>
+      </div>
+    }
+
+    @if (!loading() && error()) {
+      <div class="state-block state-block--error">
+        <p>{{ error() }}</p>
+        <button class="btn-retry" (click)="load()">Retry</button>
+      </div>
+    }
+
+    @if (!loading() && !error() && results().length === 0) {
+      <div class="state-block">
+        <p>No talent matches found for this search.</p>
+      </div>
+    }
+
+    @if (!loading() && results().length > 0) {
+      <div class="table-wrapper">
+        <table class="candidates-table">
+          <thead>
+            <tr>
+              <th>Alias</th>
+              <th>Role</th>
+              <th>Class</th>
+              <th>Activity Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (candidate of results(); track candidate.publicAlias) {
+              <tr>
+                <td class="td-alias">{{ candidate.publicAlias }}</td>
+                <td class="td-role">
+                  @if (candidate.jobTitle) {
+                    <span class="td-role__title">{{ candidate.jobTitle }}</span>
+                  }
+                  @if (candidate.industry) {
+                    <span class="td-role__industry">{{ candidate.industry }}</span>
+                  }
+                  <span class="td-role__category">{{ formatRoleCategory(candidate.roleCategory) }}</span>
+                </td>
+                <td class="td-class">
+                  <app-candidate-class-badge
+                    [marketReadinessTier]="candidate.marketReadinessTier"
+                    [isAllStar]="candidate.isAllStar"
+                    [tooltip]="candidate.tierCardMessage" />
+                </td>
+                <td class="td-message" [title]="candidate.tierCardMessage">{{ truncateMessage(candidate.tierCardMessage) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalPages() > 1) {
+        <div class="pagination">
+          @for (page of pageNumbers; track page) {
+            <button
+              class="page-btn"
+              [class.page-btn--active]="currentPage() === page"
+              (click)="goToPage(page)">
+              {{ page + 1 }}
+            </button>
+          }
+        </div>
+      }
+    }
+  </div>
+</div>

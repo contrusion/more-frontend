@@ -53,7 +53,8 @@ const ALL_SECTIONS: NavSection[] = [
     routePrefix: '/recruiter',
     children: [
       { label: 'Job Ads', route: '/recruiter/job-ads' },
-      { label: 'Candidate Pool', route: '/recruiter/candidates' }
+      { label: 'Candidate Pool', route: '/recruiter/candidates' },
+      { label: 'Talent Search', route: '/search' }
     ]
   },
   {

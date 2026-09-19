@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { JobAdService } from './services/job-ad.service';
 import { JobAdFormComponent } from './job-ad-form/job-ad-form.component';
 import {
@@ -23,7 +24,10 @@ export class JobAdsListComponent implements OnInit {
   formOpen = signal(false);
   editingAd = signal<JobAdvertisement | null>(null);
 
-  constructor(private jobAdService: JobAdService) {}
+  constructor(
+    private jobAdService: JobAdService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -70,6 +74,10 @@ export class JobAdsListComponent implements OnInit {
       next: () => this.load(),
       error: () => this.error.set('Failed to deactivate. Please try again.'),
     });
+  }
+
+  openApplicants(ad: JobAdvertisement): void {
+    this.router.navigate(['/recruiter/job-ads', ad.id, 'applicants']);
   }
 
   labelForJobType(jt: JobType): string {

@@ -166,6 +166,12 @@ export const routes: Routes = [
     ]
   },
   {
+    path: 'search',
+    loadComponent: () => import('./functional-features/recruitment/recruiter/talent-search/talent-search.component').then(m => m.TalentSearchComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['RECRUITER'] }
+  },
+  {
     path: 'recruiter',
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['RECRUITER'] },
@@ -183,6 +189,10 @@ export const routes: Routes = [
       {
         path: 'job-ads',
         loadComponent: () => import('./functional-features/recruitment/recruiter/job-ads/job-ads-list.component').then(m => m.JobAdsListComponent)
+      },
+      {
+        path: 'job-ads/:jobAdId/applicants',
+        loadComponent: () => import('./functional-features/recruitment/recruiter/job-ads/job-ad-applicants.component').then(m => m.JobAdApplicantsComponent)
       }
     ]
   },

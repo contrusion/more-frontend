@@ -8,11 +8,13 @@ import {
   JobAdvertisement,
   JobAdvertisementCreateRequest,
   JobAdvertisementUpdateRequest,
+  JobApplicantListItem,
 } from '../models/job-advertisement.model';
 
 @Injectable({ providedIn: 'root' })
 export class JobAdService {
   private readonly base = `${environment.apiUrl}/api/v1/job-advertisements`;
+  private readonly jobApplicationsBase = `${environment.apiUrl}/api/v1/job-applications`;
 
   constructor(private http: HttpClient) {}
 
@@ -22,6 +24,10 @@ export class JobAdService {
 
   getById(id: string): Observable<JobAdvertisement> {
     return this.http.get<JobAdvertisement>(`${this.base}/detail/${id}`);
+  }
+
+  getInterestedApplicants(jobAdvertisementId: string): Observable<JobApplicantListItem[]> {
+    return this.http.get<JobApplicantListItem[]>(`${this.jobApplicationsBase}/job-ads/${jobAdvertisementId}/applicants`);
   }
 
   create(dto: JobAdvertisementCreateRequest): Observable<JobAdvertisement> {

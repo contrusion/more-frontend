@@ -1,0 +1,148 @@
+<div class="applicants-page">
+  <div class="page-header">
+    <div class="page-header__content">
+      <div class="page-header__text">
+        <h1>Interested Applicants</h1>
+        <p>Review who has already expressed interest in this role and open their Living CV.</p>
+      </div>
+      <button class="secondary-btn" type="button" (click)="backToJobAds()">Back to Job Ads</button>
+    </div>
+  </div>
+
+  <div class="applicants-container">
+    @if (error()) {
+      <div class="error-banner">{{ error() }}</div>
+    }
+
+    @if (loading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading interested applicants…</p>
+      </div>
+    }
+
+    @if (!loading() && !error() && applicants().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <h2>No applicants yet</h2>
+        <p>No candidate has expressed interest in this job ad yet.</p>
+      </div>
+    }
+
+    @if (!loading() && applicants().length > 0) {
+      <div class="table-wrapper">
+        <table class="applicants-table">
+          <thead>
+            <tr>
+              <th>Candidate</th>
+              <th>Tier</th>
+              <th>Role</th>
+              <th>Experience</th>
+              <th>Status</th>
+              <th>Applied</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (applicant of applicants(); track applicant.applicantId) {
+              <tr>
+                <td class="col-candidate">
+                  <span class="candidate-alias">{{ applicant.publicAlias }}</span>
+                  @if (applicant.coverLetterPreview) {
+                    <span class="cover-preview">{{ applicant.coverLetterPreview }}</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge badge-tier">{{ formatTier(applicant.marketReadinessTier) }}</span>
+                </td>
+                <td>{{ applicant.jobTitle || '—' }}</td>
+                <td>{{ applicant.yearsOfExperience !== undefined ? applicant.yearsOfExperience + ' yrs' : '—' }}</td>
+                <td>
+                  <span class="badge badge-status">{{ applicant.status }}</span>
+                </td>
+                <td>{{ formatDate(applicant.appliedAt) }}</td>
+                <td class="col-actions">
+                  <button class="view-btn" type="button" (click)="openCv(applicant)">View CV</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="cv-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="cv-modal__header">
+        <div>
+          <p class="eyebrow">Candidate profile</p>
+          <h2>{{ modalCandidate()?.publicAlias }}</h2>
+        </div>
+        <button class="close-btn" type="button" (click)="closeModal()">✕</button>
+      </div>
+
+      @if (modalLoading()) {
+        <div class="modal-loading">Loading Living CV…</div>
+      }
+
+      @if (modalError()) {
+        <div class="error-banner">{{ modalError() }}</div>
+      }
+
+      @if (!modalLoading() && modalCv(); as cv) {
+        <div class="cv-content">
+          <div class="cv-summary">
+            <div>
+              <span class="label">Role</span>
+              <strong>{{ cv.profile.jobTitle || 'Not specified' }}</strong>
+            </div>
+            <div>
+              <span class="label">Industry</span>
+              <strong>{{ cv.profile.industry || 'Not specified' }}</strong>
+            </div>
+            <div>
+              <span class="label">Tier</span>
+              <strong>{{ formatTier(cv.marketReadinessTier) }}</strong>
+            </div>
+          </div>
+
+          <div class="cv-section">
+            <h3>Bio</h3>
+            <p>{{ cv.profile.biography || 'No biography added yet.' }}</p>
+          </div>
+
+          <div class="cv-section">
+            <h3>Experience</h3>
+            @if (cv.workExperience.length > 0) {
+              @for (item of cv.workExperience; track item.id) {
+                <div class="cv-entry">
+                  <strong>{{ item.role }}</strong>
+                  <span>{{ item.company }}</span>
+                  <small>{{ item.startDate | date:'MMM yyyy' }} - {{ item.endDate ? (item.endDate | date:'MMM yyyy') : 'Present' }}</small>
+                </div>
+              }
+            } @else {
+              <p>No work experience listed.</p>
+            }
+          </div>
+
+          <div class="cv-section">
+            <h3>Skills</h3>
+            @if (cv.skills.length > 0) {
+              <div class="skills-list">
+                @for (skill of cv.skills.slice(0, 12); track skill.skillId) {
+                  <span class="skill-pill">{{ skill.skillName }}</span>
+                }
+              </div>
+            } @else {
+              <p>No skills published yet.</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

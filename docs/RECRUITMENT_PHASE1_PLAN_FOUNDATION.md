@@ -282,9 +282,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 #### Epic: Role Matching & Interest Expression (Phase 1) - will need other phases so that the match can also consider tier/scores/points
 
-> **The Flow:** Recruiter (US-R1) creates a structured role definition (job ad / job spec) → Matching engine (US-R2) compares that role to Living CVs and calculates a relevance score → Candidate view (US-C1) shows only relevant opportunities and lets the candidate express interest under alias → Recruiter reveal workflow (US 1.8) monetises the interaction.
->
-> **Important distinction:** Matching is not the same thing as Candidate Pool or Talent Search. Matching is the underlying compute layer: it ranks candidates against a job ad and produces the fit score. Candidate Pool and Talent Search are recruiter-facing views built on top of that matching data. Candidate Pool is curated, class-filtered browsing; Talent Search is broader search-first discovery. The job ad is the upstream input, the match score is the computation, and the pool/search screens are the presentation layers.
+> **The Triad:** Recruiter (US-R1) creates structured job specs → System (US-R2) matches them to Living CVs → Candidate (US-C1) sees curated matches and expresses interest under alias → Recruiter reveal workflow (US 1.8) monetises the interaction. These three stories form a closed loop: recruiters get structured, high-quality signals; candidates get curated, motivating opportunities; the platform enforces alias + reveal, protecting trust and driving monetisation.
 >
 > **Terminology note:** in this roadmap, “job ad” and “job spec” are used interchangeably to refer to the same recruiter-created role definition. The implementation in the app uses the job-ad model and form, while the story language refers to the same concept as a structured “job specification”.
 
@@ -634,12 +632,11 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 > **Context:** The Candidate Pool (US-R3) surfaces only pre-classified, vetted talent. Talent Search is the complementary search-first tool that exposes the full registered candidate base — including unclassified applicants who have not yet earned a class. This matters for recruiters who want to discover early-stage candidates, reach into a broader pool, or search by role and industry rather than tier.
 >
-> **Matching vs Candidate Pool vs Talent Search:**
-> - **Matching (US-R2)** — the engine that compares a job ad against candidate Living CVs and calculates the fit score. This is the real logic layer, not a UI tile.
-> - **Candidate Pool** — browse-first, class-filtered, classified candidates only. It is a recruiter-facing view of the best-matching candidates, often rooted in the match engine and curated for a review workflow. Route: `/recruiter/candidates`
-> - **Talent Search** — search-first, keyword + role + experience filters across the full registry. It is broader discovery, not the same as the match calculation itself. Route: `/search`
+> **Candidate Pool vs Talent Search distinction:**
+> - **Candidate Pool** — browse-first, class-filtered, classified candidates only. Living CV modal. Route: `/recruiter/candidates`
+> - **Talent Search** — search-first, keyword + role + experience filters, all registered candidates (class shown where available). Route: `/search`
 
-**US-R4: Recruiter Can Search the Full Candidate Registry**
+**✅ US-R4: Recruiter Can Search the Full Candidate Registry**
 - **As a** recruiter (Talent Search - there's already a tile under 'Quick Access')
 - **I want to** search across all registered candidates by keyword, role, industry, and experience level — not just those with a class assigned
 - **So that** I can discover early-stage talent, fill niche roles, and broaden my pipeline beyond the curated Candidate Pool
@@ -844,22 +841,24 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 
 > This summary includes the full recruitment story set: the Phase 1 foundation stories that unlock the product, then the Phase 1.5/2/3 follow-on work that builds trust, workflow automation, and monetization.
 >
-> **Status note:** the recruiter-side job specification / job-ad creation flow is already implemented in the app. In this roadmap, “job ad” and “job spec” are interchangeable names for the same recruiter-created role definition. The downstream matching and candidate interest loop (US-R2 + US-C1) remains pending, so the full triad is not yet considered complete.
+> **Status note:** the recruiter-side job specification / job-ad creation flow is already implemented in the app. In this roadmap, “job ad” and “job spec” are interchangeable names for the same recruiter-created role definition. The matching and candidate interest loop (US-R2 + US-C1) is now implemented and reflects the completed recruitment triad.
+>
+> **Workflow check:** there is no new story required for the Talent Search → shortlist → reveal flow. The existing story chain is: **US-R4 (Talent Search)** → **US-R6 (Applicant shortlist / view CV)** → **US 1.8 (Identity Reveal)**. Only the final reveal/monetization step remains a distinct follow-on story.
 
 | Story | Focus | Phase | Dependencies | Estimated Effort |
 |-------|-------|-------|--------------|------------------|
 | **US-R1** | Recruiter creates structured job spec (creation flow implemented) | Phase 1 ✅ partial | US 1.3 | 1 sprint |
-| **US-R2** | System matches job specs to Living CVs | Phase 1 ⏳ | US-R1, US 1.3, US 1.3a | 1 sprint |
-| **US-C1** | Candidate sees curated roles + expresses interest | Phase 1 ⏳ | US-R2, US 1.3a | 1 sprint |
+| **✅ US-R2** | System matches job specs to Living CVs | Phase 1 ✅ Implemented | US-R1, US 1.3, US 1.3a | 1 sprint |
+| **✅ US-C1** | Candidate sees curated roles + expresses interest | Phase 1 ✅ Implemented | US-R2, US 1.3a | 1 sprint |
 | **US 1.3a** | Technical: Alias generation | Phase 1 ✅ | None | 1 sprint |
 | **US-R3** | Recruiter sees class messaging | Phase 1 ✅ | US 1.3a, US 1.4, US 1.3 | 1 sprint |
 | **US-C2** | Candidate sees motivational class messaging | Phase 1 ✅ | US 1.4, US 1.3a | 0.5 sprint |
 | **✅ US-C3** | Candidate: weighted goals with proofs | Phase 2 ✅ Done | US 1.3, US 1.4, US-C2 | 1.5 sprints |
 | **US 1.5** | UX: Privacy settings (simplified) | Phase 1.5 ⏳ | US 1.3 | 1 sprint |
 | **US 1.11** | UX: Trust messaging | Phase 1.5 | US 1.3a | 0.5 sprint |
-| **US-R4** | Recruiter: Talent Search — full registry | Phase 2 | US-R3, US 1.3a | 1 sprint |
+| **✅ US-R4** | Recruiter: Talent Search — full registry | Phase 2 ✅ Implemented | US-R3, US 1.3a | 1 sprint |
 | **US-R5** | Job Ad: Company Alumni multi-select from Companies table | Phase 2 | US-R1, Companies table | 1 sprint |
-| **US-R6** | Recruiter: View applicants who expressed interest + their CVs | Phase 2 | US-R1, US-C1, US 1.3a | 1 sprint |
+| **✅ US-R6** | Recruiter: View applicants who expressed interest + their CVs | Phase 2 ✅ Implemented | US-R1, US-C1, US 1.3a | 1 sprint |
 | **US-H1** | UX: Dynamic & Personalised Quick Access (all roles) | Phase 2 | Home component stable | 1 sprint |
 | **US 1.8** | Business: Reveal workflow | Phase 2 | US 1.3a, 1.5 | 2 sprints |
 | **US 1.9** | Payment: Subscription validation | Phase 2 | US 1.8, Stripe setup | 2 sprints |
@@ -979,6 +978,8 @@ UserQuickAccessConfig {
 ---
 
 #### US-R6: Recruiter Views Applicants Who Have Shown Interest *(Phase 2)*
+
+> **Story check:** this is the existing shortlist/reveal follow-through story for the Talent Search workflow. No separate "hook Talent Search into reveal/shortlist" story is required unless we explicitly expand the workflow beyond the applicant list + reveal handoff.
 
 **As a** recruiter who has posted a job advertisement,
 **I want to** see a list of candidates who have expressed interest in my job ad

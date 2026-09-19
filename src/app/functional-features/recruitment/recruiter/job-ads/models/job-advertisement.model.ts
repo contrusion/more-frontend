@@ -79,6 +79,17 @@ export interface JobAdvertisement {
   applicationCount?: number;
 }
 
+export interface JobApplicantListItem {
+  applicantId: string;
+  publicAlias: string;
+  marketReadinessTier?: string;
+  jobTitle?: string;
+  yearsOfExperience?: number;
+  status: string;
+  appliedAt?: string;
+  coverLetterPreview?: string;
+}
+
 export interface JobSkillRequest {
   skillId: string;
   importanceLevel: ImportanceLevel;

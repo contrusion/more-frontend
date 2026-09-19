@@ -14,7 +14,10 @@ export class CandidateSearchService {
     tierFilter: MarketReadinessTier | null,
     experienceGroup: ExperienceGroup | null,
     page = 0,
-    size = 20
+    size = 20,
+    keyword: string | null = null,
+    roleCategory: string | null = null,
+    industry: string | null = null
   ): Observable<CandidateSearchPage> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -25,6 +28,15 @@ export class CandidateSearchService {
     }
     if (experienceGroup) {
       params = params.set('experienceGroup', experienceGroup);
+    }
+    if (keyword) {
+      params = params.set('keyword', keyword.trim());
+    }
+    if (roleCategory) {
+      params = params.set('roleCategory', roleCategory);
+    }
+    if (industry) {
+      params = params.set('industry', industry.trim());
     }
 
     return this.http.get<CandidateSearchPage>(`${this.base}/candidates`, { params });

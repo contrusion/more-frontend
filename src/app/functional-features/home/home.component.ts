@@ -77,7 +77,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     },
     {
       title: 'Talent Search',
-      description: 'Search all registered candidates across the platform, including unclassified applicants.',
+      description: 'Search the full registry for candidates beyond the role-specific shortlist, including unclassified applicants.',
       icon: 'search',
       route: '/search',
       color: '#f59e0b',
@@ -85,7 +85,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     },
     {
       title: 'Candidate Pool',
-      description: 'Browse pre-classified top talent — candidates vetted through goals and milestone achievements.',
+      description: 'Review the role-specific shortlist of best-matching candidates built from the current job fit data.',
       icon: 'users',
       route: '/recruiter/candidates',
       color: '#0ea5e9',
