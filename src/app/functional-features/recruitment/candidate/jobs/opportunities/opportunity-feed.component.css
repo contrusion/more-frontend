@@ -169,6 +169,32 @@
   font-weight: 600;
 }
 
+.match-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.match-badge.high-match {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.match-badge.mid-match {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.match-badge.low-match {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .applied-badge {
   display: flex;
   align-items: center;
@@ -181,6 +207,16 @@
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.match-detail {
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 /* ─── Meta ─── */

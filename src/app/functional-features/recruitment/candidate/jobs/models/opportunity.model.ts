@@ -13,6 +13,8 @@ export interface JobFeedItem {
   skillNames: string[];
   preferredCertifications: string[];
   alreadyApplied: boolean;
+  matchScore?: number;
+  matchDetails?: string;
 }
 
 export interface MyApplication {

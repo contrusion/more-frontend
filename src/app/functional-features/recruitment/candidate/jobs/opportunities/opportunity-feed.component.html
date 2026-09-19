@@ -53,6 +53,11 @@
                 <h3 class="card-title">{{ job.title }}</h3>
                 <span class="company-name">{{ job.companyName }}</span>
               </div>
+              @if (job.matchScore !== undefined && job.matchScore !== null) {
+                <span class="match-badge" [class.low-match]="job.matchScore < 60" [class.mid-match]="job.matchScore >= 60 && job.matchScore < 80" [class.high-match]="job.matchScore >= 80">
+                  {{ job.matchScore }}% match
+                </span>
+              }
               @if (job.alreadyApplied) {
                 <span class="applied-badge">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -62,6 +67,10 @@
                 </span>
               }
             </div>
+
+            @if (job.matchDetails) {
+              <div class="match-detail">{{ job.matchDetails }}</div>
+            }
 
             <div class="card-meta">
               <span class="meta-item">
