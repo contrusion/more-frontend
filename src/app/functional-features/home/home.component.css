@@ -423,20 +423,21 @@
 
 .tile:hover {
   background: white;
-  border-color: var(--tile-color, #0ea5e9);
+  border-color: #0ea5e9;
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.15);
 }
 
 .tile:hover::before {
   opacity: 1;
+  background: #0ea5e9;
 }
 
 .tile-icon {
   width: 48px;
   height: 48px;
   margin-bottom: 1rem;
-  color: var(--tile-color, #0ea5e9);
+  color: #0ea5e9;
 }
 
 .tile-icon svg {
@@ -464,7 +465,7 @@
   right: 1.5rem;
   width: 24px;
   height: 24px;
-  color: var(--tile-color, #0ea5e9);
+  color: #0ea5e9;
   opacity: 0;
   transform: translateX(-10px);
   transition: all 0.3s ease;

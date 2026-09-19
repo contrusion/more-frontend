@@ -40,7 +40,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Track all recruitment communications across platforms - from first contact to hire',
       icon: 'clipboard',
       route: '/interactions',
-      color: '#0ea5e9',
+      color: '#94a3b8',
       roles: ['APPLICANT', 'RECRUITER']
     },
     {
@@ -48,7 +48,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Platform-wide health metrics and KPI dashboard',
       icon: 'grid',
       route: '/admin/dashboard',
-      color: '#0ea5e9',
+      color: '#94a3b8',
       roles: ['MO_ADMIN']
     },
     {
@@ -56,7 +56,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Browse, search and manage all platform users',
       icon: 'users',
       route: '/admin/users',
-      color: '#0284c7',
+      color: '#94a3b8',
       roles: ['MO_ADMIN']
     },
     {
@@ -64,7 +64,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Manage job postings and track applications',
       icon: 'briefcase',
       route: '/jobs',
-      color: '#10b981',
+      color: '#94a3b8',
       roles: ['APPLICANT']
     },
     {
@@ -72,7 +72,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Post and manage job advertisements to attract matched candidates from the pool.',
       icon: 'briefcase',
       route: '/recruiter/job-ads',
-      color: '#f97316',
+      color: '#94a3b8',
       roles: ['RECRUITER']
     },
     {
@@ -80,7 +80,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Search the full registry for candidates beyond the role-specific shortlist, including unclassified applicants.',
       icon: 'search',
       route: '/search',
-      color: '#f59e0b',
+      color: '#94a3b8',
       roles: ['RECRUITER']
     },
     {
@@ -88,7 +88,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Review the role-specific shortlist of best-matching candidates built from the current job fit data.',
       icon: 'users',
       route: '/recruiter/candidates',
-      color: '#0ea5e9',
+      color: '#94a3b8',
       roles: ['RECRUITER']
     },
     {
@@ -96,7 +96,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Track goals, log milestones, and showcase proof—every step strengthens your Living CV, builds trust, and earns your class badge as you evolve.',
       icon: 'sparkles',
       route: '/personal-development',
-      color: '#667eea',
+      color: '#94a3b8',
       roles: ['APPLICANT']
     },
     {
@@ -104,7 +104,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       description: 'Manage your account and preferences',
       icon: 'settings',
       route: '/settings',
-      color: '#6366f1'
+      color: '#94a3b8'
     }
   ];
 

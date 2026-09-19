@@ -119,8 +119,8 @@
             @if (cv.workExperience.length > 0) {
               @for (item of cv.workExperience; track item.id) {
                 <div class="cv-entry">
-                  <strong>{{ item.role }}</strong>
-                  <span>{{ item.company }}</span>
+                  <strong>{{ item.jobTitle }}</strong>
+                  <span>{{ item.companyName }}</span>
                   <small>{{ item.startDate | date:'MMM yyyy' }} - {{ item.endDate ? (item.endDate | date:'MMM yyyy') : 'Present' }}</small>
                 </div>
               }
