@@ -18,6 +18,10 @@ export class OpportunityService {
     return this.http.post<MyApplication>(`${this.base}/${jobAdId}/apply`, request ?? {});
   }
 
+  withdraw(jobAdId: string): Observable<MyApplication> {
+    return this.http.post<MyApplication>(`${this.base}/${jobAdId}/withdraw`, {});
+  }
+
   getMyApplications(): Observable<MyApplication[]> {
     return this.http.get<MyApplication[]>(`${this.base}/my-applications`);
   }

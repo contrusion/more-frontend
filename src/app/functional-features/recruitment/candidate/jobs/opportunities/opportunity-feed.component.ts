@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { OpportunityService } from '../services/opportunity.service';
 import { JobFeedItem } from '../models/opportunity.model';
 
@@ -16,7 +17,10 @@ export class OpportunityFeedComponent implements OnInit {
   error = signal<string | null>(null);
   applyingId = signal<string | null>(null);
 
-  constructor(private readonly opportunityService: OpportunityService) {}
+  constructor(
+    private readonly opportunityService: OpportunityService,
+    private readonly router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -38,12 +42,12 @@ export class OpportunityFeedComponent implements OnInit {
   }
 
   apply(job: JobFeedItem): void {
-    if (job.alreadyApplied || this.applyingId() === job.id) return;
+    if (job.alreadyApplied || this.isBelowThreshold(job) || this.applyingId() === job.id) return;
     this.applyingId.set(job.id);
     this.opportunityService.apply(job.id).subscribe({
       next: () => {
         this.jobs.update(list =>
-          list.map(j => j.id === job.id ? { ...j, alreadyApplied: true } : j)
+          list.map(j => j.id === job.id ? { ...j, alreadyApplied: true, applicationStatus: 'SUBMITTED' } : j)
         );
         this.applyingId.set(null);
       },
@@ -51,6 +55,33 @@ export class OpportunityFeedComponent implements OnInit {
         this.applyingId.set(null);
       }
     });
+  }
+
+  withdraw(job: JobFeedItem): void {
+    if (!job.alreadyApplied || job.applicationStatus !== 'SUBMITTED' || this.applyingId() === job.id) return;
+    this.applyingId.set(job.id);
+    this.opportunityService.withdraw(job.id).subscribe({
+      next: () => {
+        this.jobs.update(list =>
+          list.map(j => j.id === job.id ? { ...j, applicationStatus: 'WITHDRAWN' } : j)
+        );
+        this.applyingId.set(null);
+      },
+      error: () => {
+        this.applyingId.set(null);
+      }
+    });
+  }
+
+  activateCareerPathway(job: JobFeedItem): void {
+    if (this.applyingId() === job.id) return;
+    void this.router.navigate(['/career-development/goals']);
+  }
+
+  isBelowThreshold(job: JobFeedItem): boolean {
+    const score = job.matchScore ?? 0;
+    const threshold = job.matchThreshold ?? 80;
+    return score < threshold;
   }
 
   formatJobType(type: string): string {

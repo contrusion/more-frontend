@@ -20,6 +20,10 @@ At that point, companies are looking at a scored, alias-protected talent pool th
 
 ---
 
+## Story Summary
+
+1. Activation of more than one pathways
+
 ## Strategic Decisions
 
 1. **Identity Reveal (US 1.8 + US 1.9)** is the primary revenue mechanism — companies pay to unlock candidate identities.
@@ -280,3 +284,6 @@ src/app/functional-features/admin/
 | **US 1.8a** | Candidate approval / rejection of reveal | US 1.8 | 0.5 sprint |
 
 > Build US 1.9 first — the subscription check must exist before the reveal logic can branch on it.
+
+
+

@@ -209,6 +209,11 @@
   flex-shrink: 0;
 }
 
+.applied-badge.withdrawn {
+  background: #e2e8f0;
+  color: #334155;
+}
+
 .match-detail {
   padding: 0.65rem 0.8rem;
   border-radius: 10px;
@@ -217,6 +222,12 @@
   color: #475569;
   font-size: 0.8rem;
   line-height: 1.5;
+}
+
+.threshold-note {
+  font-size: 0.8rem;
+  color: #b45309;
+  font-weight: 600;
 }
 
 /* ─── Meta ─── */
@@ -276,6 +287,12 @@
   border-top: 1px solid #f1f5f9;
 }
 
+.footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 .interest-btn {
   display: flex;
   align-items: center;
@@ -302,6 +319,41 @@
 
 .interest-btn.applied {
   background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.interest-btn.withdrawn {
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.interest-btn.pathway {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.withdraw-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.withdraw-btn:hover:not(:disabled) {
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+  background: #f8fafc;
+}
+
+.withdraw-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .btn-spinner {

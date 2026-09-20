@@ -110,6 +110,11 @@ import {
           </label>
         </div>
       </div>
+      <div class="form-group">
+        <label>Minimum Match Score (%)</label>
+        <input type="number" [(ngModel)]="matchThreshold" min="0" max="100" placeholder="80"/>
+        <p class="field-hint">Candidates below this score are redirected to career pathway activation instead of applying.</p>
+      </div>
     </section>
 
     <section class="form-section">
@@ -413,6 +418,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
   currency = 'ZAR';
   closingDate = '';
   isActive = true;
+  matchThreshold = 80;
   externalJobUrl = '';
   applicationInstructions = '';
   preferredCertifications: string[] = [];
@@ -462,6 +468,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
     this.currency = ad.currency ?? 'ZAR';
     this.closingDate = ad.closingDate?.substring(0, 10) ?? '';
     this.isActive = ad.isActive;
+    this.matchThreshold = ad.matchThreshold ?? 80;
     this.externalJobUrl = ad.externalJobUrl ?? '';
     this.applicationInstructions = ad.applicationInstructions ?? '';
     this.preferredCertifications = [...(ad.preferredCertifications ?? [])];
@@ -611,6 +618,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
         currency: this.currency || undefined,
         closingDate: this.closingDate,
         isActive: this.isActive,
+        matchThreshold: this.matchThreshold,
         externalJobUrl: this.externalJobUrl || undefined,
         applicationInstructions: this.applicationInstructions || undefined,
         preferredCertifications: this.preferredCertifications,
@@ -635,6 +643,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
         currency: this.currency || undefined,
         closingDate: this.closingDate,
         isActive: this.isActive,
+        matchThreshold: this.matchThreshold,
         externalJobUrl: this.externalJobUrl || undefined,
         applicationInstructions: this.applicationInstructions || undefined,
         preferredCertifications: this.preferredCertifications,

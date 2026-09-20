@@ -72,6 +72,7 @@ export interface JobAdvertisement {
   applicationInstructions?: string;
   preferredCertifications: string[];
   activityRecencyDays?: number;
+  matchThreshold?: number;
   skills: JobSkill[];
   benefits: BenefitItem[];
   createdAt?: string;
@@ -112,6 +113,7 @@ export interface JobAdvertisementCreateRequest {
   applicationInstructions?: string;
   preferredCertifications: string[];
   activityRecencyDays?: number;
+  matchThreshold?: number;
   skills: JobSkillRequest[];
   benefitIds: string[];
 }
@@ -133,6 +135,7 @@ export interface JobAdvertisementUpdateRequest {
   applicationInstructions?: string;
   preferredCertifications?: string[];
   activityRecencyDays?: number;
+  matchThreshold?: number;
   skills?: JobSkillRequest[];
   benefitIds?: string[];
 }
