@@ -91,7 +91,7 @@ export const routes: Routes = [
     ]
   },
   {
-    path: 'personal-development',
+    path: 'career-development',
     loadComponent: () => import('./functional-features/recruitment/recruitment-layout.component').then(m => m.RecruitmentLayoutComponent),
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['APPLICANT'] },

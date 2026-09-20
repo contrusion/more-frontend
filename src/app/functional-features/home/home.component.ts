@@ -24,7 +24,7 @@ interface NavigationTile {
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  
+
   userName: string = '';
   userEmail: string = '';
   userBio: string = '';
@@ -92,10 +92,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       roles: ['RECRUITER']
     },
     {
-      title: 'Personal Development',
+      title: 'Career Development',
       description: 'Track goals, log milestones, and showcase proof—every step strengthens your Living CV, builds trust, and earns your class badge as you evolve.',
       icon: 'sparkles',
-      route: '/personal-development',
+      route: '/career-development',
       color: '#0ea5e9',
       roles: ['APPLICANT']
     },
@@ -134,7 +134,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.userPersona = this.authService.getUserPersona();
     this.loadMarketReadinessSummary();
   }
-  
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

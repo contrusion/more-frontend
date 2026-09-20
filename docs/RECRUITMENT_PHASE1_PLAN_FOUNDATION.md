@@ -845,6 +845,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 >
 > **Workflow check:** there is no new story required for the Talent Search → shortlist → reveal flow. The existing story chain is: **US-R4 (Talent Search)** → **US-R6 (Applicant shortlist / view CV)** → **US 1.8 (Identity Reveal)**. Only the final reveal/monetization step remains a distinct follow-on story.
 
+## Priority Matrix
 | Story | Focus | Phase | Dependencies | Estimated Effort |
 |-------|-------|-------|--------------|------------------|
 | **US-R1** | Recruiter creates structured job spec (creation flow implemented) | Phase 1 ✅ partial | US 1.3 | 1 sprint |
@@ -854,6 +855,8 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
 | **US-R3** | Recruiter sees class messaging | Phase 1 ✅ | US 1.3a, US 1.4, US 1.3 | 1 sprint |
 | **US-C2** | Candidate sees motivational class messaging | Phase 1 ✅ | US 1.4, US 1.3a | 0.5 sprint |
 | **✅ US-C3** | Candidate: weighted goals with proofs | Phase 2 ✅ Done | US 1.3, US 1.4, US-C2 | 1.5 sprints |
+| **US 1.6** | Candidate: auto-log job applications | Phase 2 ⏳ | Gmail sync, InteractionService | 1 sprint |
+| **US 1.7** | Candidate: centralize feedback & insights | Phase 2 ⏳ | US 1.6, InteractionService | 1 sprint |
 | **US 1.5** | UX: Privacy settings (simplified) | Phase 1.5 ⏳ | US 1.3 | 1 sprint |
 | **US 1.11** | UX: Trust messaging | Phase 1.5 | US 1.3a | 0.5 sprint |
 | **✅ US-R4** | Recruiter: Talent Search — full registry | Phase 2 ✅ Implemented | US-R3, US 1.3a | 1 sprint |
