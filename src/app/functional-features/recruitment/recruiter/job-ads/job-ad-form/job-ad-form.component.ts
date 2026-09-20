@@ -115,6 +115,13 @@ import {
         <input type="number" [(ngModel)]="matchThreshold" min="0" max="100" placeholder="80"/>
         <p class="field-hint">Candidates below this score are redirected to career pathway activation instead of applying.</p>
       </div>
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="careerPathwayWatched"/>
+          <span>Subscribe to Career Pathway candidates</span>
+        </label>
+        <p class="field-hint">Use this when you want to watch strong near-match candidates grow into this role via career pathway activation.</p>
+      </div>
     </section>
 
     <section class="form-section">
@@ -419,6 +426,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
   closingDate = '';
   isActive = true;
   matchThreshold = 80;
+  careerPathwayWatched = false;
   externalJobUrl = '';
   applicationInstructions = '';
   preferredCertifications: string[] = [];
@@ -469,6 +477,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
     this.closingDate = ad.closingDate?.substring(0, 10) ?? '';
     this.isActive = ad.isActive;
     this.matchThreshold = ad.matchThreshold ?? 80;
+    this.careerPathwayWatched = ad.careerPathwayWatched ?? false;
     this.externalJobUrl = ad.externalJobUrl ?? '';
     this.applicationInstructions = ad.applicationInstructions ?? '';
     this.preferredCertifications = [...(ad.preferredCertifications ?? [])];
@@ -619,6 +628,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
         closingDate: this.closingDate,
         isActive: this.isActive,
         matchThreshold: this.matchThreshold,
+        careerPathwayWatched: this.careerPathwayWatched,
         externalJobUrl: this.externalJobUrl || undefined,
         applicationInstructions: this.applicationInstructions || undefined,
         preferredCertifications: this.preferredCertifications,
@@ -644,6 +654,7 @@ export class JobAdFormComponent implements OnInit, OnChanges {
         closingDate: this.closingDate,
         isActive: this.isActive,
         matchThreshold: this.matchThreshold,
+        careerPathwayWatched: this.careerPathwayWatched,
         externalJobUrl: this.externalJobUrl || undefined,
         applicationInstructions: this.applicationInstructions || undefined,
         preferredCertifications: this.preferredCertifications,

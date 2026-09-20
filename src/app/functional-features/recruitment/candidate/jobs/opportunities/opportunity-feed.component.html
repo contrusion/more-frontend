@@ -18,6 +18,22 @@
 
   <div class="feed-container">
 
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-group__label">View</span>
+        <div class="filter-bar">
+          @for (opt of filterOptions; track opt.label) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="activeFilter() === opt.value"
+              (click)="applyFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
     <!-- Error -->
     @if (error()) {
       <div class="error-banner">{{ error() }}</div>
@@ -32,21 +48,21 @@
     }
 
     <!-- Empty -->
-    @if (!loading() && !error() && jobs().length === 0) {
+    @if (!loading() && !error() && filteredJobs().length === 0) {
       <div class="empty-state">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
         </svg>
-        <h3>No opportunities available</h3>
-        <p>Check back soon — new positions are added regularly.</p>
+        <h3>No opportunities available for this view</h3>
+        <p>Try another filter or check back soon — new positions are added regularly.</p>
       </div>
     }
 
     <!-- Job Cards -->
-    @if (!loading() && jobs().length > 0) {
+    @if (!loading() && filteredJobs().length > 0) {
       <div class="cards-grid">
-        @for (job of jobs(); track job.id) {
+        @for (job of filteredJobs(); track job.id) {
           <div class="job-card" [class.applied]="job.applicationStatus === 'SUBMITTED'">
             <div class="card-header">
               <div class="card-title-group">
@@ -78,6 +94,12 @@
 
             @if (job.matchDetails) {
               <div class="match-detail">{{ job.matchDetails }}</div>
+            }
+
+            @if (job.careerPathwayWatched) {
+              <div class="pathway-eligible-badge">
+                Recruiter watching your growth
+              </div>
             }
 
             @if (job.matchThreshold !== undefined && job.matchThreshold !== null && isBelowThreshold(job)) {
@@ -160,11 +182,11 @@
                 </button>
               } @else if (isBelowThreshold(job)) {
                 <button
-                  class="interest-btn pathway"
+                  class="interest-btn not-eligible"
                   [disabled]="applyingId() === job.id"
                   (click)="activateCareerPathway(job)"
                 >
-                  Activate Career Pathway
+                  Not eligible to apply yet, activate career pathway
                 </button>
               } @else {
                 <button

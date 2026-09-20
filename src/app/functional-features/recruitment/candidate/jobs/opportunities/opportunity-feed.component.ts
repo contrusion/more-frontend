@@ -1,8 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { OpportunityService } from '../services/opportunity.service';
 import { JobFeedItem } from '../models/opportunity.model';
+
+type OpportunityFilter = 'ALL' | 'MATCHED_ROLES' | 'NO_MATCH';
 
 @Component({
   selector: 'app-opportunity-feed',
@@ -16,6 +18,26 @@ export class OpportunityFeedComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   applyingId = signal<string | null>(null);
+  activeFilter = signal<OpportunityFilter>('ALL');
+  readonly filterOptions: Array<{ label: string; value: OpportunityFilter }> = [
+    { label: 'All', value: 'ALL' },
+    { label: 'Ready to Apply', value: 'MATCHED_ROLES' },
+    { label: 'Needs Career Development', value: 'NO_MATCH' },
+  ];
+  readonly filteredJobs = computed(() => {
+    const filter = this.activeFilter();
+    const jobs = this.jobs();
+
+    if (filter === 'MATCHED_ROLES') {
+      return jobs.filter(job => !this.isBelowThreshold(job));
+    }
+
+    if (filter === 'NO_MATCH') {
+      return jobs.filter(job => this.isBelowThreshold(job));
+    }
+
+    return jobs;
+  });
 
   constructor(
     private readonly opportunityService: OpportunityService,
@@ -39,6 +61,10 @@ export class OpportunityFeedComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  applyFilter(value: OpportunityFilter): void {
+    this.activeFilter.set(value);
   }
 
   apply(job: JobFeedItem): void {

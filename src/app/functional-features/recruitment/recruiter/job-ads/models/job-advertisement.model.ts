@@ -73,6 +73,7 @@ export interface JobAdvertisement {
   preferredCertifications: string[];
   activityRecencyDays?: number;
   matchThreshold?: number;
+  careerPathwayWatched?: boolean;
   skills: JobSkill[];
   benefits: BenefitItem[];
   createdAt?: string;
@@ -114,6 +115,7 @@ export interface JobAdvertisementCreateRequest {
   preferredCertifications: string[];
   activityRecencyDays?: number;
   matchThreshold?: number;
+  careerPathwayWatched?: boolean;
   skills: JobSkillRequest[];
   benefitIds: string[];
 }
@@ -136,6 +138,7 @@ export interface JobAdvertisementUpdateRequest {
   preferredCertifications?: string[];
   activityRecencyDays?: number;
   matchThreshold?: number;
+  careerPathwayWatched?: boolean;
   skills?: JobSkillRequest[];
   benefitIds?: string[];
 }

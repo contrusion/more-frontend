@@ -15,6 +15,7 @@ export interface JobFeedItem {
   alreadyApplied: boolean;
   applicationStatus?: string;
   matchThreshold?: number;
+  careerPathwayWatched?: boolean;
   matchScore?: number;
   matchDetails?: string;
 }
