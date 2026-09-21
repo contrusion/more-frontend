@@ -13,18 +13,20 @@
 /* ── HERO ────────────────────────────────────────────── */
 .cv-hero {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0ea5e9 100%);
-  padding: 2.5rem 2.5rem 1.75rem;
+  padding: 2.5rem 2.5rem 3.25rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  border-bottom-left-radius: 1.25rem;
+  border-bottom-right-radius: 1.25rem;
 }
 
 .cv-hero__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 2rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 .cv-hero__profile {
@@ -180,25 +182,34 @@
 
 .cv-hero__stats {
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
   flex-wrap: wrap;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  width: 100%;
+  margin: 0 0 1.5rem;
+  padding: 1.25rem 1.35rem;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e2e8f0;
+  border-radius: 1.1rem;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .cv-hero__stat {
-  background: #ffffff;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 0.65rem 1rem;
+  border-radius: 0.85rem;
+  padding: 0.9rem 1rem 0.8rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  flex: 1;
-  min-width: 90px;
+  justify-content: center;
+  gap: 0.18rem;
+  flex: 1 1 140px;
+  min-width: 120px;
+  min-height: 86px;
   text-align: center;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
 .cv-hero__stat-icon {
@@ -291,16 +302,19 @@
 
 /* ── Body ────────────────────────────────────────────── */
 .cv-body {
-  padding: 1.75rem 2rem;
-  max-width: 1240px;
+  padding: 1.75rem 1.5rem 2rem;
+  max-width: none;
+  width: 100%;
 }
 
 /* ── Two-column layout ──────────────────────────────── */
 .cv-layout {
   display: grid;
-  grid-template-columns: 1fr 264px;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1.25rem;
   align-items: start;
+  width: 100%;
+  max-width: none;
 }
 
 .cv-main {
@@ -308,6 +322,7 @@
   flex-direction: column;
   gap: 1.5rem;
   min-width: 0;
+  width: 100%;
 }
 
 .cv-sidebar {
