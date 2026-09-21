@@ -62,7 +62,21 @@
                 </td>
                 <td>{{ formatDate(applicant.appliedAt) }}</td>
                 <td class="col-actions">
-                  <button class="view-btn" type="button" (click)="openCv(applicant)">View CV</button>
+                  <div class="action-group">
+                    <button class="action-btn view-btn" type="button" title="View application" (click)="viewApplication(applicant)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                    <button class="action-btn reject-btn" type="button" title="Reject application" (click)="rejectApplication(applicant)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="m15 9-6 6"></path>
+                        <path d="m9 9 6 6"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
@@ -143,6 +157,12 @@
           </div>
         </div>
       }
+
+      <div class="cv-modal__footer">
+        <button class="primary-btn" type="button" (click)="proceedToScreening(modalCandidate()!)">Proceed to screening</button>
+        <button class="neutral-btn" type="button" (click)="putOnHold(modalCandidate()!)">Put on hold</button>
+        <button class="danger-btn" type="button" (click)="rejectApplication(modalCandidate()!)">Reject Application</button>
+      </div>
     </div>
   </div>
 }

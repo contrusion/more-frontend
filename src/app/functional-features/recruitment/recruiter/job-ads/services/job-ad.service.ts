@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../../environments/environment';
 import {
@@ -28,6 +28,15 @@ export class JobAdService {
 
   getInterestedApplicants(jobAdvertisementId: string): Observable<JobApplicantListItem[]> {
     return this.http.get<JobApplicantListItem[]>(`${this.jobApplicationsBase}/job-ads/${jobAdvertisementId}/applicants`);
+  }
+
+  updateApplicationStatus(applicationId: string, status: string, reason?: string): Observable<{ status: string }> {
+    let params = new HttpParams().set('status', status);
+    if (reason) {
+      params = params.set('reason', reason);
+    }
+
+    return this.http.patch<{ status: string }>(`${this.jobApplicationsBase}/${applicationId}/status`, null, { params });
   }
 
   create(dto: JobAdvertisementCreateRequest): Observable<JobAdvertisement> {

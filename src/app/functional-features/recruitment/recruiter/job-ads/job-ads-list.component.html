@@ -88,7 +88,14 @@
                 }
               </td>
               <td class="col-apps">
-                <span class="badge badge-apps">{{ ad.applicationCount ?? 0 }}</span>
+                <button
+                  type="button"
+                  class="badge badge-apps applicant-count-btn"
+                  [attr.aria-label]="'View applicants for ' + ad.title"
+                  (click)="openApplicants(ad)"
+                >
+                  {{ ad.applicationCount ?? 0 }}
+                </button>
               </td>
               <td class="col-date">{{ ad.closingDate | date:'dd MMM yyyy' }}</td>
               <td>

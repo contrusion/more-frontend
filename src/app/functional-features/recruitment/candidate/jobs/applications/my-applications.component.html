@@ -1,9 +1,9 @@
-<div class="apps-page">
+<div class="dashboard-container">
 
   <!-- Header -->
-  <div class="page-header">
-    <div class="page-header__content">
-      <div class="page-header__text">
+  <div class="dashboard-header">
+    <div class="dashboard-header__content">
+      <div class="dashboard-header__text">
         <h1>My Applications</h1>
         <p>Track the status of your submitted interest</p>
       </div>
@@ -16,11 +16,11 @@
     </div>
   </div>
 
-  <div class="apps-container">
+  <div class="dashboard-body">
 
     <!-- Error -->
     @if (error()) {
-      <div class="error-banner">{{ error() }}</div>
+      <div class="error-state">{{ error() }}</div>
     }
 
     <!-- Loading -->
@@ -48,7 +48,7 @@
       <div class="count-label">{{ applications().length }} application{{ applications().length !== 1 ? 's' : '' }}</div>
       <div class="apps-list">
         @for (app of applications(); track app.id) {
-          <div class="app-card">
+          <div class="metric-card app-card">
             <div class="app-card__main">
               <div class="app-info">
                 <h3 class="app-title">{{ app.jobTitle }}</h3>
@@ -79,6 +79,14 @@
                   {{ statusLabel(app.status) }}
                 </span>
                 <span class="applied-date">Applied {{ app.appliedAt | date:'mediumDate' }}</span>
+                @if (canWithdraw(app)) {
+                  <button
+                    class="withdraw-btn"
+                    [disabled]="withdrawingApplicationId() === app.id"
+                    (click)="withdraw(app)">
+                    {{ withdrawingApplicationId() === app.id ? 'Withdrawing…' : 'Withdraw Interest' }}
+                  </button>
+                }
               </div>
             </div>
 

@@ -82,6 +82,7 @@ export interface JobAdvertisement {
 }
 
 export interface JobApplicantListItem {
+  applicationId: string;
   applicantId: string;
   publicAlias: string;
   marketReadinessTier?: string;

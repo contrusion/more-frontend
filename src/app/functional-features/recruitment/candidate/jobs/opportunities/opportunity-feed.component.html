@@ -63,7 +63,7 @@
     @if (!loading() && filteredJobs().length > 0) {
       <div class="cards-grid">
         @for (job of filteredJobs(); track job.id) {
-          <div class="job-card" [class.applied]="job.applicationStatus === 'SUBMITTED'">
+          <div class="job-card" [class.applied]="hasActiveApplication(job)">
             <div class="card-header">
               <div class="card-title-group">
                 <h3 class="card-title">{{ job.title }}</h3>
@@ -74,7 +74,15 @@
                   {{ job.matchScore }}% match
                 </span>
               }
-              @if (job.applicationStatus === 'SUBMITTED') {
+              @if (job.applicationStatus === 'REJECTED' || job.applicationStatus === 'FAILED_ASSESSMENT' || job.applicationStatus === 'FAILED_INTERVIEW') {
+                <span class="applied-badge withdrawn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                  </svg>
+                  Rejected
+                </span>
+              } @else if (hasActiveApplication(job)) {
                 <span class="applied-badge">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M20 6 9 17l-5-5"></path>
@@ -156,7 +164,15 @@
             }
 
             <div class="card-footer">
-              @if (job.applicationStatus === 'SUBMITTED') {
+              @if (job.applicationStatus === 'REJECTED' || job.applicationStatus === 'FAILED_ASSESSMENT' || job.applicationStatus === 'FAILED_INTERVIEW') {
+                <button class="interest-btn withdrawn" disabled>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                  </svg>
+                  Application Rejected
+                </button>
+              } @else if (hasActiveApplication(job)) {
                 <div class="footer-actions">
                   <button class="interest-btn applied" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

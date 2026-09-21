@@ -14,6 +14,7 @@ export class MyApplicationsComponent implements OnInit {
   applications = signal<MyApplication[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  withdrawingApplicationId = signal<string | null>(null);
 
   constructor(private readonly opportunityService: OpportunityService) {}
 
@@ -59,5 +60,37 @@ export class MyApplicationsComponent implements OnInit {
 
   formatJobType(type: string): string {
     return type?.replace(/_/g, ' ') ?? '';
+  }
+
+  canWithdraw(app: MyApplication): boolean {
+    return app.status === 'SUBMITTED';
+  }
+
+  withdraw(app: MyApplication): void {
+    if (!this.canWithdraw(app) || this.withdrawingApplicationId() === app.id) {
+      return;
+    }
+
+    this.withdrawingApplicationId.set(app.id);
+    this.opportunityService.withdraw(app.jobAdvertisementId).subscribe({
+      next: (updated) => {
+        this.applications.update((list) =>
+          list.map((item) =>
+            item.id === app.id
+              ? {
+                  ...item,
+                  status: updated.status,
+                  lastStatusChange: updated.lastStatusChange,
+                }
+              : item
+          )
+        );
+        this.withdrawingApplicationId.set(null);
+      },
+      error: () => {
+        this.error.set('Failed to withdraw your application. Please try again.');
+        this.withdrawingApplicationId.set(null);
+      }
+    });
   }
 }

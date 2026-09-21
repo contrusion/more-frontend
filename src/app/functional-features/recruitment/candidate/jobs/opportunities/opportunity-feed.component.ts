@@ -29,7 +29,7 @@ export class OpportunityFeedComponent implements OnInit {
     const jobs = this.jobs();
 
     if (filter === 'MATCHED_ROLES') {
-      return jobs.filter(job => !this.isBelowThreshold(job));
+      return jobs.filter(job => this.isReadyToApply(job));
     }
 
     if (filter === 'NO_MATCH') {
@@ -68,7 +68,7 @@ export class OpportunityFeedComponent implements OnInit {
   }
 
   apply(job: JobFeedItem): void {
-    if (job.alreadyApplied || this.isBelowThreshold(job) || this.applyingId() === job.id) return;
+    if (this.isRejected(job) || this.hasActiveApplication(job) || this.isBelowThreshold(job) || this.applyingId() === job.id) return;
     this.applyingId.set(job.id);
     this.opportunityService.apply(job.id).subscribe({
       next: () => {
@@ -84,12 +84,12 @@ export class OpportunityFeedComponent implements OnInit {
   }
 
   withdraw(job: JobFeedItem): void {
-    if (!job.alreadyApplied || job.applicationStatus !== 'SUBMITTED' || this.applyingId() === job.id) return;
+    if (!this.hasActiveApplication(job) || this.applyingId() === job.id) return;
     this.applyingId.set(job.id);
     this.opportunityService.withdraw(job.id).subscribe({
       next: () => {
         this.jobs.update(list =>
-          list.map(j => j.id === job.id ? { ...j, applicationStatus: 'WITHDRAWN' } : j)
+          list.map(j => j.id === job.id ? { ...j, alreadyApplied: false, applicationStatus: 'WITHDRAWN' } : j)
         );
         this.applyingId.set(null);
       },
@@ -104,10 +104,36 @@ export class OpportunityFeedComponent implements OnInit {
     void this.router.navigate(['/career-development/goals']);
   }
 
+  isRejected(job: JobFeedItem): boolean {
+    return job.applicationStatus === 'REJECTED' || job.applicationStatus === 'FAILED_ASSESSMENT' || job.applicationStatus === 'FAILED_INTERVIEW';
+  }
+
+  hasActiveApplication(job: JobFeedItem): boolean {
+    const status = job.applicationStatus?.trim();
+
+    if (job.alreadyApplied && !status) {
+      return true;
+    }
+
+    if (!status) {
+      return false;
+    }
+
+    return status !== 'WITHDRAWN' && status !== 'REJECTED' && status !== 'FAILED_ASSESSMENT' && status !== 'FAILED_INTERVIEW';
+  }
+
+  canApplyAgain(job: JobFeedItem): boolean {
+    return job.applicationStatus === 'WITHDRAWN';
+  }
+
   isBelowThreshold(job: JobFeedItem): boolean {
     const score = job.matchScore ?? 0;
     const threshold = job.matchThreshold ?? 80;
     return score < threshold;
+  }
+
+  isReadyToApply(job: JobFeedItem): boolean {
+    return this.canApplyAgain(job) && !this.isBelowThreshold(job);
   }
 
   formatJobType(type: string): string {
