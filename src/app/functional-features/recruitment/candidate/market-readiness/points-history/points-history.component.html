@@ -1,5 +1,5 @@
-<section class="panel">
-  <header class="panel-head">
+<section class="panel panel--history">
+  <header class="panel-head panel-head--history">
     <h2>Points History</h2>
     <span>Recent score changes</span>
   </header>
@@ -7,9 +7,10 @@
   @if (pointsHistory.length === 0) {
     <p class="empty">No score events yet.</p>
   } @else {
-    <div class="history-list">
+    <div class="history-list history-list--timeline">
       @for (item of pointsHistory; track item.createdAt + item.description) {
         <article class="history-item">
+          <span class="history-item__dot" aria-hidden="true"></span>
           <div class="history-item__top">
             <strong>{{ categoryLabel(item.category) }}</strong>
             <span class="delta" [class.delta--positive]="item.delta > 0" [class.delta--negative]="item.delta < 0">

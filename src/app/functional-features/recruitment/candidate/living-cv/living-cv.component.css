@@ -30,6 +30,11 @@
   gap: clamp(1rem, 1.5vw, 1.5rem);
   border-bottom-left-radius: 1.25rem;
   border-bottom-right-radius: 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
 }
 
 .cv-hero__top {

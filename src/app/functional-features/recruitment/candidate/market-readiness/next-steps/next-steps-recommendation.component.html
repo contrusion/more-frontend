@@ -1,5 +1,5 @@
-<section class="panel">
-  <header class="panel-head">
+<section class="panel panel--actions">
+  <header class="panel-head panel-head--actions">
     <h2>Next Steps</h2>
     <span>Highest point impact</span>
   </header>
@@ -8,10 +8,12 @@
     <p class="empty">No suggestions right now.</p>
   } @else {
     <div class="steps">
-      @for (step of nextSteps; track step.action) {
+      @for (step of nextSteps; track step.action; let index = $index) {
         <article class="step-item">
-          <div>
+          <span class="step-rank">{{ index + 1 }}</span>
+          <div class="step-content">
             <p class="step-action">{{ step.action }}</p>
+            <span class="step-impact">High-impact recommendation</span>
           </div>
           <span class="step-points">+{{ step.potentialPoints }} pts</span>
         </article>

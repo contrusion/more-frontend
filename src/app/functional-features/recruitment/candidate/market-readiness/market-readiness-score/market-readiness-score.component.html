@@ -1,105 +1,164 @@
 <section class="readiness-page">
-  <header class="readiness-header">
-    <div class="readiness-header__left">
-      <h1>Market Readiness</h1>
-      <p>Track your current tier, score contributors, and your highest-impact next actions.</p>
-    </div>
-    <div class="readiness-header__right">
-      <button class="refresh-btn" type="button" (click)="refreshNow()" [disabled]="loading()">
-        Refresh
-      </button>
-      @if (lastRefreshedAt()) {
-        <span class="refreshed-at">Updated {{ lastRefreshedAt() | date:'HH:mm:ss' }}</span>
-      }
+  <header class="readiness-hero">
+    <div class="readiness-hero__content">
+      <div class="readiness-hero__left">
+        <span class="readiness-hero__eyebrow">Career development</span>
+        <h1>Market Readiness</h1>
+        <p>{{ readinessNarrative() }}</p>
+      </div>
+      <div class="readiness-hero__right">
+        <div class="readiness-hero__meta">
+          <button class="refresh-btn" type="button" (click)="refreshNow()" [disabled]="loading()">
+            Refresh
+          </button>
+          @if (lastRefreshedAt()) {
+            <span class="refreshed-at">Updated {{ lastRefreshedAt() | date:'HH:mm:ss' }}</span>
+          }
+        </div>
+
+        @if (breakdown(); as data) {
+          <div class="readiness-hero__status-card">
+            <span class="readiness-hero__status-label">Current tier</span>
+            <app-candidate-class-badge
+              [marketReadinessTier]="data.marketReadinessTier"
+              [isAllStar]="data.isAllStar"
+              [tooltip]="'Your current market readiness tier'" />
+            <div class="readiness-hero__status-metrics">
+              <div>
+                <span>Score</span>
+                <strong>{{ data.totalScore | number }}</strong>
+              </div>
+              <div>
+                <span>Next target</span>
+                <strong>{{ nextTierLabel() }}</strong>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </header>
 
-  @if (error()) {
-    <div class="error-banner">{{ error() }}</div>
-  }
+  <div class="readiness-body">
+    <div class="readiness-body__content">
+      @if (error()) {
+        <div class="error-banner">{{ error() }}</div>
+      }
 
-  @if (loading() && !breakdown()) {
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Calculating your score breakdown...</p>
-    </div>
-  }
-
-  @if (breakdown(); as data) {
-    <section class="score-summary">
-      <div class="score-summary__stats">
-        <article class="figure-card">
-          <span class="figure-card__label">Current score</span>
-          <strong class="figure-card__value">{{ data.totalScore | number }}</strong>
-        </article>
-        <article class="figure-card">
-          <span class="figure-card__label">Current tier</span>
-          <strong class="figure-card__value">{{ data.marketReadinessTier }}</strong>
-        </article>
-        <article class="figure-card">
-          <span class="figure-card__label">To next tier</span>
-          <strong class="figure-card__value">{{ data.pointsToNextTier | number }}</strong>
-        </article>
-        <article class="figure-card">
-          <span class="figure-card__label">Progress</span>
-          <strong class="figure-card__value">{{ data.progressPercentToNextTier }}%</strong>
-        </article>
-      </div>
-
-      <div class="score-summary__main">
-        <div class="score-summary__tier">
-          <app-candidate-class-badge
-            [marketReadinessTier]="data.marketReadinessTier"
-            [isAllStar]="data.isAllStar"
-            [tooltip]="'Your current market readiness tier'" />
-          <p class="tier-line">{{ scoreHeadline() }}</p>
+      @if (loading() && !breakdown()) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Calculating your score breakdown...</p>
         </div>
+      }
 
-        <div class="score-summary__progress">
-          <div class="progress-meta">
-            <span>Progress to next tier</span>
-            <strong>{{ data.progressPercentToNextTier }}%</strong>
+      @if (breakdown(); as data) {
+        <section class="score-summary">
+          <div class="score-summary__stats">
+            <article class="figure-card">
+              <span class="figure-card__label">Current score</span>
+              <strong class="figure-card__value">{{ data.totalScore | number }}</strong>
+            </article>
+            <article class="figure-card">
+              <span class="figure-card__label">To next tier</span>
+              <strong class="figure-card__value">{{ data.pointsToNextTier | number }}</strong>
+            </article>
+            @if (leadingCategory(); as category) {
+              <article class="figure-card">
+                <span class="figure-card__label">Strongest signal</span>
+                <strong class="figure-card__value figure-card__value--text">{{ category.label }}</strong>
+                <span class="figure-card__meta">{{ category.earnedPoints }} / {{ category.maxPoints }} · {{ category.percent }}%</span>
+              </article>
+            }
           </div>
-          <div class="progress-track" role="progressbar" [attr.aria-valuenow]="data.progressPercentToNextTier" aria-valuemin="0" aria-valuemax="100">
-            <div class="progress-fill" [style.width.%]="data.progressPercentToNextTier"></div>
-          </div>
-          @if (data.pointsToNextTier > 0) {
-            <p class="progress-caption">{{ data.pointsToNextTier }} points to reach {{ data.nextTierThreshold | number }}</p>
-          } @else {
-            <p class="progress-caption">You are at the top tier threshold.</p>
-          }
 
-          <div class="tier-stepper" aria-label="Market readiness progression">
-            <div class="tier-stepper__label-row">
-              <span>Tier path</span>
-            </div>
-            <div class="tier-stepper__track">
-              @for (step of tierSteps(); track step.tier) {
-                <div class="tier-step"
-                     [class.is-complete]="step.isComplete"
-                     [class.is-current]="step.isCurrent"
-                     [class.is-upcoming]="step.isUpcoming">
-                  @if (step.isCurrent) {
-                    <span class="tier-step__node tier-step__node--current">
-                      <span class="tier-step__icon">💼</span>
-                    </span>
-                  } @else {
-                    <span class="tier-step__node"></span>
-                  }
-                  <span class="tier-step__label">{{ step.label }}</span>
+          <div class="score-summary__main">
+            <div class="score-summary__tier score-summary__insight">
+              <span class="score-summary__eyebrow">Readiness interpretation</span>
+              <p class="tier-line">{{ scoreHeadline() }} in {{ data.marketReadinessTier | titlecase }}</p>
+              <p class="score-summary__copy">{{ readinessNarrative() }}</p>
+              @if (leadingCategory(); as category) {
+                <div class="score-summary__signal">
+                  <span>Strongest area</span>
+                  <strong>{{ category.label }}</strong>
                 </div>
               }
             </div>
+
+            <div class="score-summary__progress">
+              <span class="score-summary__eyebrow">Progress to next tier</span>
+              <div class="progress-meta">
+                <span>Current progress</span>
+                <strong>{{ data.progressPercentToNextTier }}%</strong>
+              </div>
+              <div class="progress-track" role="progressbar" [attr.aria-valuenow]="data.progressPercentToNextTier" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill" [style.width.%]="data.progressPercentToNextTier"></div>
+              </div>
+              @if (data.pointsToNextTier > 0) {
+                <p class="progress-caption">{{ data.pointsToNextTier }} points to reach {{ data.nextTierThreshold | number }}</p>
+              } @else {
+                <p class="progress-caption">You are at the top tier threshold.</p>
+              }
+
+              <div class="tier-stepper" aria-label="Market readiness progression">
+                <div class="tier-stepper__label-row">
+                  <span>Tier path</span>
+                </div>
+                <div class="tier-stepper__track">
+                  @for (step of tierSteps(); track step.tier) {
+                    <div class="tier-step"
+                         [class.is-complete]="step.isComplete"
+                         [class.is-current]="step.isCurrent"
+                         [class.is-upcoming]="step.isUpcoming">
+                      @if (step.isCurrent) {
+                        <span class="tier-step__node tier-step__node--current">
+                          <span class="tier-step__icon">💼</span>
+                        </span>
+                      } @else {
+                        <span class="tier-step__node"></span>
+                      }
+                      <span class="tier-step__label">{{ step.label }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
+
+        @if (nextTierExamplePositions().length > 0) {
+          <section class="opportunity-panel" aria-label="Example positions in next tier">
+            <header class="opportunity-panel__head">
+              <div>
+                <h2>Example Positions in {{ nextTierLabel() }}</h2>
+                <p>Illustrative roles aligned to the next-tier profile signal.</p>
+              </div>
+              <span class="opportunity-panel__badge">Preview</span>
+            </header>
+
+            <div class="opportunity-list">
+              @for (role of nextTierExamplePositions(); track role.title) {
+                <article class="opportunity-item">
+                  <div class="opportunity-item__top">
+                    <h3>{{ role.title }}</h3>
+                    <span>{{ role.level }}</span>
+                  </div>
+                  <p>{{ role.note }}</p>
+                </article>
+              }
+            </div>
+
+            <p class="opportunity-panel__note">Examples are guidance and not guaranteed eligibility outcomes.</p>
+          </section>
+        }
+
+        <div class="grid-layout">
+          <app-score-breakdown [categories]="data.categories" />
+          <app-next-steps-recommendation [nextSteps]="data.nextSteps" />
         </div>
-      </div>
-    </section>
 
-    <div class="grid-layout">
-      <app-score-breakdown [categories]="data.categories" />
-      <app-next-steps-recommendation [nextSteps]="data.nextSteps" />
+        <app-points-history [pointsHistory]="data.pointsHistory" />
+      }
     </div>
-
-    <app-points-history [pointsHistory]="data.pointsHistory" />
-  }
+  </div>
 </section>

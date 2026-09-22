@@ -26,6 +26,30 @@ import { PointsHistoryComponent } from '../points-history/points-history.compone
 export class MarketReadinessScoreComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly tierOrder = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'] as const;
+  private readonly tierRoleExamples: Record<string, Array<{ title: string; level: string; note: string }>> = {
+    SILVER: [
+      { title: 'Junior Product Analyst', level: 'Junior', note: 'Strong fit from profile and baseline skills' },
+      { title: 'Operations Coordinator', level: 'Junior', note: 'Good fit with process and delivery exposure' },
+      { title: 'Support Specialist', level: 'Junior', note: 'Good launch role while building depth' }
+    ],
+    GOLD: [
+      { title: 'Product Analyst', level: 'Mid', note: 'Likely next step with stronger execution signals' },
+      { title: 'Project Coordinator', level: 'Mid', note: 'Fits mixed planning and stakeholder strengths' },
+      { title: 'Business Operations Associate', level: 'Mid', note: 'Good match with structured delivery trajectory' }
+    ],
+    PLATINUM: [
+      { title: 'Senior Product Analyst', level: 'Senior', note: 'Unlocked by sustained quality and impact' },
+      { title: 'Program Manager', level: 'Senior', note: 'Best fit when cross-functional depth is consistent' },
+      { title: 'Strategy & Operations Lead', level: 'Senior', note: 'Potential role if leadership evidence strengthens' }
+    ]
+  };
+  private readonly categoryLabels: Record<string, string> = {
+    PROFILE: 'Profile strength',
+    CAREER_DEPTH: 'Career depth',
+    CERTIFICATIONS: 'Certifications',
+    SKILLS: 'Skills',
+    EXPERIENCE: 'Experience'
+  };
 
   readonly breakdown = signal<MarketReadinessBreakdown | null>(null);
   readonly loading = signal(true);
@@ -60,6 +84,64 @@ export class MarketReadinessScoreComponent implements OnInit {
 
     return this.formatTierLabel(this.tierOrder[currentIndex + 1]);
   });
+
+  readonly primaryNextStep = computed(() => this.breakdown()?.nextSteps[0] ?? null);
+
+  readonly leadingCategory = computed(() => {
+    const categories = this.breakdown()?.categories.filter((item) => item.category !== 'TOTAL') ?? [];
+
+    if (categories.length === 0) {
+      return null;
+    }
+
+    const bestCategory = categories.reduce((best, current) => {
+      const bestRatio = best.maxPoints === 0 ? 0 : best.earnedPoints / best.maxPoints;
+      const currentRatio = current.maxPoints === 0 ? 0 : current.earnedPoints / current.maxPoints;
+      return currentRatio > bestRatio ? current : best;
+    });
+
+    const percent = bestCategory.maxPoints === 0
+      ? 0
+      : Math.round((bestCategory.earnedPoints / bestCategory.maxPoints) * 100);
+
+    return {
+      label: this.categoryLabel(bestCategory.category),
+      earnedPoints: bestCategory.earnedPoints,
+      maxPoints: bestCategory.maxPoints,
+      percent
+    };
+  });
+
+  readonly readinessNarrative = computed(() => {
+    const value = this.breakdown();
+
+    if (!value) {
+      return 'Track your current tier, score contributors, and your highest-impact next actions.';
+    }
+
+    if (value.pointsToNextTier <= 0) {
+      return `You are currently in ${this.formatTierLabel(value.marketReadinessTier)} and have reached the top threshold.`;
+    }
+
+    return `${value.pointsToNextTier.toLocaleString()} points separate you from ${this.nextTierLabel()}, with your next step likely coming from focused profile or capability improvements.`;
+  });
+
+  readonly nextTierExamplePositions = computed(() => {
+    const value = this.breakdown();
+
+    if (!value || value.pointsToNextTier <= 0) {
+      return [] as Array<{ title: string; level: string; note: string }>;
+    }
+
+    const currentIndex = this.tierOrder.indexOf(value.marketReadinessTier);
+    const nextTier = this.tierOrder[Math.min(currentIndex + 1, this.tierOrder.length - 1)];
+
+    return this.tierRoleExamples[nextTier] ?? [];
+  });
+
+  categoryLabel(category: string): string {
+    return this.categoryLabels[category] ?? this.formatTierLabel(category.replace(/_/g, ' '));
+  }
 
   private formatTierLabel(tier: string): string {
     return tier.charAt(0) + tier.slice(1).toLowerCase();

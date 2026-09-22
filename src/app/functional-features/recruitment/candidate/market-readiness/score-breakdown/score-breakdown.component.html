@@ -1,5 +1,5 @@
-<section class="panel">
-  <header class="panel-head">
+<section class="panel panel--analytics">
+  <header class="panel-head panel-head--analytics">
     <h2>Score Breakdown</h2>
     <span>Earned vs max</span>
   </header>
@@ -7,12 +7,18 @@
   <div class="rows">
     @for (item of categories; track item.category) {
       <article class="row">
-        <div class="row__meta">
-          <strong>{{ categoryLabel(item.category) }}</strong>
-          <span>{{ item.earnedPoints }} / {{ item.maxPoints }}</span>
+        <div class="row__top">
+          <strong class="row__title">{{ categoryLabel(item.category) }}</strong>
+          <span class="row__score">{{ item.earnedPoints }} / {{ item.maxPoints }}</span>
         </div>
-        <div class="row__track" role="progressbar" [attr.aria-valuenow]="percent(item)" aria-valuemin="0" aria-valuemax="100">
-          <div class="row__fill" [style.width.%]="percent(item)"></div>
+        <div class="row__bar-wrap">
+          <mat-progress-bar
+            class="row__bar"
+            mode="determinate"
+            [value]="percent(item)"
+            [attr.aria-label]="categoryLabel(item.category) + ' completion'">
+          </mat-progress-bar>
+          <span class="row__percent">{{ percent(item) }}%</span>
         </div>
       </article>
     }

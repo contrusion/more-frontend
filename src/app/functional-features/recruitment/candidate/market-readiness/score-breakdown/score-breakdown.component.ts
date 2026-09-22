@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MarketReadinessCategoryBreakdown } from '../../models/goal.model';
 
 @Component({
   selector: 'app-score-breakdown',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatProgressBarModule],
   templateUrl: './score-breakdown.component.html',
   styleUrls: ['./score-breakdown.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush

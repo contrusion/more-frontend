@@ -1,8 +1,13 @@
 .panel {
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 0.75rem;
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--color-surface);
   padding: 0.9rem;
+}
+
+.panel--history {
+  border-color: var(--color-border-subtle);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 97%, transparent), color-mix(in srgb, var(--color-neutral) 10%, transparent));
 }
 
 .panel-head {
@@ -14,12 +19,12 @@
 
 .panel-head h2 {
   margin: 0;
-  color: #f8fafc;
+  color: var(--color-text-primary);
   font-size: 1.05rem;
 }
 
 .panel-head span {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.82rem;
 }
 
@@ -28,18 +33,47 @@
   gap: 0.65rem;
 }
 
+.history-list--timeline {
+  position: relative;
+  margin-left: 0.25rem;
+  padding-left: 1rem;
+}
+
+.history-list--timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.3rem;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 2px;
+  background: color-mix(in srgb, var(--color-neutral) 40%, transparent);
+}
+
 .history-item {
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  position: relative;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.6rem;
-  padding: 0.65rem;
+  padding: 0.65rem 0.75rem;
   display: grid;
   gap: 0.35rem;
+  background: color-mix(in srgb, var(--color-surface) 95%, transparent);
+}
+
+.history-item__dot {
+  position: absolute;
+  left: -1.22rem;
+  top: 0.9rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
 }
 
 .history-item__top {
   display: flex;
   justify-content: space-between;
-  color: #e2e8f0;
+  color: var(--color-text-primary);
 }
 
 .delta {
@@ -56,19 +90,26 @@
 
 .description {
   margin: 0;
-  color: #cbd5e1;
+  color: var(--color-text-secondary);
   font-size: 0.87rem;
 }
 
 .meta {
   display: flex;
   justify-content: space-between;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.78rem;
 }
 
 .empty {
   margin: 0;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.88rem;
+}
+
+@media (max-width: 640px) {
+  .meta {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
 }
