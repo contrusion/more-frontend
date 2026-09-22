@@ -119,10 +119,10 @@ export class TopbarComponent implements OnInit, OnDestroy {
       if (label) {
         const hasExactItem = breadcrumbs.some(item => item.url === childUrl && item.label === label);
         if (!hasExactItem) {
-          if (['goals', 'market-readiness', 'challenges'].includes(routeURL)) {
+          if (['goals', 'market-readiness', 'challenges', 'assessments'].includes(routeURL)) {
             const hasGrowthParent = breadcrumbs.some(item => item.label === 'Growth');
             if (!hasGrowthParent) {
-              breadcrumbs.push({ label: 'Growth', url: '/career-development/goals' });
+              breadcrumbs.push({ label: 'Growth', url: '/career-development/market-readiness' });
             }
           }
           breadcrumbs.push({ label, url: childUrl });
@@ -142,8 +142,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
       'career-development': 'Career Development',
       'personal-development': 'Personal Development',
       'goals': 'Goals',
-      'market-readiness': 'Readiness',
+      'market-readiness': 'Market Readiness',
       'challenges': 'Challenges',
+      'assessments': 'Assessments',
       'profile': 'Profile',
       'jobs': 'Job Opportunities',
       'search': 'Talent Search',

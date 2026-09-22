@@ -102,16 +102,24 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
-        path: 'goals',
-        loadComponent: () => import('./functional-features/recruitment/candidate/goals/candidate-goals.component').then(m => m.CandidateGoalsComponent)
-      },
-      {
         path: 'living-cv',
         loadComponent: () => import('./functional-features/recruitment/candidate/living-cv/living-cv.component').then(m => m.LivingCvComponent)
       },
       {
         path: 'market-readiness',
         loadComponent: () => import('./functional-features/recruitment/candidate/market-readiness/market-readiness-score/market-readiness-score.component').then(m => m.MarketReadinessScoreComponent)
+      },
+      {
+        path: 'challenges',
+        loadComponent: () => import('./functional-features/recruitment/candidate/challenges/challenge-feed/challenge-feed.component').then(m => m.ChallengeFeedComponent)
+      },
+      {
+        path: 'assessments',
+        loadComponent: () => import('./functional-features/recruitment/candidate/assessments/assessments.component').then(m => m.AssessmentsComponent)
+      },
+      {
+        path: 'goals',
+        loadComponent: () => import('./functional-features/recruitment/candidate/goals/candidate-goals.component').then(m => m.CandidateGoalsComponent)
       },
       {
         path: 'work-experience',
@@ -133,10 +141,6 @@ export const routes: Routes = [
         path: 'skills',
         loadComponent: () => import('./functional-features/recruitment/candidate/skills/skills.component').then(m => m.SkillsComponent)
       },
-      {
-        path: 'challenges',
-        loadComponent: () => import('./functional-features/recruitment/candidate/challenges/challenge-feed/challenge-feed.component').then(m => m.ChallengeFeedComponent)
-      }
     ]
   },
   {

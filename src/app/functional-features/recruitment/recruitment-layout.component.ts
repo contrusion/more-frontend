@@ -52,18 +52,6 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
           <div class="nav-group-children" *ngIf="isGrowthExpanded || showGrowthOnly">
             <button
               class="nav-item nav-subitem"
-              [class.active]="isActive('goals')"
-              (click)="navigate('goals')"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="6"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-              </svg>
-              <span>Goals</span>
-            </button>
-            <button
-              class="nav-item nav-subitem"
               [class.active]="isActive('market-readiness')"
               (click)="navigate('market-readiness')"
             >
@@ -71,7 +59,7 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
                 <path d="M3 3v18h18"></path>
                 <path d="M7 14l4-4 3 3 5-6"></path>
               </svg>
-              <span>Readiness</span>
+              <span>Market Readiness</span>
             </button>
             <button
               class="nav-item nav-subitem"
@@ -84,6 +72,31 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
                 <path d="M17.5 5.5A8.5 8.5 0 1 1 6.5 5.5"></path>
               </svg>
               <span>Challenges</span>
+            </button>
+            <button
+              class="nav-item nav-subitem"
+              [class.active]="isActive('assessments')"
+              (click)="navigate('assessments')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+                <path d="M8 7h8"></path>
+                <path d="M8 11h8"></path>
+                <path d="M8 15h5"></path>
+              </svg>
+              <span>Assessments</span>
+            </button>
+            <button
+              class="nav-item nav-subitem"
+              [class.active]="isActive('goals')"
+              (click)="navigate('goals')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+              <span>Goals</span>
             </button>
           </div>
         </div>
@@ -175,7 +188,7 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
     .nav-group {
       display: flex;
       flex-direction: column;
-      margin: 0.5rem 0.5rem 0.25rem;
+      margin: 0.5rem 0 0.25rem;
       padding-top: 0.25rem;
       border-top: 1px solid rgba(148, 163, 184, 0.2);
       gap: 0.25rem;
@@ -236,14 +249,15 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
       display: flex;
       flex-direction: column;
       gap: 0.1rem;
-      padding-left: 0.5rem;
+      padding-left: 0;
       margin-top: 0.1rem;
     }
 
     .nav-subitem {
       margin: 0.1rem 0;
-      padding: 0.75rem 0.5rem;
-      width: calc(100% - 0.5rem);
+      padding: 0.75rem 0.5rem 0.75rem 1rem;
+      width: 100%;
+      box-sizing: border-box;
       border-left: 1px solid rgba(148, 163, 184, 0.2);
     }
 
@@ -254,6 +268,8 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
       gap: 0.5rem;
       padding: 1rem 0.5rem;
       margin: 0.25rem 0;
+      width: 100%;
+      box-sizing: border-box;
       background: transparent;
       border: none;
       border-radius: 12px;
@@ -310,7 +326,7 @@ export class RecruitmentLayoutComponent {
   }
 
   get showGrowthOnly(): boolean {
-    return ['/career-development/goals', '/career-development/market-readiness', '/career-development/challenges']
+    return ['/career-development/market-readiness', '/career-development/challenges', '/career-development/assessments', '/career-development/goals']
       .some((path) => this.router.url === path || this.router.url.startsWith(`${path}/`));
   }
 
@@ -320,7 +336,7 @@ export class RecruitmentLayoutComponent {
 
   openGrowth(): void {
     this.isGrowthExpanded = true;
-    this.router.navigate(['/career-development/goals']);
+    this.router.navigate(['/career-development/market-readiness']);
   }
 
   toggleGrowth(): void {
@@ -342,7 +358,7 @@ export class RecruitmentLayoutComponent {
 
   navigate(path: string): void {
     this.router.navigate([`/career-development/${path}`]);
-    if (['goals', 'market-readiness', 'challenges'].includes(path)) {
+    if (['market-readiness', 'challenges', 'assessments', 'goals'].includes(path)) {
       this.isGrowthExpanded = true;
     }
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { JobAdService } from './services/job-ad.service';
@@ -8,6 +8,8 @@ import {
   JobAdvertisement,
   JobType,
 } from './models/job-advertisement.model';
+
+type JobAdFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
 
 @Component({
   selector: 'app-job-ads-list',
@@ -20,6 +22,28 @@ export class JobAdsListComponent implements OnInit {
   jobAds = signal<JobAdvertisement[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  activeFilter = signal<JobAdFilter>('ALL');
+
+  readonly filterOptions: Array<{ label: string; value: JobAdFilter }> = [
+    { label: 'All Ads', value: 'ALL' },
+    { label: 'Active', value: 'ACTIVE' },
+    { label: 'Inactive', value: 'INACTIVE' },
+  ];
+
+  readonly filteredJobAds = computed(() => {
+    const filter = this.activeFilter();
+    const ads = this.jobAds();
+
+    if (filter === 'ACTIVE') {
+      return ads.filter((ad) => ad.isActive);
+    }
+
+    if (filter === 'INACTIVE') {
+      return ads.filter((ad) => !ad.isActive);
+    }
+
+    return ads;
+  });
 
   formOpen = signal(false);
   editingAd = signal<JobAdvertisement | null>(null);
@@ -31,6 +55,10 @@ export class JobAdsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  applyFilter(value: JobAdFilter): void {
+    this.activeFilter.set(value);
   }
 
   load(): void {

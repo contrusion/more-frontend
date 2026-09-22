@@ -1,0 +1,25 @@
+.assessments-page {
+  min-height: 100%;
+  background: var(--color-bg-page);
+  padding: 1.25rem 1.5rem;
+}
+
+.assessments-header {
+  background: linear-gradient(135deg, var(--color-header-start) 0%, var(--color-header-mid) 55%, var(--color-header-end) 100%);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  color: var(--color-text-on-dark);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+}
+
+.assessments-header h1 {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.6vw, 1.5rem);
+  font-weight: 600;
+}
+
+.assessments-header p {
+  margin: 0.35rem 0 0;
+  font-size: clamp(0.82rem, 0.95vw, 0.92rem);
+  color: rgba(255, 255, 255, 0.78);
+}

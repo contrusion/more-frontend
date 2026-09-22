@@ -37,11 +37,11 @@ export class CandidateSearchComponent implements OnInit {
   activeExperienceFilter = signal<ExperienceFilter>(null);
 
   readonly filterOptions: FilterOption[] = [
-    { label: 'All',           value: null        },
-    { label: '💎 Platinum',   value: 'PLATINUM'  },
-    { label: '🥇 Gold',      value: 'GOLD'      },
-    { label: '🥈 Silver',    value: 'SILVER'    },
-    { label: '🥉 Bronze',    value: 'BRONZE'    },
+    { label: 'All',       value: null        },
+    { label: 'Platinum',  value: 'PLATINUM'  },
+    { label: 'Gold',      value: 'GOLD'      },
+    { label: 'Silver',    value: 'SILVER'    },
+    { label: 'Bronze',    value: 'BRONZE'    },
   ];
 
   readonly experienceFilterOptions: ExperienceFilterOption[] = [

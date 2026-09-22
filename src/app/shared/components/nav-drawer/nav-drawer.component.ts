@@ -41,11 +41,12 @@ const ALL_SECTIONS: NavSection[] = [
       { label: 'Living CV', route: '/career-development/living-cv' },
       {
         label: 'Growth',
-        route: '/career-development/goals',
+        route: '/career-development/market-readiness',
         subchildren: [
-          { label: 'Goals', route: '/career-development/goals' },
-          { label: 'Readiness', route: '/career-development/market-readiness' },
-          { label: 'Challenges', route: '/career-development/challenges' }
+          { label: 'Market Readiness', route: '/career-development/market-readiness' },
+          { label: 'Challenges', route: '/career-development/challenges' },
+          { label: 'Assessments', route: '/career-development/assessments' },
+          { label: 'Goals', route: '/career-development/goals' }
         ]
       },
       { label: 'Work Experience', route: '/career-development/work-experience' },
@@ -165,6 +166,14 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
 
   isChildActive(child: NavChild): boolean {
     return this.currentUrl === child.route || this.currentUrl.startsWith(child.route + '/');
+  }
+
+  isChildGroupActive(child: NavChild): boolean {
+    if (this.isChildActive(child)) {
+      return true;
+    }
+
+    return child.subchildren?.some((subchild) => this.isChildActive(subchild)) ?? false;
   }
 
   isChildGroupExpanded(section: NavSection, child: NavChild): boolean {

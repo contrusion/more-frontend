@@ -15,6 +15,23 @@
         Post a Job Ad
       </button>
     </div>
+
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-group__label">View</span>
+        <div class="filter-bar">
+          @for (opt of filterOptions; track opt.value) {
+            <button
+              type="button"
+              class="filter-pill"
+              [class.filter-pill--active]="activeFilter() === opt.value"
+              (click)="applyFilter(opt.value)">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="job-ads-container">
@@ -49,7 +66,14 @@
   }
 
   <!-- Table -->
-  @if (!loading() && jobAds().length > 0) {
+  @if (!loading() && jobAds().length > 0 && filteredJobAds().length === 0) {
+    <div class="empty-state filtered-empty-state">
+      <h2>No job ads in this view</h2>
+      <p>Try a different filter to view your other advertisements.</p>
+    </div>
+  }
+
+  @if (!loading() && filteredJobAds().length > 0) {
     <div class="table-wrapper">
       <table class="ads-table">
         <thead>
@@ -65,7 +89,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (ad of jobAds(); track ad.id) {
+          @for (ad of filteredJobAds(); track ad.id) {
             <tr [class.inactive-row]="!ad.isActive">
               <td class="col-title">
                 <span class="ad-title">{{ ad.title }}</span>
@@ -74,10 +98,10 @@
                 }
               </td>
               <td>
-                <span class="badge badge-type">{{ labelForJobType(ad.jobType) }}</span>
+                <span class="cell-text">{{ labelForJobType(ad.jobType) }}</span>
               </td>
               <td>
-                <span class="badge badge-level">{{ labelForExperience(ad.experienceLevel) }}</span>
+                <span class="cell-text">{{ labelForExperience(ad.experienceLevel) }}</span>
               </td>
               <td class="col-skills">
                 @for (skill of ad.skills.slice(0, 3); track skill.skillId) {

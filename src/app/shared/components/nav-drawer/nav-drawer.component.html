@@ -71,7 +71,7 @@
             <div class="child-group" *ngIf="child.subchildren && child.subchildren.length > 0; else simpleChild">
               <button
                 class="child-link child-link--group"
-                [class.active]="isChildActive(child)"
+                [class.active]="isChildGroupActive(child)"
                 (click)="toggleChildGroup(section, child)">
                 <span>{{ child.label }}</span>
                 <svg

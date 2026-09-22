@@ -97,7 +97,6 @@
 
         <div class="cv-hero__stats">
           <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-goals')">
-            <span class="cv-hero__stat-icon">🎯</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ cv()!.stats.completedGoals }}<span class="cv-hero__stat-sub">/{{ cv()!.stats.totalGoals }}</span></span>
               <span class="cv-hero__stat-label">Goals</span>
@@ -105,49 +104,42 @@
             <div class="cv-hero__stat-bar"><div class="cv-hero__stat-fill" [style.width]="goalCompletionPct() + '%'" ></div></div>
           </div>
           <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-work')">
-            <span class="cv-hero__stat-icon">💼</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ cv()!.workExperience.length }}</span>
               <span class="cv-hero__stat-label">Roles</span>
             </div>
           </div>
           <div class="cv-hero__stat">
-            <span class="cv-hero__stat-icon">📈</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ formatTenure(averageTenureMonths()) }}</span>
               <span class="cv-hero__stat-label">Avg. tenure</span>
             </div>
           </div>
           <div class="cv-hero__stat">
-            <span class="cv-hero__stat-icon">🏢</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ totalBigCompanies() }}</span>
               <span class="cv-hero__stat-label">Big companies</span>
             </div>
           </div>
           <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-education')">
-            <span class="cv-hero__stat-icon">🎓</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ cv()!.education.length }}</span>
               <span class="cv-hero__stat-label">Qualifications</span>
             </div>
           </div>
           <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-skills')">
-            <span class="cv-hero__stat-icon">⚡</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ cv()!.skills.length }}</span>
               <span class="cv-hero__stat-label">Skills</span>
             </div>
           </div>
           <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-certs')">
-            <span class="cv-hero__stat-icon">🏅</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ cv()!.certifications.length }}</span>
               <span class="cv-hero__stat-label">Certifications</span>
             </div>
           </div>
           <div class="cv-hero__stat cv-hero__stat--link" (click)="scrollTo('cv-refs')">
-            <span class="cv-hero__stat-icon">👥</span>
             <div class="cv-hero__stat-data">
               <span class="cv-hero__stat-value">{{ cv()!.references.length }}</span>
               <span class="cv-hero__stat-label">References</span>
