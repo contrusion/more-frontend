@@ -8,6 +8,7 @@ import { AuthService } from '../../../none-functional-features/authentication-an
 interface NavChild {
   label: string;
   route: string;
+  subchildren?: NavChild[];
 }
 
 interface NavSection {
@@ -23,7 +24,7 @@ interface NavSection {
 const ALL_SECTIONS: NavSection[] = [
   {
     id: 'jobs',
-    label: 'Job Opportunities',
+    label: 'Jobs',
     requiredRoles: ['APPLICANT'],
     routePrefix: '/jobs',
     children: [
@@ -32,18 +33,26 @@ const ALL_SECTIONS: NavSection[] = [
     ]
   },
   {
-    id: 'personal-development',
-    label: 'Personal Development',
+    id: 'career-development',
+    label: 'Career Development',
     requiredRoles: ['APPLICANT'],
-    routePrefix: '/personal-development',
+    routePrefix: '/career-development',
     children: [
-      { label: 'Living CV', route: '/personal-development/living-cv' },
-      { label: 'Goals', route: '/personal-development/goals' },
-      { label: 'Work Experience', route: '/personal-development/work-experience' },
-      { label: 'Education', route: '/personal-development/education' },
-      { label: 'Certifications', route: '/personal-development/certifications' },
-      { label: 'Skills', route: '/personal-development/skills' },
-      { label: 'References', route: '/personal-development/references' }
+      { label: 'Living CV', route: '/career-development/living-cv' },
+      {
+        label: 'Growth',
+        route: '/career-development/goals',
+        subchildren: [
+          { label: 'Goals', route: '/career-development/goals' },
+          { label: 'Readiness', route: '/career-development/market-readiness' },
+          { label: 'Challenges', route: '/career-development/challenges' }
+        ]
+      },
+      { label: 'Work Experience', route: '/career-development/work-experience' },
+      { label: 'Education', route: '/career-development/education' },
+      { label: 'Certifications', route: '/career-development/certifications' },
+      { label: 'Skills', route: '/career-development/skills' },
+      { label: 'References', route: '/career-development/references' }
     ]
   },
   {
@@ -96,6 +105,7 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
 
   visibleSections: NavSection[] = [];
   expandedSections = new Set<string>();
+  expandedChildGroups = new Set<string>();
   currentUrl = '';
 
   constructor(
@@ -149,8 +159,17 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
     return this.currentUrl.startsWith(section.routePrefix);
   }
 
+  getVisibleChildren(section: NavSection): NavChild[] {
+    return section.children;
+  }
+
   isChildActive(child: NavChild): boolean {
     return this.currentUrl === child.route || this.currentUrl.startsWith(child.route + '/');
+  }
+
+  isChildGroupExpanded(section: NavSection, child: NavChild): boolean {
+    const key = `${section.id}:${child.route}`;
+    return this.expandedChildGroups.has(key) || this.currentUrl.startsWith(child.route);
   }
 
   isSectionExpanded(section: NavSection): boolean {
@@ -166,6 +185,20 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
       this.expandedSections.delete(section.id);
     } else {
       this.expandedSections.add(section.id);
+    }
+  }
+
+  toggleChildGroup(section: NavSection, child: NavChild): void {
+    if (!child.subchildren || child.subchildren.length === 0) {
+      this.navigateTo(child.route);
+      return;
+    }
+
+    const key = `${section.id}:${child.route}`;
+    if (this.expandedChildGroups.has(key)) {
+      this.expandedChildGroups.delete(key);
+    } else {
+      this.expandedChildGroups.add(key);
     }
   }
 

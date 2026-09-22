@@ -22,28 +22,32 @@
 
 .dashboard-header h1 {
   color: #fff;
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem 0;
+  letter-spacing: 0.01em;
 }
 
 .dashboard-header p {
   color: rgba(255, 255, 255, 0.8);
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.015em;
 }
 
 .refresh-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.6rem 1.1rem;
+  padding: 0.52rem 0.9rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -295,6 +299,14 @@
   .dashboard-header__content {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .dashboard-header p {
+    font-size: 0.7rem;
   }
 
   .dashboard-body {

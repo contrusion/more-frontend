@@ -106,22 +106,30 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private createBreadcrumbs(route: ActivatedRoute, url: string = '', breadcrumbs: Breadcrumb[] = []): Breadcrumb[] {
     const children: ActivatedRoute[] = route.children;
 
-    if (children.length === 0) {
-      return breadcrumbs;
-    }
-
     for (const child of children) {
-      const routeURL: string = child.snapshot.url.map(segment => segment.path).join('/');
-      if (routeURL !== '') {
-        url += `/${routeURL}`;
+      const routeURL = child.snapshot.url.map(segment => segment.path).join('/');
+      if (!routeURL) {
+        this.createBreadcrumbs(child, url, breadcrumbs);
+        continue;
       }
 
+      const childUrl = url ? `${url}/${routeURL}` : `/${routeURL}`;
       const label = this.getRouteLabel(routeURL);
+
       if (label) {
-        breadcrumbs.push({ label, url });
+        const hasExactItem = breadcrumbs.some(item => item.url === childUrl && item.label === label);
+        if (!hasExactItem) {
+          if (['goals', 'market-readiness', 'challenges'].includes(routeURL)) {
+            const hasGrowthParent = breadcrumbs.some(item => item.label === 'Growth');
+            if (!hasGrowthParent) {
+              breadcrumbs.push({ label: 'Growth', url: '/career-development/goals' });
+            }
+          }
+          breadcrumbs.push({ label, url: childUrl });
+        }
       }
 
-      return this.createBreadcrumbs(child, url, breadcrumbs);
+      this.createBreadcrumbs(child, childUrl, breadcrumbs);
     }
 
     return breadcrumbs;
@@ -131,8 +139,11 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const routeLabels: { [key: string]: string } = {
       'home': 'Home',
       'interactions': 'Interactions',
+      'career-development': 'Career Development',
       'personal-development': 'Personal Development',
-      'goals': 'My Goals',
+      'goals': 'Goals',
+      'market-readiness': 'Readiness',
+      'challenges': 'Challenges',
       'profile': 'Profile',
       'jobs': 'Job Opportunities',
       'search': 'Talent Search',

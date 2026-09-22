@@ -67,13 +67,43 @@
 
         <!-- Children -->
         <div *ngIf="!section.directRoute" class="section-children" [class.expanded]="isSectionExpanded(section)">
-          <button
-            *ngFor="let child of section.children"
-            class="child-link"
-            [class.active]="isChildActive(child)"
-            (click)="navigateTo(child.route)">
-            {{ child.label }}
-          </button>
+          <ng-container *ngFor="let child of section.children">
+            <div class="child-group" *ngIf="child.subchildren && child.subchildren.length > 0; else simpleChild">
+              <button
+                class="child-link child-link--group"
+                [class.active]="isChildActive(child)"
+                (click)="toggleChildGroup(section, child)">
+                <span>{{ child.label }}</span>
+                <svg
+                  class="section-chevron"
+                  [class.expanded]="isChildGroupExpanded(section, child)"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              <div class="section-children section-children--nested" [class.expanded]="isChildGroupExpanded(section, child)">
+                <button
+                  *ngFor="let subchild of child.subchildren"
+                  class="child-link child-link--nested"
+                  [class.active]="isChildActive(subchild)"
+                  (click)="navigateTo(subchild.route)">
+                  {{ subchild.label }}
+                </button>
+              </div>
+            </div>
+
+            <ng-template #simpleChild>
+              <button
+                class="child-link"
+                [class.active]="isChildActive(child)"
+                (click)="navigateTo(child.route)">
+                {{ child.label }}
+              </button>
+            </ng-template>
+          </ng-container>
         </div>
 
       </div>
