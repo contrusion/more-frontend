@@ -4,6 +4,25 @@ import { Observable } from 'rxjs';
 import { CandidateSearchPage, ExperienceGroup, MarketReadinessTier } from '../../candidate/models/goal.model';
 import { environment } from '../../../../../environments/environment';
 
+export type WatchReason = 'SKILL_GAP' | 'EXPERIENCE_GAP' | 'TIMING_GAP' | 'DOMAIN_GAP';
+
+export interface CreateWatchRequestPayload {
+  candidateAlias: string;
+  triggerReason: WatchReason;
+  recruiterNote?: string;
+}
+
+export interface CandidateWatchRequestResponse {
+  id: string;
+  candidateAlias: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  triggerReason: WatchReason;
+  recruiterNote: string | null;
+  createdAt: string;
+  expiresAt: string;
+  respondedAt: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CandidateSearchService {
   private readonly base = `${environment.apiUrl}/api/recruiters`;
@@ -40,5 +59,13 @@ export class CandidateSearchService {
     }
 
     return this.http.get<CandidateSearchPage>(`${this.base}/candidates`, { params });
+  }
+
+  createWatchRequest(payload: CreateWatchRequestPayload): Observable<CandidateWatchRequestResponse> {
+    return this.http.post<CandidateWatchRequestResponse>(`${this.base}/watchlist/requests`, payload);
+  }
+
+  getMyWatchRequests(): Observable<CandidateWatchRequestResponse[]> {
+    return this.http.get<CandidateWatchRequestResponse[]>(`${this.base}/watchlist/requests`);
   }
 }

@@ -61,6 +61,127 @@
   padding: 2rem;
 }
 
+.watch-requests-section {
+  margin-bottom: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.9rem;
+}
+
+.section-headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-headline h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: 0.01em;
+}
+
+.refresh-inline-btn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 0.5rem;
+  padding: 0.36rem 0.72rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.refresh-inline-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.watch-error {
+  margin-bottom: 0.6rem;
+}
+
+.watch-loading,
+.watch-empty {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.watch-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.watch-request-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.68rem 0.75rem;
+  background: #f8fafc;
+}
+
+.watch-request-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.watch-request-main h3 {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.watch-request-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.watch-request-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.watch-request-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.watch-action-btn {
+  border-radius: 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.34rem 0.65rem;
+  cursor: pointer;
+}
+
+.watch-action-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.watch-action-btn--accept {
+  background: #ecfeff;
+  border: 1px solid #67e8f9;
+  color: #0e7490;
+}
+
+.watch-action-btn--decline {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
 /* ========== ERROR STATE ========== */
 .error-state {
   background: #fef2f2;
@@ -311,6 +432,14 @@
 
   .dashboard-body {
     padding: 1.25rem;
+  }
+
+  .watch-request-main {
+    flex-direction: column;
+  }
+
+  .watch-request-actions {
+    width: 100%;
   }
 
   .app-card__main {

@@ -118,6 +118,18 @@ Includes:
 Ask phrase:
 - Standardize this page to our interaction language pattern.
 
+## 11) Cross-Browser Table Typography Consistency
+Use when: dense table pages look different between browsers (for example Chrome vs Edge).
+
+Includes:
+- Validate typography in both Chrome and Edge before finalizing size/weight tweaks
+- Explicit table header/body `font-size`, `font-weight`, and `line-height` for critical text
+- Prefer stable small-text weights (`400` or `600`) for tiny labels
+- Keep shared table typography tokens consistent across sibling pages before adding per-column overrides
+
+Ask phrase:
+- Apply cross-browser table typography consistency checks.
+
 ---
 
 ## Recommended Quick Commands

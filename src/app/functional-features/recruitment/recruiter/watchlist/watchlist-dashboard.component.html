@@ -1,0 +1,95 @@
+<div class="watchlist-page">
+  <header class="watchlist-header">
+    <div class="watchlist-header__inner">
+      <div>
+        <h1>Watchlist</h1>
+        <p>Track candidate watch requests and follow their response status.</p>
+      </div>
+      <button class="watchlist-refresh" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Refreshing...' : 'Refresh' }}
+      </button>
+    </div>
+
+    <div class="watchlist-filters" role="tablist" aria-label="Watchlist status filters">
+      <button
+        class="filter-pill"
+        [class.filter-pill--active]="statusFilter() === 'ALL'"
+        (click)="setStatusFilter('ALL')">
+        All ({{ statusCounts().all }})
+      </button>
+      <button
+        class="filter-pill"
+        [class.filter-pill--active]="statusFilter() === 'PENDING'"
+        (click)="setStatusFilter('PENDING')">
+        Pending ({{ statusCounts().pending }})
+      </button>
+      <button
+        class="filter-pill"
+        [class.filter-pill--active]="statusFilter() === 'ACCEPTED'"
+        (click)="setStatusFilter('ACCEPTED')">
+        Accepted ({{ statusCounts().accepted }})
+      </button>
+      <button
+        class="filter-pill"
+        [class.filter-pill--active]="statusFilter() === 'DECLINED'"
+        (click)="setStatusFilter('DECLINED')">
+        Declined ({{ statusCounts().declined }})
+      </button>
+      <button
+        class="filter-pill"
+        [class.filter-pill--active]="statusFilter() === 'EXPIRED'"
+        (click)="setStatusFilter('EXPIRED')">
+        Expired ({{ statusCounts().expired }})
+      </button>
+    </div>
+  </header>
+
+  <main class="watchlist-content">
+    @if (error()) {
+      <div class="watchlist-error">{{ error() }}</div>
+    }
+
+    @if (loading()) {
+      <div class="watchlist-state">Loading watch requests...</div>
+    }
+
+    @if (!loading() && !error() && filteredRequests().length === 0) {
+      <div class="watchlist-state">No requests match this filter.</div>
+    }
+
+    @if (!loading() && filteredRequests().length > 0) {
+      <div class="watchlist-cards">
+        @for (request of filteredRequests(); track request.id) {
+          <article class="watch-card">
+            <div class="watch-card__top">
+              <div class="watch-card__identity">
+                <h2>{{ request.candidateAlias }}</h2>
+                <p>{{ watchReasonLabel(request.triggerReason) }}</p>
+              </div>
+              <span [class]="statusClass(request.status)">{{ statusLabel(request.status) }}</span>
+            </div>
+
+            <dl class="watch-card__meta">
+              <div>
+                <dt>Requested</dt>
+                <dd>{{ request.createdAt | date:'mediumDate' }}</dd>
+              </div>
+              <div>
+                <dt>Expires</dt>
+                <dd>{{ request.expiresAt | date:'mediumDate' }}</dd>
+              </div>
+              <div>
+                <dt>Time Left</dt>
+                <dd>{{ daysUntilExpiry(request.expiresAt) }} day{{ daysUntilExpiry(request.expiresAt) !== 1 ? 's' : '' }}</dd>
+              </div>
+            </dl>
+
+            @if (request.recruiterNote) {
+              <p class="watch-card__note">{{ request.recruiterNote }}</p>
+            }
+          </article>
+        }
+      </div>
+    }
+  </main>
+</div>

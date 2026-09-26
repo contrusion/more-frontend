@@ -102,6 +102,9 @@
                 </td>
                 <td class="td-message" [title]="candidate.tierCardMessage">{{ truncateMessage(candidate.tierCardMessage) }}</td>
                 <td class="td-action">
+                  <button class="btn-watch" [disabled]="isWatchRequested(candidate.publicAlias)" (click)="openWatchModal(candidate)">
+                    {{ isWatchRequested(candidate.publicAlias) ? 'Watch Requested' : 'Watch' }}
+                  </button>
                   <button class="btn-view" (click)="openModal(candidate)">View CV</button>
                 </td>
               </tr>
@@ -118,16 +121,32 @@
 
           <!-- Modal header -->
           <div class="modal-header">
-            <div class="modal-header__info">
+            <div class="modal-header__identity">
               @if (modalCandidate()) {
-                <span class="modal-alias">{{ modalCandidate()!.publicAlias }}</span>
-                <app-candidate-class-badge
-                  [marketReadinessTier]="modalCandidate()!.marketReadinessTier"
-                  [isAllStar]="modalCandidate()!.isAllStar"
-                  [tooltip]="modalCandidate()!.tierCardMessage" />
+                <div class="modal-alias-wrap">
+                  <span class="modal-alias">{{ modalCandidate()!.publicAlias }}</span>
+                  <app-candidate-class-badge
+                    [marketReadinessTier]="modalCandidate()!.marketReadinessTier"
+                    [isAllStar]="modalCandidate()!.isAllStar"
+                    [tooltip]="modalCandidate()!.tierCardMessage" />
+                </div>
+                <p class="modal-role-line">
+                  {{ modalCandidate()!.jobTitle || 'Role in transition' }}
+                  @if (modalCandidate()!.industry) {
+                    <span>· {{ modalCandidate()!.industry }}</span>
+                  }
+                </p>
+                <p class="modal-pitch">{{ getRecruiterPitch() }}</p>
               }
             </div>
-            <button class="modal-close" (click)="closeModal()" aria-label="Close">✕</button>
+            <div class="modal-header__actions">
+              @if (modalCandidate()) {
+                <button class="btn-watch btn-watch--modal" [disabled]="isWatchRequested(modalCandidate()!.publicAlias)" (click)="openWatchModal(modalCandidate()!)">
+                  {{ isWatchRequested(modalCandidate()!.publicAlias) ? 'Watch Requested' : 'Follow / Watch' }}
+                </button>
+              }
+              <button class="modal-close" (click)="closeModal()" aria-label="Close">✕</button>
+            </div>
           </div>
 
           <!-- Modal body -->
@@ -147,78 +166,200 @@
             }
 
             @if (!modalLoading() && modalCv()) {
-              <!-- Profile summary -->
-              @if (modalCv()!.profile.biography) {
-                <section class="modal-section">
-                  <h3>About</h3>
-                  <p class="modal-bio">{{ modalCv()!.profile.biography }}</p>
-                </section>
-              }
-
-              <!-- Stats bar -->
-              <section class="modal-section modal-stats">
-                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.completedGoals }}</span><span class="stat-chip__label">Goals Done</span></div>
-                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.totalMilestones }}</span><span class="stat-chip__label">Milestones</span></div>
-                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.verifiedProofItems }}</span><span class="stat-chip__label">Verified Proof</span></div>
-                <div class="stat-chip"><span class="stat-chip__value">{{ modalCv()!.stats.totalProofItems }}</span><span class="stat-chip__label">Total Proof</span></div>
+              <section class="signal-strip">
+                <article class="signal-card">
+                  <span class="signal-label">Market Readiness Score</span>
+                  <strong class="signal-value">{{ modalCv()!.marketReadinessScore }}</strong>
+                </article>
+                <article class="signal-card">
+                  <span class="signal-label">Experience Depth</span>
+                  <strong class="signal-value">{{ getExperienceYearsLabel() }}</strong>
+                </article>
+                <article class="signal-card">
+                  <span class="signal-label">Proof Verification</span>
+                  <strong class="signal-value">{{ getProofVerificationRate() }}%</strong>
+                </article>
+                <article class="signal-card">
+                  <span class="signal-label">Growth Signals</span>
+                  <strong class="signal-value">{{ modalCv()!.stats.inProgressGoals }} active goals</strong>
+                </article>
               </section>
 
-              <!-- Work experience -->
-              @if (modalCv()!.workExperience.length > 0) {
-                <section class="modal-section">
-                  <h3>Work Experience</h3>
-                  @for (w of modalCv()!.workExperience; track w.id) {
-                    <div class="modal-entry">
-                      <div class="modal-entry__title">{{ w.jobTitle }}</div>
-                      <div class="modal-entry__sub">{{ w.companyName }}@if (w.location) { · {{ w.location }} }</div>
-                      <div class="modal-entry__dates">{{ w.startDate | date:'MMM yyyy' }} – {{ w.isCurrent ? 'Present' : (w.endDate | date:'MMM yyyy') }}</div>
-                      @if (w.description) { <p class="modal-entry__desc">{{ w.description }}</p> }
-                    </div>
+              <div class="modal-layout-grid">
+                <div class="modal-main-column">
+                  @if (modalCv()!.profile.biography) {
+                    <section class="modal-section">
+                      <h3>Profile Narrative</h3>
+                      <p class="modal-bio">{{ modalCv()!.profile.biography }}</p>
+                    </section>
                   }
-                </section>
-              }
 
-              <!-- Education -->
-              @if (modalCv()!.education.length > 0) {
-                <section class="modal-section">
-                  <h3>Education</h3>
-                  @for (e of modalCv()!.education; track e.id) {
-                    <div class="modal-entry">
-                      <div class="modal-entry__title">{{ e.degree }}@if (e.fieldOfStudy) { — {{ e.fieldOfStudy }} }</div>
-                      <div class="modal-entry__sub">{{ e.institution }}</div>
-                      <div class="modal-entry__dates">{{ e.startDate | date:'yyyy' }} – {{ e.isCurrent ? 'Present' : (e.endDate | date:'yyyy') }}</div>
-                    </div>
+                  @if (modalCv()!.workExperience.length > 0) {
+                    <section class="modal-section">
+                      <div class="section-head">
+                        <h3>Career Evidence</h3>
+                        @if (hasMoreExperience()) {
+                          <button class="btn-link" (click)="showAllExperience.set(!showAllExperience())">
+                            {{ showAllExperience() ? 'Show Less' : 'Show All' }}
+                          </button>
+                        }
+                      </div>
+                      @for (w of getDisplayedExperience(); track w.id) {
+                        <div class="modal-entry">
+                          <div class="modal-entry__title">{{ w.jobTitle }}</div>
+                          <div class="modal-entry__sub">{{ w.companyName }}@if (w.location) { · {{ w.location }} }</div>
+                          <div class="modal-entry__dates">{{ w.startDate | date:'MMM yyyy' }} – {{ w.isCurrent ? 'Present' : (w.endDate | date:'MMM yyyy') }}</div>
+                          @if (w.description) {
+                            <p class="modal-entry__desc">{{ w.description }}</p>
+                          }
+                        </div>
+                      }
+                    </section>
                   }
-                </section>
-              }
 
-              <!-- Skills -->
-              @if (modalCv()!.skills.length > 0) {
-                <section class="modal-section">
-                  <h3>Skills</h3>
-                  <div class="modal-skills">
-                    @for (s of modalCv()!.skills; track s.id) {
-                      <span class="skill-chip">{{ s.skillName }}</span>
-                    }
-                  </div>
-                </section>
-              }
-
-              <!-- Certifications -->
-              @if (modalCv()!.certifications.length > 0) {
-                <section class="modal-section">
-                  <h3>Certifications</h3>
-                  @for (c of modalCv()!.certifications; track c.id) {
-                    <div class="modal-entry">
-                      <div class="modal-entry__title">{{ c.name }}</div>
-                      <div class="modal-entry__sub">{{ c.issuingOrganization }}</div>
-                    </div>
+                  @if (modalCv()!.education.length > 0) {
+                    <section class="modal-section">
+                      <h3>Education</h3>
+                      @for (e of modalCv()!.education; track e.id) {
+                        <div class="modal-entry">
+                          <div class="modal-entry__title">{{ e.degree }}@if (e.fieldOfStudy) { — {{ e.fieldOfStudy }} }</div>
+                          <div class="modal-entry__sub">{{ e.institution }}</div>
+                          <div class="modal-entry__dates">{{ e.startDate | date:'yyyy' }} – {{ e.isCurrent ? 'Present' : (e.endDate | date:'yyyy') }}</div>
+                        </div>
+                      }
+                    </section>
                   }
-                </section>
-              }
+                </div>
+
+                <aside class="modal-side-column">
+                  @if (modalCv()!.skills.length > 0) {
+                    <section class="modal-section">
+                      <div class="section-head">
+                        <h3>Capability Stack</h3>
+                        @if (hasMoreSkills()) {
+                          <button class="btn-link" (click)="showAllSkills.set(!showAllSkills())">
+                            {{ showAllSkills() ? 'Show Less' : 'Show All' }}
+                          </button>
+                        }
+                      </div>
+                      <div class="modal-skills modal-skills--scrollable">
+                        @for (skillName of getDisplayedSkills(); track skillName) {
+                          <span class="skill-chip">{{ skillName }}</span>
+                        }
+                      </div>
+                    </section>
+                  }
+
+                  @if (modalCv()!.certifications.length > 0) {
+                    <section class="modal-section">
+                      <div class="section-head">
+                        <h3>Certification Signals</h3>
+                        @if (hasMoreCertifications()) {
+                          <button class="btn-link" (click)="showAllCertifications.set(!showAllCertifications())">
+                            {{ showAllCertifications() ? 'Show Less' : 'Show All' }}
+                          </button>
+                        }
+                      </div>
+                      @for (certification of getDisplayedCertifications(); track certification.id) {
+                        <div class="modal-entry modal-entry--compact">
+                          <div class="modal-entry__title">{{ certification.name }}</div>
+                          <div class="modal-entry__sub">{{ certification.issuingOrganization }}</div>
+                        </div>
+                      }
+                    </section>
+                  }
+
+                  @if (modalCv()!.references.length > 0) {
+                    <section class="modal-section">
+                      <div class="section-head">
+                        <h3>Professional References</h3>
+                        @if (hasMoreReferences()) {
+                          <button class="btn-link" (click)="showAllReferences.set(!showAllReferences())">
+                            {{ showAllReferences() ? 'Show Less' : 'Show All' }}
+                          </button>
+                        }
+                      </div>
+                      @for (reference of getDisplayedReferences(); track $index) {
+                        <div class="modal-entry modal-entry--compact">
+                          <div class="modal-entry__title">{{ reference.jobTitle }}</div>
+                          <div class="modal-entry__sub">{{ reference.company }}</div>
+                          <div class="modal-entry__dates">{{ reference.relationship }}</div>
+                        </div>
+                      }
+                    </section>
+                  }
+
+                  <section class="modal-section">
+                    <h3>Evidence Summary</h3>
+                    <div class="summary-list">
+                      <div class="summary-item">
+                        <span>Completed Goals</span>
+                        <strong>{{ modalCv()!.stats.completedGoals }}</strong>
+                      </div>
+                      <div class="summary-item">
+                        <span>Total Milestones</span>
+                        <strong>{{ modalCv()!.stats.totalMilestones }}</strong>
+                      </div>
+                      <div class="summary-item">
+                        <span>Verified Proof</span>
+                        <strong>{{ modalCv()!.stats.verifiedProofItems }}</strong>
+                      </div>
+                    </div>
+                  </section>
+                </aside>
+              </div>
             }
           </div>
 
+        </div>
+      </div>
+    }
+
+    @if (watchModalOpen()) {
+      <div class="modal-backdrop" (click)="closeWatchModal()">
+        <div class="watch-modal" (click)="$event.stopPropagation()">
+          <div class="watch-modal__header">
+            <h3>Watch Candidate</h3>
+            <button class="modal-close modal-close--dark" (click)="closeWatchModal()" aria-label="Close">✕</button>
+          </div>
+
+          <p class="watch-modal__subtitle">
+            Send a private watch request for <strong>{{ watchCandidate()?.publicAlias }}</strong>.
+            Candidate identity remains protected until they explicitly opt in.
+          </p>
+
+          <div class="watch-reason-grid">
+            @for (option of watchReasonOptions; track option.value) {
+              <button
+                class="watch-reason-card"
+                [class.watch-reason-card--active]="watchReason() === option.value"
+                (click)="selectWatchReason(option.value)">
+                <span class="watch-reason-card__title">{{ option.label }}</span>
+                <span class="watch-reason-card__desc">{{ option.description }}</span>
+              </button>
+            }
+          </div>
+
+          <label class="watch-note-label" for="watch-note">Internal recruiter note (optional)</label>
+          <textarea
+            id="watch-note"
+            class="watch-note-input"
+            rows="3"
+            maxlength="240"
+            [value]="watchNote()"
+            (input)="updateWatchNote($any($event.target).value)"
+            placeholder="Why this candidate should stay warm in your pipeline..."></textarea>
+
+          @if (watchError()) {
+            <p class="watch-error">{{ watchError() }}</p>
+          }
+
+          <div class="watch-modal__actions">
+            <button class="btn-cancel" [disabled]="watchSubmitting()" (click)="closeWatchModal()">Cancel</button>
+            <button class="btn-submit-watch" [disabled]="watchSubmitting()" (click)="submitWatchRequest()">
+              {{ watchSubmitting() ? 'Sending...' : 'Send Watch Request' }}
+            </button>
+          </div>
         </div>
       </div>
     }

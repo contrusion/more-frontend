@@ -36,3 +36,20 @@ export interface MyApplication {
 export interface ApplyRequest {
   coverLetter?: string;
 }
+
+export type WatchRequestDecision = 'ACCEPT' | 'DECLINE';
+
+export interface CandidateWatchRequest {
+  id: string;
+  candidateAlias: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  triggerReason: 'SKILL_GAP' | 'EXPERIENCE_GAP' | 'TIMING_GAP' | 'DOMAIN_GAP';
+  recruiterNote: string | null;
+  createdAt: string;
+  expiresAt: string;
+  respondedAt: string | null;
+}
+
+export interface RespondToWatchRequestPayload {
+  decision: WatchRequestDecision;
+}

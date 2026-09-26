@@ -8,33 +8,35 @@
       </div>
       <div class="readiness-hero__right">
         <div class="readiness-hero__meta">
-          <button class="refresh-btn" type="button" (click)="refreshNow()" [disabled]="loading()">
-            Refresh
-          </button>
-          @if (lastRefreshedAt()) {
-            <span class="refreshed-at">Updated {{ lastRefreshedAt() | date:'HH:mm:ss' }}</span>
-          }
-        </div>
-
-        @if (breakdown(); as data) {
-          <div class="readiness-hero__status-card">
-            <span class="readiness-hero__status-label">Current tier</span>
-            <app-candidate-class-badge
-              [marketReadinessTier]="data.marketReadinessTier"
-              [isAllStar]="data.isAllStar"
-              [tooltip]="'Your current market readiness tier'" />
-            <div class="readiness-hero__status-metrics">
-              <div>
-                <span>Score</span>
-                <strong>{{ data.totalScore | number }}</strong>
-              </div>
-              <div>
-                <span>Next target</span>
-                <strong>{{ nextTierLabel() }}</strong>
+          @if (breakdown(); as data) {
+            <div class="readiness-hero__status-card">
+              <span class="readiness-hero__status-label">Current tier</span>
+              <app-candidate-class-badge
+                [marketReadinessTier]="data.marketReadinessTier"
+                [isAllStar]="data.isAllStar"
+                [tooltip]="'Your current market readiness tier'" />
+              <div class="readiness-hero__status-metrics">
+                <div>
+                  <span>Score</span>
+                  <strong>{{ data.totalScore | number }}</strong>
+                </div>
+                <div>
+                  <span>Next target</span>
+                  <strong>{{ nextTierLabel() }}</strong>
+                </div>
               </div>
             </div>
+          }
+
+          <div class="readiness-hero__refresh-group">
+            <button class="refresh-btn" type="button" (click)="refreshNow()" [disabled]="loading()">
+              Refresh
+            </button>
+            @if (lastRefreshedAt()) {
+              <span class="refreshed-at">Updated {{ lastRefreshedAt() | date:'HH:mm:ss' }}</span>
+            }
           </div>
-        }
+        </div>
       </div>
     </div>
   </header>

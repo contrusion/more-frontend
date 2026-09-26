@@ -18,6 +18,61 @@
 
   <div class="dashboard-body">
 
+    <section class="watch-requests-section">
+      <div class="section-headline">
+        <h2>Pending Watch Requests</h2>
+        <button class="refresh-inline-btn" (click)="loadPendingWatchRequests()" [disabled]="watchRequestsLoading()">
+          {{ watchRequestsLoading() ? 'Refreshing…' : 'Refresh' }}
+        </button>
+      </div>
+
+      @if (watchRequestError()) {
+        <div class="error-state watch-error">{{ watchRequestError() }}</div>
+      }
+
+      @if (watchRequestsLoading()) {
+        <div class="watch-loading">Loading pending requests…</div>
+      }
+
+      @if (!watchRequestsLoading() && pendingWatchRequests().length === 0) {
+        <div class="watch-empty">No pending watch requests right now.</div>
+      }
+
+      @if (!watchRequestsLoading() && pendingWatchRequests().length > 0) {
+        <div class="watch-requests-list">
+          @for (request of pendingWatchRequests(); track request.id) {
+            <article class="watch-request-card">
+              <div class="watch-request-main">
+                <div>
+                  <h3>{{ request.candidateAlias }}</h3>
+                  <p class="watch-request-meta">
+                    Reason: <strong>{{ watchReasonLabel(request.triggerReason) }}</strong> · Received {{ request.createdAt | date:'mediumDate' }}
+                  </p>
+                  @if (request.recruiterNote) {
+                    <p class="watch-request-note">"{{ request.recruiterNote }}"</p>
+                  }
+                </div>
+                <div class="watch-request-actions">
+                  <button
+                    class="watch-action-btn watch-action-btn--accept"
+                    [disabled]="respondingWatchRequestId() === request.id"
+                    (click)="respondToWatchRequest(request, 'ACCEPT')">
+                    {{ respondingWatchRequestId() === request.id ? 'Saving…' : 'Accept' }}
+                  </button>
+                  <button
+                    class="watch-action-btn watch-action-btn--decline"
+                    [disabled]="respondingWatchRequestId() === request.id"
+                    (click)="respondToWatchRequest(request, 'DECLINE')">
+                    Decline
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
     <!-- Error -->
     @if (error()) {
       <div class="error-state">{{ error() }}</div>

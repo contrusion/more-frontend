@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OpportunityService } from '../services/opportunity.service';
-import { MyApplication } from '../models/opportunity.model';
+import { CandidateWatchRequest, MyApplication, WatchRequestDecision } from '../models/opportunity.model';
 
 @Component({
   selector: 'app-my-applications',
@@ -12,13 +12,18 @@ import { MyApplication } from '../models/opportunity.model';
 })
 export class MyApplicationsComponent implements OnInit {
   applications = signal<MyApplication[]>([]);
+  pendingWatchRequests = signal<CandidateWatchRequest[]>([]);
   loading = signal(true);
+  watchRequestsLoading = signal(true);
   error = signal<string | null>(null);
+  watchRequestError = signal<string | null>(null);
   withdrawingApplicationId = signal<string | null>(null);
+  respondingWatchRequestId = signal<string | null>(null);
 
   constructor(private readonly opportunityService: OpportunityService) {}
 
   ngOnInit(): void {
+    this.loadPendingWatchRequests();
     this.load();
   }
 
@@ -33,6 +38,47 @@ export class MyApplicationsComponent implements OnInit {
       error: () => {
         this.error.set('Failed to load your applications. Please try again.');
         this.loading.set(false);
+      }
+    });
+  }
+
+  loadPendingWatchRequests(): void {
+    this.watchRequestsLoading.set(true);
+    this.watchRequestError.set(null);
+    this.opportunityService.getPendingWatchRequests().subscribe({
+      next: (requests) => {
+        this.pendingWatchRequests.set(requests);
+        this.watchRequestsLoading.set(false);
+      },
+      error: () => {
+        this.watchRequestError.set('Failed to load watch requests. Please try again.');
+        this.watchRequestsLoading.set(false);
+      }
+    });
+  }
+
+  watchReasonLabel(reason: CandidateWatchRequest['triggerReason']): string {
+    return reason.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  respondToWatchRequest(request: CandidateWatchRequest, decision: WatchRequestDecision): void {
+    if (this.respondingWatchRequestId() === request.id) {
+      return;
+    }
+
+    this.respondingWatchRequestId.set(request.id);
+    this.watchRequestError.set(null);
+
+    this.opportunityService.respondToWatchRequest(request.id, { decision }).subscribe({
+      next: () => {
+        this.pendingWatchRequests.update((current) =>
+          current.filter((watchRequest) => watchRequest.id !== request.id)
+        );
+        this.respondingWatchRequestId.set(null);
+      },
+      error: () => {
+        this.watchRequestError.set('Could not submit your response. Please try again.');
+        this.respondingWatchRequestId.set(null);
       }
     });
   }

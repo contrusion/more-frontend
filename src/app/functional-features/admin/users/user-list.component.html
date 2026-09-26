@@ -104,9 +104,6 @@
               <tr [class.row--suspended]="!user.enabled" [routerLink]="['/admin/users', user.id]" class="row--clickable">
                 <td class="td-name">
                   {{ user.firstName }} {{ user.lastName }}
-                  @if (user.premium) {
-                    <span class="badge badge--premium">⭐ Premium</span>
-                  }
                 </td>
                 <td class="td-email">{{ user.email }}</td>
                 <td class="td-types">

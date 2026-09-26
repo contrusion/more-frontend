@@ -324,6 +324,8 @@ Candidates self-select a persona that signals their intent to the system and to 
 - Completing a milestone flagged "Highly Desired" by a watching recruiter awards an additional **+50 pts**
 - Watch expires after 6 months — recruiter receives a *"Check-in"* prompt at expiry
 
+> **Implementation note (current increment):** request/accept/decline and watchlist visibility are implemented first. The 6-month auto-expiry scheduler and check-in prompt are intentionally deferred to a follow-up increment.
+
 **Components to Create:**
 - `WatchCandidateButtonComponent` (`recruiter/components/watch-candidate-button/`) — triggers watch request modal
 - `WatchRequestModalComponent` (`recruiter/components/watch-request-modal/`) — trigger reason selector + milestone flag picker

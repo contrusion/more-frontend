@@ -195,6 +195,10 @@ export const routes: Routes = [
         loadComponent: () => import('./functional-features/recruitment/recruiter/job-ads/job-ads-list.component').then(m => m.JobAdsListComponent)
       },
       {
+        path: 'watchlist',
+        loadComponent: () => import('./functional-features/recruitment/recruiter/watchlist/watchlist-dashboard.component').then(m => m.WatchlistDashboardComponent)
+      },
+      {
         path: 'job-ads/:jobAdId/applicants',
         loadComponent: () => import('./functional-features/recruitment/recruiter/job-ads/job-ad-applicants.component').then(m => m.JobAdApplicantsComponent)
       }

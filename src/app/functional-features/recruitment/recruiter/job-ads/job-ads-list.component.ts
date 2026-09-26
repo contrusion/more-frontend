@@ -23,6 +23,8 @@ export class JobAdsListComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   activeFilter = signal<JobAdFilter>('ALL');
+  currentPage = signal(0);
+  readonly pageSize = 8;
 
   readonly filterOptions: Array<{ label: string; value: JobAdFilter }> = [
     { label: 'All Ads', value: 'ALL' },
@@ -45,6 +47,15 @@ export class JobAdsListComponent implements OnInit {
     return ads;
   });
 
+  readonly filteredTotalPages = computed(() => {
+    return Math.ceil(this.filteredJobAds().length / this.pageSize);
+  });
+
+  readonly pagedFilteredJobAds = computed(() => {
+    const start = this.currentPage() * this.pageSize;
+    return this.filteredJobAds().slice(start, start + this.pageSize);
+  });
+
   formOpen = signal(false);
   editingAd = signal<JobAdvertisement | null>(null);
 
@@ -59,6 +70,7 @@ export class JobAdsListComponent implements OnInit {
 
   applyFilter(value: JobAdFilter): void {
     this.activeFilter.set(value);
+    this.currentPage.set(0);
   }
 
   load(): void {
@@ -67,6 +79,7 @@ export class JobAdsListComponent implements OnInit {
     this.jobAdService.getMyAds().subscribe({
       next: (ads) => {
         this.jobAds.set(ads);
+        this.currentPage.set(0);
         this.loading.set(false);
       },
       error: () => {
@@ -106,6 +119,17 @@ export class JobAdsListComponent implements OnInit {
 
   openApplicants(ad: JobAdvertisement): void {
     this.router.navigate(['/recruiter/job-ads', ad.id, 'applicants']);
+  }
+
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.filteredTotalPages()) {
+      return;
+    }
+    this.currentPage.set(page);
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.filteredTotalPages() }, (_, i) => i);
   }
 
   labelForJobType(jt: JobType): string {

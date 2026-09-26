@@ -25,6 +25,7 @@ export class UserListComponent implements OnInit {
   currentPage = signal(0);
   totalPages = signal(0);
   totalElements = signal(0);
+  readonly pageSize = 8;
 
   activeTypeFilter = signal<TypeFilter>(null);
   activePremiumFilter = signal<PremiumFilter>(null);
@@ -55,7 +56,7 @@ export class UserListComponent implements OnInit {
     const types = this.activeTypeFilter() ? [this.activeTypeFilter()! as AccountType] : undefined;
     this.userService.listUsers({
       page: this.currentPage(),
-      size: 20,
+      size: this.pageSize,
       types,
       premium: this.activePremiumFilter(),
       search: this.searchQuery || undefined,
@@ -102,7 +103,14 @@ export class UserListComponent implements OnInit {
 
   formatDate(iso: string | null): string {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
+    return new Date(iso).toLocaleString('en-ZA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   }
 
   formatTypes(types: AccountType[]): string {

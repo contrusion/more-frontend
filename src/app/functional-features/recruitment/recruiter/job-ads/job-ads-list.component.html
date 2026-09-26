@@ -89,7 +89,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (ad of filteredJobAds(); track ad.id) {
+          @for (ad of pagedFilteredJobAds(); track ad.id) {
             <tr [class.inactive-row]="!ad.isActive">
               <td class="col-title">
                 <span class="ad-title">{{ ad.title }}</span>
@@ -124,9 +124,9 @@
               <td class="col-date">{{ ad.closingDate | date:'dd MMM yyyy' }}</td>
               <td>
                 @if (ad.isActive) {
-                  <span class="badge badge-active">Active</span>
+                  <span class="status-dot status-dot--active">Active</span>
                 } @else {
-                  <span class="badge badge-inactive">Inactive</span>
+                  <span class="status-dot status-dot--inactive">Inactive</span>
                 }
               </td>
               <td class="col-actions">
@@ -161,6 +161,25 @@
         </tbody>
       </table>
     </div>
+
+    @if (filteredTotalPages() > 1) {
+      <div class="pagination">
+        <button class="pagination__btn" [disabled]="currentPage() === 0" (click)="goToPage(currentPage() - 1)">
+          Prev
+        </button>
+        @for (p of pageNumbers; track p) {
+          <button
+            class="pagination__btn pagination__btn--page"
+            [class.pagination__btn--active]="currentPage() === p"
+            (click)="goToPage(p)">
+            {{ p + 1 }}
+          </button>
+        }
+        <button class="pagination__btn" [disabled]="currentPage() === filteredTotalPages() - 1" (click)="goToPage(currentPage() + 1)">
+          Next
+        </button>
+      </div>
+    }
   }
   </div>
 </div>

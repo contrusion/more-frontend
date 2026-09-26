@@ -34,6 +34,18 @@ import { NavDrawerService } from '../../../shared/services/nav-drawer.service';
           </svg>
           <span>Jobs</span>
         </button>
+        <button
+          class="nav-item"
+          [class.active]="isActive('watchlist')"
+          (click)="navigate('watchlist')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 18a5 5 0 0 0-10 0"/>
+            <circle cx="12" cy="11" r="3"/>
+            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+          </svg>
+          <span>Watch</span>
+        </button>
       </nav>
       <div class="recruiter-content">
         <router-outlet></router-outlet>
