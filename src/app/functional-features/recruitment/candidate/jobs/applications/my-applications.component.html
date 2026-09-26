@@ -51,6 +51,16 @@
                   @if (request.recruiterNote) {
                     <p class="watch-request-note">"{{ request.recruiterNote }}"</p>
                   }
+                  @if (request.suggestedFocusAreas.length > 0) {
+                    <div class="watch-focus-areas">
+                      <span class="watch-focus-label">Recruiter-suggested growth focus</span>
+                      <div class="watch-focus-list">
+                        @for (focusArea of request.suggestedFocusAreas; track focusArea) {
+                          <span class="watch-focus-item">{{ focusArea }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
                 <div class="watch-request-actions">
                   <button

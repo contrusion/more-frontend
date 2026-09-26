@@ -151,6 +151,35 @@
   line-height: 1.4;
 }
 
+.watch-focus-areas {
+  margin-top: 0.4rem;
+}
+
+.watch-focus-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.watch-focus-list {
+  margin-top: 0.28rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.watch-focus-item {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  color: #334155;
+}
+
 .watch-request-actions {
   display: flex;
   gap: 0.4rem;

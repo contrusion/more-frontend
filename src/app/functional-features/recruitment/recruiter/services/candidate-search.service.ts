@@ -10,6 +10,7 @@ export interface CreateWatchRequestPayload {
   candidateAlias: string;
   triggerReason: WatchReason;
   recruiterNote?: string;
+  suggestedFocusAreas?: string[];
 }
 
 export interface CandidateWatchRequestResponse {
@@ -18,9 +19,33 @@ export interface CandidateWatchRequestResponse {
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
   triggerReason: WatchReason;
   recruiterNote: string | null;
+  suggestedFocusAreas: string[];
   createdAt: string;
   expiresAt: string;
   respondedAt: string | null;
+}
+
+export interface RecruiterWatchlistEntryResponse {
+  id: string;
+  candidateAlias: string;
+  acceptedAt: string;
+  expiresAt: string;
+  triggerReason: WatchReason | null;
+  recruiterNote: string | null;
+  suggestedFocusAreas: string[];
+}
+
+export interface RecruiterWatchProgressResponse {
+  candidateAlias: string;
+  marketReadinessTier: MarketReadinessTier;
+  isAllStar: boolean;
+  marketReadinessScore: number;
+  completedGoals: number;
+  totalGoals: number;
+  completedMilestones: number;
+  totalMilestones: number;
+  goalProgressPercent: number;
+  milestoneProgressPercent: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,5 +92,13 @@ export class CandidateSearchService {
 
   getMyWatchRequests(): Observable<CandidateWatchRequestResponse[]> {
     return this.http.get<CandidateWatchRequestResponse[]>(`${this.base}/watchlist/requests`);
+  }
+
+  getMyWatchlist(): Observable<RecruiterWatchlistEntryResponse[]> {
+    return this.http.get<RecruiterWatchlistEntryResponse[]>(`${this.base}/watchlist`);
+  }
+
+  getWatchProgress(candidateAlias: string): Observable<RecruiterWatchProgressResponse> {
+    return this.http.get<RecruiterWatchProgressResponse>(`${this.base}/watchlist/${candidateAlias}/progress`);
   }
 }

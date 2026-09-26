@@ -290,6 +290,27 @@
                   }
 
                   <section class="modal-section">
+                    <h3>Growth Snapshot</h3>
+                    <div class="progress-snapshot">
+                      <div class="progress-snapshot__row">
+                        <span>Goal completion</span>
+                        <strong>{{ modalCv()!.stats.completedGoals }}/{{ modalCv()!.stats.totalGoals }}</strong>
+                      </div>
+                      <div class="progress-snapshot__track">
+                        <span class="progress-snapshot__fill" [style.width.%]="getGoalProgressPercent()"></span>
+                      </div>
+
+                      <div class="progress-snapshot__row progress-snapshot__row--secondary">
+                        <span>Milestone quality signal</span>
+                        <strong>{{ modalCv()!.stats.verifiedProofItems }}/{{ modalCv()!.stats.totalMilestones }}</strong>
+                      </div>
+                      <div class="progress-snapshot__track progress-snapshot__track--secondary">
+                        <span class="progress-snapshot__fill progress-snapshot__fill--secondary" [style.width.%]="getMilestoneProgressPercent()"></span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="modal-section">
                     <h3>Evidence Summary</h3>
                     <div class="summary-list">
                       <div class="summary-item">
@@ -326,6 +347,7 @@
           <p class="watch-modal__subtitle">
             Send a private watch request for <strong>{{ watchCandidate()?.publicAlias }}</strong>.
             Candidate identity remains protected until they explicitly opt in.
+            Use suggestions to coach growth, not to set hard requirements.
           </p>
 
           <div class="watch-reason-grid">
@@ -349,6 +371,35 @@
             [value]="watchNote()"
             (input)="updateWatchNote($any($event.target).value)"
             placeholder="Why this candidate should stay warm in your pipeline..."></textarea>
+
+          <label class="watch-note-label" for="watch-focus">Suggested growth focus (optional, up to 3)</label>
+          <div class="watch-focus-input-row">
+            <input
+              id="watch-focus"
+              class="watch-focus-input"
+              type="text"
+              maxlength="80"
+              [value]="watchFocusInput()"
+              (input)="updateWatchFocusInput($any($event.target).value)"
+              placeholder="Example: Strengthen cloud fundamentals"
+              [disabled]="watchFocusAreas().length >= 3" />
+            <button
+              class="watch-focus-add-btn"
+              type="button"
+              [disabled]="watchFocusAreas().length >= 3 || !watchFocusInput().trim()"
+              (click)="addWatchFocusArea()">
+              Add
+            </button>
+          </div>
+          @if (watchFocusAreas().length > 0) {
+            <div class="watch-focus-chips">
+              @for (focusArea of watchFocusAreas(); track focusArea; let i = $index) {
+                <button class="watch-focus-chip" type="button" (click)="removeWatchFocusArea(i)">
+                  {{ focusArea }} <span aria-hidden="true">×</span>
+                </button>
+              }
+            </div>
+          }
 
           @if (watchError()) {
             <p class="watch-error">{{ watchError() }}</p>

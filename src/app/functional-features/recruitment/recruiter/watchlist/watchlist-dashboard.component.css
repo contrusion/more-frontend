@@ -55,33 +55,6 @@
   cursor: not-allowed;
 }
 
-.watchlist-filters {
-  margin-top: 0.85rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.filter-pill {
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-text-on-dark);
-  border-radius: 999px;
-  padding: 0.32rem 0.68rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.filter-pill:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.filter-pill--active {
-  background: rgba(255, 255, 255, 0.3);
-}
-
 .watchlist-content {
   padding: 1.25rem;
 }
@@ -157,16 +130,6 @@
   color: var(--color-success-text);
 }
 
-.watch-status--declined {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.watch-status--expired {
-  background: var(--color-neutral-bg);
-  color: var(--color-neutral-text);
-}
-
 .watch-card__meta {
   margin: 0.7rem 0 0;
   display: grid;
@@ -198,6 +161,87 @@
   color: var(--color-text-body);
   font-size: 0.75rem;
   line-height: 1.35;
+}
+
+.watch-focus-areas {
+  margin-top: 0.62rem;
+}
+
+.watch-focus-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.watch-focus-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+  margin-top: 0.3rem;
+}
+
+.watch-focus-item {
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  padding: 0.2rem 0.48rem;
+  font-size: 0.7rem;
+}
+
+.watch-progress {
+  margin-top: 0.72rem;
+  padding-top: 0.62rem;
+  border-top: 1px dashed var(--color-border-subtle);
+}
+
+.watch-progress__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+}
+
+.watch-progress__row strong {
+  font-size: 0.73rem;
+  color: var(--color-text-primary);
+}
+
+.watch-progress__row--secondary {
+  margin-top: 0.48rem;
+}
+
+.watch-progress__track {
+  margin-top: 0.24rem;
+  height: 0.36rem;
+  border-radius: 999px;
+  background: var(--color-border-subtle);
+  overflow: hidden;
+}
+
+.watch-progress__track--secondary {
+  background: color-mix(in srgb, var(--color-border-subtle) 72%, var(--color-info-bg) 28%);
+}
+
+.watch-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-success-text), var(--color-success-border));
+}
+
+.watch-progress__fill--secondary {
+  background: linear-gradient(90deg, var(--color-info-border), var(--color-info-text));
+}
+
+.watch-progress__score {
+  margin: 0.45rem 0 0;
+  font-size: 0.71rem;
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 48rem) {

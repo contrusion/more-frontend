@@ -73,6 +73,8 @@ export class CandidateSearchComponent implements OnInit {
   watchCandidate = signal<CandidateSearchResult | null>(null);
   watchReason = signal<WatchReason | null>(null);
   watchNote = signal('');
+  watchFocusInput = signal('');
+  watchFocusAreas = signal<string[]>([]);
   watchError = signal<string | null>(null);
   watchSubmitting = signal(false);
   watchSubmittedState = signal<Record<string, 'REQUESTED'>>({});
@@ -235,6 +237,25 @@ export class CandidateSearchComponent implements OnInit {
     return Math.round((cv.stats.verifiedProofItems / cv.stats.totalProofItems) * 100);
   }
 
+  getGoalProgressPercent(): number {
+    const cv = this.modalCv();
+    if (!cv || cv.stats.totalGoals === 0) {
+      return 0;
+    }
+
+    return Math.round((cv.stats.completedGoals / cv.stats.totalGoals) * 100);
+  }
+
+  getMilestoneProgressPercent(): number {
+    const cv = this.modalCv();
+    if (!cv || cv.stats.totalMilestones === 0) {
+      return 0;
+    }
+
+    // Current public CV stats expose total milestones, with verified proof used as completion-quality signal.
+    return Math.round((cv.stats.verifiedProofItems / cv.stats.totalMilestones) * 100);
+  }
+
   getTopSkills(): string[] {
     const cv = this.modalCv();
     if (!cv) {
@@ -306,6 +327,8 @@ export class CandidateSearchComponent implements OnInit {
     this.watchCandidate.set(candidate);
     this.watchReason.set(null);
     this.watchNote.set('');
+    this.watchFocusInput.set('');
+    this.watchFocusAreas.set([]);
     this.watchError.set(null);
     this.watchModalOpen.set(true);
   }
@@ -317,6 +340,37 @@ export class CandidateSearchComponent implements OnInit {
 
   updateWatchNote(value: string): void {
     this.watchNote.set(value);
+  }
+
+  updateWatchFocusInput(value: string): void {
+    this.watchFocusInput.set(value);
+  }
+
+  addWatchFocusArea(): void {
+    const input = this.watchFocusInput().trim();
+    if (!input) {
+      return;
+    }
+
+    const current = this.watchFocusAreas();
+    if (current.length >= 3) {
+      this.watchError.set('You can suggest up to 3 focus areas.');
+      return;
+    }
+
+    if (current.some((area) => area.toLowerCase() === input.toLowerCase())) {
+      this.watchFocusInput.set('');
+      return;
+    }
+
+    this.watchFocusAreas.set([...current, input]);
+    this.watchFocusInput.set('');
+    this.watchError.set(null);
+  }
+
+  removeWatchFocusArea(index: number): void {
+    this.watchFocusAreas.update((current) => current.filter((_, i) => i !== index));
+    this.watchError.set(null);
   }
 
   submitWatchRequest(): void {
@@ -339,7 +393,8 @@ export class CandidateSearchComponent implements OnInit {
     this.searchService.createWatchRequest({
       candidateAlias: candidate.publicAlias,
       triggerReason: reason,
-      recruiterNote: this.watchNote().trim() || undefined
+      recruiterNote: this.watchNote().trim() || undefined,
+      suggestedFocusAreas: this.watchFocusAreas().length > 0 ? this.watchFocusAreas() : undefined
     }).subscribe({
       next: () => {
         this.watchSubmittedState.update((current) => ({
@@ -365,6 +420,8 @@ export class CandidateSearchComponent implements OnInit {
     this.watchCandidate.set(null);
     this.watchReason.set(null);
     this.watchNote.set('');
+    this.watchFocusInput.set('');
+    this.watchFocusAreas.set([]);
     this.watchError.set(null);
     this.watchSubmitting.set(false);
   }

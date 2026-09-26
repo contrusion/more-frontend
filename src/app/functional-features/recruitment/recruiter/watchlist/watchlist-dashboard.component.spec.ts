@@ -2,7 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import {
   CandidateSearchService,
-  CandidateWatchRequestResponse,
+  RecruiterWatchProgressResponse,
+  RecruiterWatchlistEntryResponse,
 } from '../services/candidate-search.service';
 import { WatchlistDashboardComponent } from './watchlist-dashboard.component';
 
@@ -11,32 +12,58 @@ describe('WatchlistDashboardComponent', () => {
   let fixture: ComponentFixture<WatchlistDashboardComponent>;
   let candidateSearchService: jasmine.SpyObj<CandidateSearchService>;
 
-  const watchRequests: CandidateWatchRequestResponse[] = [
+  const watchlistEntries: RecruiterWatchlistEntryResponse[] = [
     {
-      id: 'wr-1',
+      id: 'we-1',
       candidateAlias: 'alpha-river',
-      status: 'PENDING',
       triggerReason: 'SKILL_GAP',
       recruiterNote: 'Please complete cloud certification',
-      createdAt: '2026-09-01T00:00:00Z',
+      suggestedFocusAreas: ['AWS Associate', 'System design'],
+      acceptedAt: '2026-09-01T00:00:00Z',
       expiresAt: '2026-12-01T00:00:00Z',
-      respondedAt: null,
     },
     {
-      id: 'wr-2',
+      id: 'we-2',
       candidateAlias: 'nova-bird',
-      status: 'ACCEPTED',
       triggerReason: 'TIMING_GAP',
       recruiterNote: null,
-      createdAt: '2026-08-15T00:00:00Z',
+      suggestedFocusAreas: [],
+      acceptedAt: '2026-08-15T00:00:00Z',
       expiresAt: '2026-11-15T00:00:00Z',
-      respondedAt: '2026-08-20T00:00:00Z',
     },
   ];
 
+  const watchProgress: Record<string, RecruiterWatchProgressResponse> = {
+    'alpha-river': {
+      candidateAlias: 'alpha-river',
+      marketReadinessTier: 'SILVER',
+      isAllStar: false,
+      marketReadinessScore: 1820,
+      completedGoals: 2,
+      totalGoals: 4,
+      completedMilestones: 5,
+      totalMilestones: 8,
+      goalProgressPercent: 50,
+      milestoneProgressPercent: 63,
+    },
+    'nova-bird': {
+      candidateAlias: 'nova-bird',
+      marketReadinessTier: 'BRONZE',
+      isAllStar: false,
+      marketReadinessScore: 980,
+      completedGoals: 1,
+      totalGoals: 3,
+      completedMilestones: 2,
+      totalMilestones: 7,
+      goalProgressPercent: 33,
+      milestoneProgressPercent: 29,
+    }
+  };
+
   beforeEach(async () => {
-    candidateSearchService = jasmine.createSpyObj('CandidateSearchService', ['getMyWatchRequests']);
-    candidateSearchService.getMyWatchRequests.and.returnValue(of(watchRequests));
+    candidateSearchService = jasmine.createSpyObj('CandidateSearchService', ['getMyWatchlist', 'getWatchProgress']);
+    candidateSearchService.getMyWatchlist.and.returnValue(of(watchlistEntries));
+    candidateSearchService.getWatchProgress.and.callFake((alias: string) => of(watchProgress[alias]));
 
     await TestBed.configureTestingModule({
       imports: [WatchlistDashboardComponent],
@@ -48,17 +75,17 @@ describe('WatchlistDashboardComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should load watch requests on init', () => {
-    expect(candidateSearchService.getMyWatchRequests).toHaveBeenCalled();
-    expect(component.requests().length).toBe(2);
+  it('should load watchlist entries on init', () => {
+    expect(candidateSearchService.getMyWatchlist).toHaveBeenCalled();
+    expect(candidateSearchService.getWatchProgress).toHaveBeenCalledWith('alpha-river');
+    expect(candidateSearchService.getWatchProgress).toHaveBeenCalledWith('nova-bird');
+    expect(component.entries().length).toBe(2);
     expect(component.loading()).toBeFalse();
   });
 
-  it('should filter requests by selected status', () => {
-    component.setStatusFilter('ACCEPTED');
-
-    expect(component.filteredRequests().length).toBe(1);
-    expect(component.filteredRequests()[0].id).toBe('wr-2');
+  it('should expose active entries from computed state', () => {
+    expect(component.activeEntries().length).toBe(2);
+    expect(component.activeEntries()[0].id).toBe('we-1');
   });
 
   it('should render readable watch reason labels', () => {

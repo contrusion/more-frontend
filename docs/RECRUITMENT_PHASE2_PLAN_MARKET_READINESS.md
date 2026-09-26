@@ -293,7 +293,11 @@ Candidates self-select a persona that signals their intent to the system and to 
 
 ### Epic: Recruiter Watchlist
 
-#### US-P6: Recruiter Can Watch a Candidate (Stealth Handshake)
+#### US-P6: Recruiter Can Watch a Candidate (Stealth Handshake) ✅
+
+**Status (2026-09-26):** Completed for agreed scope.
+- Implemented: watch request flow, accept/decline flow, recruiter watchlist visibility, watched-candidate progress snapshots, +40 watch acceptance points, +50 highly-desired milestone bonus, and recruiter-facing progress rendering.
+- Deferred by explicit scope decision: 6-month auto-expiry scheduler and recruiter check-in prompt.
 
 **As a** recruiter  
 **I want to** add a candidate to my Watchlist when they are not yet ready but show strong potential  
@@ -545,22 +549,22 @@ Candidates self-select a persona that signals their intent to the system and to 
 
 ## Story Breakdown Summary — Phase 3
 
-| Story | Focus | Sprint | Dependencies | Estimated Effort |
-|-------|-------|--------|--------------|-----------------|
-| **US 1.11** | Trust messaging & onboarding tutorial | 6 | US 1.3a, US 1.2 | 0.5 sprint |
-| **US 1.5** | Privacy / visibility toggles | 6 | US 1.3, US 1.2, US 1.3a | 1 sprint |
-| **US-C3** | System Issues Vitality-Style Goal Challenges to Candidates | 7 | US 1.3, US 1.4, US-C2 | 1.5 sprints | ✅
-| **US-P1** | Market Readiness Score & Tier engine | 8 | US 1.4, US-C3 | 2 sprints | ✅
-| **US-P2** | Candidate score breakdown + next steps | 8 | US-P1 | 1 sprint | ✅
+| Story | Focus | Sprint | Dependencies | Estimated Effort | Status |
+|-------|-------|--------|--------------|------------------|--------|
+| **US 1.11** | Trust messaging & onboarding tutorial | 6 | US 1.3a, US 1.2 | 0.5 sprint | |
+| **US 1.5** | Privacy / visibility toggles | 6 | US 1.3, US 1.2, US 1.3a | 1 sprint | |
+| **US-C3** | System Issues Vitality-Style Goal Challenges to Candidates | 7 | US 1.3, US 1.4, US-C2 | 1.5 sprints | ✅ |
+| **US-P1** | Market Readiness Score & Tier engine | 8 | US 1.4, US-C3 | 2 sprints | ✅ |
+| **US-P2** | Candidate score breakdown + next steps | 8 | US-P1 | 1 sprint | ✅ |
 | **US-P3** | Talent Personas (Passive/Warm/Active) | 9 | US 1.5, US 1.11 | 1 sprint | ✅ |
-| **US-P4** | System-Guided Career Pathway activation | 10 | US-P1, US-C3 | 2 sprints |
-| **US-P5** | career pathway execution points + streak | 10 | US-P4, US-P1 | 0.5 sprint |
-| **US-P6** | Recruiter Watchlist (stealth handshake) | 11 | US-P4, US 1.3a | 2 sprints |
-| **US-P7** | Launch to Watchers (watchlist token reveal) | 11 | US-P6, US-P4 | 1 sprint |
-| **US-P8** | Knowledge Freshness Assessments | 12 | US-P1 | 2 sprints |
-| **US-P9** | Admin: career pathway & Assessment management | 12 | US-P4, US-P8 | 1 sprint |
-| **US-P10** | Candidate skill verification via in-platform test | 12 | US-P1, US-P8, US-P9 | 1 sprint |
-| **US-P11** | Candidate peer percentile ranking within tier | 12 | US-P1, US-P2 | 0.5 sprint |
+| **US-P4** | System-Guided Career Pathway activation | 10 | US-P1, US-C3 | 2 sprints | |
+| **US-P5** | career pathway execution points + streak | 10 | US-P4, US-P1 | 0.5 sprint | |
+| **US-P6** | Recruiter Watchlist (stealth handshake) | 11 | US-P4, US 1.3a | 2 sprints | ✅ (scope complete; expiry/check-in deferred) |
+| **US-P7** | Launch to Watchers (watchlist token reveal) | 11 | US-P6, US-P4 | 1 sprint | |
+| **US-P8** | Knowledge Freshness Assessments | 12 | US-P1 | 2 sprints | |
+| **US-P9** | Admin: career pathway & Assessment management | 12 | US-P4, US-P8 | 1 sprint | |
+| **US-P10** | Candidate skill verification via in-platform test | 12 | US-P1, US-P8, US-P9 | 1 sprint | |
+| **US-P11** | Candidate peer percentile ranking within tier | 12 | US-P1, US-P2 | 0.5 sprint | |
 
 ---
 

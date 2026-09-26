@@ -3,43 +3,10 @@
     <div class="watchlist-header__inner">
       <div>
         <h1>Watchlist</h1>
-        <p>Track candidate watch requests and follow their response status.</p>
+        <p>Track accepted watch relationships and monitor expiry windows.</p>
       </div>
       <button class="watchlist-refresh" (click)="load()" [disabled]="loading()">
         {{ loading() ? 'Refreshing...' : 'Refresh' }}
-      </button>
-    </div>
-
-    <div class="watchlist-filters" role="tablist" aria-label="Watchlist status filters">
-      <button
-        class="filter-pill"
-        [class.filter-pill--active]="statusFilter() === 'ALL'"
-        (click)="setStatusFilter('ALL')">
-        All ({{ statusCounts().all }})
-      </button>
-      <button
-        class="filter-pill"
-        [class.filter-pill--active]="statusFilter() === 'PENDING'"
-        (click)="setStatusFilter('PENDING')">
-        Pending ({{ statusCounts().pending }})
-      </button>
-      <button
-        class="filter-pill"
-        [class.filter-pill--active]="statusFilter() === 'ACCEPTED'"
-        (click)="setStatusFilter('ACCEPTED')">
-        Accepted ({{ statusCounts().accepted }})
-      </button>
-      <button
-        class="filter-pill"
-        [class.filter-pill--active]="statusFilter() === 'DECLINED'"
-        (click)="setStatusFilter('DECLINED')">
-        Declined ({{ statusCounts().declined }})
-      </button>
-      <button
-        class="filter-pill"
-        [class.filter-pill--active]="statusFilter() === 'EXPIRED'"
-        (click)="setStatusFilter('EXPIRED')">
-        Expired ({{ statusCounts().expired }})
       </button>
     </div>
   </header>
@@ -53,39 +20,74 @@
       <div class="watchlist-state">Loading watch requests...</div>
     }
 
-    @if (!loading() && !error() && filteredRequests().length === 0) {
-      <div class="watchlist-state">No requests match this filter.</div>
+    @if (!loading() && !error() && activeEntries().length === 0) {
+      <div class="watchlist-state">No accepted watchlist entries yet.</div>
     }
 
-    @if (!loading() && filteredRequests().length > 0) {
+    @if (!loading() && activeEntries().length > 0) {
       <div class="watchlist-cards">
-        @for (request of filteredRequests(); track request.id) {
+        @for (entry of activeEntries(); track entry.id) {
           <article class="watch-card">
             <div class="watch-card__top">
               <div class="watch-card__identity">
-                <h2>{{ request.candidateAlias }}</h2>
-                <p>{{ watchReasonLabel(request.triggerReason) }}</p>
+                <h2>{{ entry.candidateAlias }}</h2>
+                <p>{{ watchReasonLabel(entry.triggerReason) }}</p>
               </div>
-              <span [class]="statusClass(request.status)">{{ statusLabel(request.status) }}</span>
+              <span class="watch-status watch-status--accepted">Accepted</span>
             </div>
 
             <dl class="watch-card__meta">
               <div>
-                <dt>Requested</dt>
-                <dd>{{ request.createdAt | date:'mediumDate' }}</dd>
+                <dt>Accepted</dt>
+                <dd>{{ entry.acceptedAt | date:'mediumDate' }}</dd>
               </div>
               <div>
                 <dt>Expires</dt>
-                <dd>{{ request.expiresAt | date:'mediumDate' }}</dd>
+                <dd>{{ entry.expiresAt | date:'mediumDate' }}</dd>
               </div>
               <div>
                 <dt>Time Left</dt>
-                <dd>{{ daysUntilExpiry(request.expiresAt) }} day{{ daysUntilExpiry(request.expiresAt) !== 1 ? 's' : '' }}</dd>
+                <dd>{{ daysUntilExpiry(entry.expiresAt) }} day{{ daysUntilExpiry(entry.expiresAt) !== 1 ? 's' : '' }}</dd>
               </div>
             </dl>
 
-            @if (request.recruiterNote) {
-              <p class="watch-card__note">{{ request.recruiterNote }}</p>
+            @if (entry.recruiterNote) {
+              <p class="watch-card__note">{{ entry.recruiterNote }}</p>
+            }
+
+            @if (entry.suggestedFocusAreas.length > 0) {
+              <div class="watch-focus-areas">
+                <span class="watch-focus-label">Suggested growth coaching</span>
+                <div class="watch-focus-list">
+                  @for (focusArea of entry.suggestedFocusAreas; track focusArea) {
+                    <span class="watch-focus-item">{{ focusArea }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (progressFor(entry.candidateAlias); as progress) {
+              <div class="watch-progress">
+                <div class="watch-progress__row">
+                  <span>Goal completion</span>
+                  <strong>{{ progress.completedGoals }}/{{ progress.totalGoals }}</strong>
+                </div>
+                <div class="watch-progress__track">
+                  <span class="watch-progress__fill" [style.width]="progressBarWidth(progress.goalProgressPercent)"></span>
+                </div>
+
+                <div class="watch-progress__row watch-progress__row--secondary">
+                  <span>Milestone completion</span>
+                  <strong>{{ progress.completedMilestones }}/{{ progress.totalMilestones }}</strong>
+                </div>
+                <div class="watch-progress__track watch-progress__track--secondary">
+                  <span class="watch-progress__fill watch-progress__fill--secondary" [style.width]="progressBarWidth(progress.milestoneProgressPercent)"></span>
+                </div>
+
+                <p class="watch-progress__score">
+                  Readiness {{ progress.marketReadinessScore }} · {{ progress.marketReadinessTier }}@if (progress.isAllStar) { ⭐ }
+                </p>
+              </div>
             }
           </article>
         }

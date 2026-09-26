@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Observable, catchError, forkJoin, of } from 'rxjs';
 import {
   CandidateSearchService,
-  CandidateWatchRequestResponse,
+  RecruiterWatchProgressResponse,
+  RecruiterWatchlistEntryResponse,
 } from '../services/candidate-search.service';
-
-type WatchStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
 
 @Component({
   selector: 'app-watchlist-dashboard',
@@ -16,30 +16,12 @@ type WatchStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED'
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WatchlistDashboardComponent implements OnInit {
-  requests = signal<CandidateWatchRequestResponse[]>([]);
+  entries = signal<RecruiterWatchlistEntryResponse[]>([]);
+  progressByAlias = signal<Record<string, RecruiterWatchProgressResponse>>({});
   loading = signal(true);
   error = signal<string | null>(null);
-  statusFilter = signal<WatchStatusFilter>('ALL');
 
-  filteredRequests = computed(() => {
-    const filter = this.statusFilter();
-    const allRequests = this.requests();
-    if (filter === 'ALL') {
-      return allRequests;
-    }
-    return allRequests.filter((request) => request.status === filter);
-  });
-
-  statusCounts = computed(() => {
-    const allRequests = this.requests();
-    return {
-      all: allRequests.length,
-      pending: allRequests.filter((request) => request.status === 'PENDING').length,
-      accepted: allRequests.filter((request) => request.status === 'ACCEPTED').length,
-      declined: allRequests.filter((request) => request.status === 'DECLINED').length,
-      expired: allRequests.filter((request) => request.status === 'EXPIRED').length,
-    };
-  });
+  activeEntries = computed(() => this.entries());
 
   constructor(private readonly candidateSearchService: CandidateSearchService) {}
 
@@ -51,9 +33,10 @@ export class WatchlistDashboardComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.candidateSearchService.getMyWatchRequests().subscribe({
-      next: (requests) => {
-        this.requests.set(requests);
+    this.candidateSearchService.getMyWatchlist().subscribe({
+      next: (entries) => {
+        this.entries.set(entries);
+        this.loadProgress(entries);
         this.loading.set(false);
       },
       error: () => {
@@ -63,37 +46,46 @@ export class WatchlistDashboardComponent implements OnInit {
     });
   }
 
-  setStatusFilter(filter: WatchStatusFilter): void {
-    this.statusFilter.set(filter);
+  private loadProgress(entries: RecruiterWatchlistEntryResponse[]): void {
+    if (entries.length === 0) {
+      this.progressByAlias.set({});
+      return;
+    }
+
+    const progressRequests = entries.reduce<Record<string, Observable<RecruiterWatchProgressResponse | null>>>(
+      (acc, entry) => {
+        acc[entry.candidateAlias] = this.candidateSearchService
+          .getWatchProgress(entry.candidateAlias)
+          .pipe(catchError(() => of(null)));
+        return acc;
+      },
+      {}
+    );
+
+    forkJoin(progressRequests).subscribe((progressMap) => {
+      const cleanMap = Object.entries(progressMap).reduce<Record<string, RecruiterWatchProgressResponse>>((acc, [alias, progress]) => {
+        if (progress) {
+          acc[alias] = progress;
+        }
+        return acc;
+      }, {});
+      this.progressByAlias.set(cleanMap);
+    });
   }
 
-  watchReasonLabel(reason: CandidateWatchRequestResponse['triggerReason']): string {
+  progressFor(alias: string): RecruiterWatchProgressResponse | null {
+    return this.progressByAlias()[alias] ?? null;
+  }
+
+  watchReasonLabel(reason: RecruiterWatchlistEntryResponse['triggerReason']): string {
+    if (!reason) {
+      return 'Not specified';
+    }
+
     return reason
       .replace(/_/g, ' ')
       .toLowerCase()
       .replace(/\b\w/g, (char) => char.toUpperCase());
-  }
-
-  statusLabel(status: CandidateWatchRequestResponse['status']): string {
-    return status
-      .replace(/_/g, ' ')
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  }
-
-  statusClass(status: CandidateWatchRequestResponse['status']): string {
-    switch (status) {
-      case 'PENDING':
-        return 'watch-status watch-status--pending';
-      case 'ACCEPTED':
-        return 'watch-status watch-status--accepted';
-      case 'DECLINED':
-        return 'watch-status watch-status--declined';
-      case 'EXPIRED':
-        return 'watch-status watch-status--expired';
-      default:
-        return 'watch-status';
-    }
   }
 
   daysUntilExpiry(expiresAt: string): number {
@@ -101,5 +93,9 @@ export class WatchlistDashboardComponent implements OnInit {
     const expires = new Date(expiresAt);
     const diff = expires.getTime() - now.getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
+
+  progressBarWidth(percent: number): string {
+    return `${Math.max(0, Math.min(100, percent))}%`;
   }
 }

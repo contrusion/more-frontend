@@ -45,6 +45,7 @@ export interface CandidateWatchRequest {
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
   triggerReason: 'SKILL_GAP' | 'EXPERIENCE_GAP' | 'TIMING_GAP' | 'DOMAIN_GAP';
   recruiterNote: string | null;
+  suggestedFocusAreas: string[];
   createdAt: string;
   expiresAt: string;
   respondedAt: string | null;
