@@ -187,12 +187,48 @@
 
               <div class="modal-layout-grid">
                 <div class="modal-main-column">
-                  @if (modalCv()!.profile.biography) {
-                    <section class="modal-section">
-                      <h3>Profile Narrative</h3>
-                      <p class="modal-bio">{{ modalCv()!.profile.biography }}</p>
-                    </section>
-                  }
+                  <section class="modal-section">
+                    <h3>Executive Summary</h3>
+
+                    <div class="exec-interpretation">
+                      <span class="exec-interpretation__eyebrow">Readiness interpretation</span>
+
+                      <div class="exec-stepper" role="tablist" aria-label="Executive summary steps">
+                        @for (step of executiveSteps(); track step.key) {
+                          <button
+                            class="exec-step"
+                            role="tab"
+                            [class.exec-step--active]="activeExecutiveStep() === step.key"
+                            [attr.aria-selected]="activeExecutiveStep() === step.key"
+                            (click)="setExecutiveStep(step.key)">
+                            {{ step.label }}
+                          </button>
+                        }
+                      </div>
+
+                      <div class="exec-step-panel" role="tabpanel">
+                        @if (activeExecutiveStep() === 'ABOUT') {
+                          <p class="exec-copy">{{ getExecutiveAboutText() }}</p>
+                        }
+
+                        @if (activeExecutiveStep() === 'HIGHLIGHTS') {
+                          <ul class="executive-points">
+                            @for (point of getExecutiveHighlights(); track point) {
+                              <li>{{ point }}</li>
+                            }
+                          </ul>
+                        }
+
+                        @if (activeExecutiveStep() === 'ASPIRATIONS') {
+                          <ul class="executive-points">
+                            @for (point of getExecutiveAspirations(); track point) {
+                              <li>{{ point }}</li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    </div>
+                  </section>
 
                   @if (modalCv()!.workExperience.length > 0) {
                     <section class="modal-section">
@@ -232,28 +268,128 @@
                 </div>
 
                 <aside class="modal-side-column">
-                  @if (modalCv()!.skills.length > 0) {
-                    <section class="modal-section">
-                      <div class="section-head">
-                        <h3>Capability Stack</h3>
-                        @if (hasMoreSkills()) {
-                          <button class="btn-link" (click)="showAllSkills.set(!showAllSkills())">
-                            {{ showAllSkills() ? 'Show Less' : 'Show All' }}
-                          </button>
-                        }
-                      </div>
-                      <div class="modal-skills modal-skills--scrollable">
-                        @for (skillName of getDisplayedSkills(); track skillName) {
-                          <span class="skill-chip">{{ skillName }}</span>
-                        }
-                      </div>
-                    </section>
-                  }
+                  <section class="modal-section">
+                    <h3>Work Preference Highlights</h3>
+                    <div class="passion-grid">
+                      @for (card of getPassionCards(); track card.title) {
+                        <article class="passion-card">
+                          <div class="passion-card__inner">
+                            <div class="passion-card__face passion-card__face--front">
+                              <h4>{{ card.title }}</h4>
+                              <p>{{ card.frontDescription }}</p>
+                            </div>
+                            <div class="passion-card__face passion-card__face--back">
+                              <h4>{{ card.backTitle }}</h4>
+                              <p>{{ card.backDescription }}</p>
+                            </div>
+                          </div>
+                        </article>
+                      }
+                    </div>
+                  </section>
 
-                  @if (modalCv()!.certifications.length > 0) {
-                    <section class="modal-section">
+                  <section class="modal-section">
+                    <div class="cv-detail-tabs" role="tablist" aria-label="CV details tabs">
+                      <button
+                        id="cv-tab-skills"
+                        role="tab"
+                        class="cv-detail-tab"
+                        [class.cv-detail-tab--active]="activeCvDetailTab() === 'SKILLS'"
+                        [attr.aria-selected]="activeCvDetailTab() === 'SKILLS'"
+                        aria-controls="cv-tabpanel"
+                        [disabled]="!hasCvDetailTabData('SKILLS')"
+                        (click)="setCvDetailTab('SKILLS')">Skills</button>
+                      <button
+                        id="cv-tab-certifications"
+                        role="tab"
+                        class="cv-detail-tab"
+                        [class.cv-detail-tab--active]="activeCvDetailTab() === 'CERTIFICATIONS'"
+                        [attr.aria-selected]="activeCvDetailTab() === 'CERTIFICATIONS'"
+                        aria-controls="cv-tabpanel"
+                        [disabled]="!hasCvDetailTabData('CERTIFICATIONS')"
+                        (click)="setCvDetailTab('CERTIFICATIONS')">Certifications</button>
+                      <button
+                        id="cv-tab-references"
+                        role="tab"
+                        class="cv-detail-tab"
+                        [class.cv-detail-tab--active]="activeCvDetailTab() === 'REFERENCES'"
+                        [attr.aria-selected]="activeCvDetailTab() === 'REFERENCES'"
+                        aria-controls="cv-tabpanel"
+                        [disabled]="!hasCvDetailTabData('REFERENCES')"
+                        (click)="setCvDetailTab('REFERENCES')">References</button>
+                      <button
+                        id="cv-tab-growth"
+                        role="tab"
+                        class="cv-detail-tab"
+                        [class.cv-detail-tab--active]="activeCvDetailTab() === 'GROWTH'"
+                        [attr.aria-selected]="activeCvDetailTab() === 'GROWTH'"
+                        aria-controls="cv-tabpanel"
+                        [disabled]="!hasCvDetailTabData('GROWTH')"
+                        (click)="setCvDetailTab('GROWTH')">Growth</button>
+                    </div>
+
+                    <div
+                      id="cv-tabpanel"
+                      role="tabpanel"
+                      [attr.aria-labelledby]="'cv-tab-' + activeCvDetailTab().toLowerCase()"
+                      class="cv-detail-panel">
+
+                    @if (activeCvDetailTab() === 'SKILLS') {
+                      <div class="skills-matrix modal-skills-matrix">
+                        <table class="sm-table">
+                          <thead>
+                            <tr>
+                              <th class="sm-th sm-th--skill">Skill</th>
+                              <th class="sm-th sm-th--category">Category</th>
+                              <th class="sm-th sm-th--level">Proficiency</th>
+                              <th class="sm-th sm-th--bar"></th>
+                              <th class="sm-th sm-th--exp">Experience</th>
+                              <th class="sm-th sm-th--lastused">Last Used</th>
+                            </tr>
+                          </thead>
+                          @for (group of skillsByCategoryForModal(); track group.category) {
+                            <tbody>
+                              <tr class="sm-group-row">
+                                <td colspan="6" class="sm-group-label">{{ formatSkillCategory(group.category) }}</td>
+                              </tr>
+                              @for (skill of group.skills; track skill.id) {
+                                <tr class="sm-row">
+                                  <td class="sm-td sm-td--skill">{{ skill.skillName }}</td>
+                                  <td class="sm-td sm-td--category">{{ formatSkillCategory(skill.skillCategory) }}</td>
+                                  <td class="sm-td sm-td--level">
+                                    <span class="sm-badge" [style.background]="proficiencyColor(skill.proficiencyLevel) + '22'" [style.color]="proficiencyColor(skill.proficiencyLevel)">
+                                      {{ skill.proficiencyLevel | titlecase }}
+                                    </span>
+                                  </td>
+                                  <td class="sm-td sm-td--bar">
+                                    <div class="sm-bar">
+                                      <div class="sm-bar__fill" [style.width]="proficiencyPct(skill.proficiencyLevel) + '%'" [style.background]="proficiencyColor(skill.proficiencyLevel)"></div>
+                                    </div>
+                                  </td>
+                                  <td class="sm-td sm-td--exp">
+                                    @if (skill.yearsExperience) {
+                                      {{ skill.yearsExperience }} yr{{ skill.yearsExperience !== 1 ? 's' : '' }}
+                                    } @else {
+                                      <span class="sm-muted">—</span>
+                                    }
+                                  </td>
+                                  <td class="sm-td sm-td--lastused">
+                                    @if (skill.lastUsed) {
+                                      {{ skill.lastUsed | date:'MMM y' }}
+                                    } @else {
+                                      <span class="sm-muted">—</span>
+                                    }
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          }
+                        </table>
+                      </div>
+                    }
+
+                    @if (activeCvDetailTab() === 'CERTIFICATIONS') {
                       <div class="section-head">
-                        <h3>Certification Signals</h3>
                         @if (hasMoreCertifications()) {
                           <button class="btn-link" (click)="showAllCertifications.set(!showAllCertifications())">
                             {{ showAllCertifications() ? 'Show Less' : 'Show All' }}
@@ -266,13 +402,10 @@
                           <div class="modal-entry__sub">{{ certification.issuingOrganization }}</div>
                         </div>
                       }
-                    </section>
-                  }
+                    }
 
-                  @if (modalCv()!.references.length > 0) {
-                    <section class="modal-section">
+                    @if (activeCvDetailTab() === 'REFERENCES') {
                       <div class="section-head">
-                        <h3>Professional References</h3>
                         @if (hasMoreReferences()) {
                           <button class="btn-link" (click)="showAllReferences.set(!showAllReferences())">
                             {{ showAllReferences() ? 'Show Less' : 'Show All' }}
@@ -286,45 +419,42 @@
                           <div class="modal-entry__dates">{{ reference.relationship }}</div>
                         </div>
                       }
-                    </section>
-                  }
+                    }
 
-                  <section class="modal-section">
-                    <h3>Growth Snapshot</h3>
-                    <div class="progress-snapshot">
-                      <div class="progress-snapshot__row">
-                        <span>Goal completion</span>
-                        <strong>{{ modalCv()!.stats.completedGoals }}/{{ modalCv()!.stats.totalGoals }}</strong>
-                      </div>
-                      <div class="progress-snapshot__track">
-                        <span class="progress-snapshot__fill" [style.width.%]="getGoalProgressPercent()"></span>
+                    @if (activeCvDetailTab() === 'GROWTH') {
+                      <div class="progress-snapshot">
+                        <div class="progress-snapshot__row">
+                          <span>Goal completion</span>
+                          <strong>{{ modalCv()!.stats.completedGoals }}/{{ modalCv()!.stats.totalGoals }}</strong>
+                        </div>
+                        <div class="progress-snapshot__track">
+                          <span class="progress-snapshot__fill" [style.width.%]="getGoalProgressPercent()"></span>
+                        </div>
+
+                        <div class="progress-snapshot__row progress-snapshot__row--secondary">
+                          <span>Milestone quality signal</span>
+                          <strong>{{ modalCv()!.stats.verifiedProofItems }}/{{ modalCv()!.stats.totalMilestones }}</strong>
+                        </div>
+                        <div class="progress-snapshot__track progress-snapshot__track--secondary">
+                          <span class="progress-snapshot__fill progress-snapshot__fill--secondary" [style.width.%]="getMilestoneProgressPercent()"></span>
+                        </div>
                       </div>
 
-                      <div class="progress-snapshot__row progress-snapshot__row--secondary">
-                        <span>Milestone quality signal</span>
-                        <strong>{{ modalCv()!.stats.verifiedProofItems }}/{{ modalCv()!.stats.totalMilestones }}</strong>
+                      <div class="summary-list">
+                        <div class="summary-item">
+                          <span>Completed Goals</span>
+                          <strong>{{ modalCv()!.stats.completedGoals }}</strong>
+                        </div>
+                        <div class="summary-item">
+                          <span>Total Milestones</span>
+                          <strong>{{ modalCv()!.stats.totalMilestones }}</strong>
+                        </div>
+                        <div class="summary-item">
+                          <span>Verified Proof</span>
+                          <strong>{{ modalCv()!.stats.verifiedProofItems }}</strong>
+                        </div>
                       </div>
-                      <div class="progress-snapshot__track progress-snapshot__track--secondary">
-                        <span class="progress-snapshot__fill progress-snapshot__fill--secondary" [style.width.%]="getMilestoneProgressPercent()"></span>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="modal-section">
-                    <h3>Evidence Summary</h3>
-                    <div class="summary-list">
-                      <div class="summary-item">
-                        <span>Completed Goals</span>
-                        <strong>{{ modalCv()!.stats.completedGoals }}</strong>
-                      </div>
-                      <div class="summary-item">
-                        <span>Total Milestones</span>
-                        <strong>{{ modalCv()!.stats.totalMilestones }}</strong>
-                      </div>
-                      <div class="summary-item">
-                        <span>Verified Proof</span>
-                        <strong>{{ modalCv()!.stats.verifiedProofItems }}</strong>
-                      </div>
+                    }
                     </div>
                   </section>
                 </aside>

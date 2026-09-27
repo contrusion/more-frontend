@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CandidateSearchService, WatchReason } from '../services/candidate-search.service';
 import { LivingCvService } from '../../candidate/services/living-cv.service';
 import { CandidateClassBadgeComponent } from '../../../../shared/components/candidate-class-badge/candidate-class-badge.component';
-import { CandidateSearchPage, CandidateSearchResult, ExperienceGroup, MarketReadinessTier, PublicLivingCv } from '../../candidate/models/goal.model';
+import { CandidateSearchPage, CandidateSearchResult, CandidateSkill, ExperienceGroup, MarketReadinessTier, PublicLivingCv } from '../../candidate/models/goal.model';
 
 type TierFilter = MarketReadinessTier | null;
 type ExperienceFilter = ExperienceGroup | null;
@@ -23,6 +23,16 @@ interface WatchReasonOption {
   value: WatchReason;
   label: string;
   description: string;
+}
+
+type CvDetailTab = 'SKILLS' | 'CERTIFICATIONS' | 'REFERENCES' | 'GROWTH';
+type ExecutiveStep = 'ABOUT' | 'HIGHLIGHTS' | 'ASPIRATIONS';
+
+interface PassionCard {
+  title: string;
+  frontDescription: string;
+  backTitle: string;
+  backDescription: string;
 }
 
 @Component({
@@ -68,6 +78,8 @@ export class CandidateSearchComponent implements OnInit {
   showAllSkills = signal(false);
   showAllCertifications = signal(false);
   showAllReferences = signal(false);
+  activeCvDetailTab = signal<CvDetailTab>('SKILLS');
+  activeExecutiveStep = signal<ExecutiveStep>('ABOUT');
 
   watchModalOpen = signal(false);
   watchCandidate = signal<CandidateSearchResult | null>(null);
@@ -256,6 +268,260 @@ export class CandidateSearchComponent implements OnInit {
     return Math.round((cv.stats.verifiedProofItems / cv.stats.totalMilestones) * 100);
   }
 
+  getExecutiveSummaryPoints(): string[] {
+    const candidate = this.modalCandidate();
+    const cv = this.modalCv();
+    if (!candidate || !cv) {
+      return [];
+    }
+
+    const highlights: string[] = [];
+    highlights.push(`${candidate.marketReadinessTier} tier profile with a readiness score of ${candidate.marketReadinessScore}.`);
+    highlights.push(`${this.getExperienceYearsLabel()} and ${cv.workExperience.length} recorded work history item${cv.workExperience.length === 1 ? '' : 's'}.`);
+    highlights.push(`${cv.stats.completedGoals} of ${cv.stats.totalGoals} goals completed, with ${cv.stats.inProgressGoals} currently in progress.`);
+    highlights.push(`${cv.stats.verifiedProofItems} verified proof item${cv.stats.verifiedProofItems === 1 ? '' : 's'} across ${cv.stats.totalMilestones} milestones.`);
+
+    const topSkills = this.getTopSkills().slice(0, 3);
+    if (topSkills.length > 0) {
+      highlights.push(`Top capability signals: ${topSkills.join(', ')}.`);
+    }
+
+    return highlights;
+  }
+
+  setExecutiveStep(step: ExecutiveStep): void {
+    this.activeExecutiveStep.set(step);
+  }
+
+  executiveSteps(): Array<{ key: ExecutiveStep; label: string }> {
+    return [
+      { key: 'ABOUT', label: 'About' },
+      { key: 'HIGHLIGHTS', label: 'Career Highlights' },
+      { key: 'ASPIRATIONS', label: 'Career Aspirations' }
+    ];
+  }
+
+  getExecutiveAboutText(): string {
+    const biography = this.modalCv()?.profile.biography?.trim();
+    if (biography) {
+      return biography;
+    }
+    return 'No biography has been shared yet. This profile is still building its narrative through proven outcomes and progression.';
+  }
+
+  getExecutiveHighlights(): string[] {
+    const candidate = this.modalCandidate();
+    const cv = this.modalCv();
+    if (!candidate || !cv) {
+      return [];
+    }
+
+    const highlights: string[] = [];
+    highlights.push(`${candidate.marketReadinessTier} tier with a readiness score of ${candidate.marketReadinessScore}.`);
+    highlights.push(`${this.getExperienceYearsLabel()} across ${cv.workExperience.length} recorded role${cv.workExperience.length === 1 ? '' : 's'}.`);
+    highlights.push(`${cv.stats.completedGoals}/${cv.stats.totalGoals} goals completed and ${cv.stats.verifiedProofItems} verified proof item${cv.stats.verifiedProofItems === 1 ? '' : 's'}.`);
+
+    const topSkills = this.getTopSkills().slice(0, 3);
+    if (topSkills.length > 0) {
+      highlights.push(`Core strengths include ${topSkills.join(', ')}.`);
+    }
+
+    return highlights;
+  }
+
+  getExecutiveAspirations(): string[] {
+    const cv = this.modalCv();
+    if (!cv) {
+      return [];
+    }
+
+    const explicitGoals = cv.stats.totalGoals > 0
+      ? [`Advancing ${cv.stats.inProgressGoals} active goal${cv.stats.inProgressGoals === 1 ? '' : 's'} toward higher readiness outcomes.`]
+      : [];
+
+    const goalTitles = this.extractAspirationGoalTitles();
+    if (goalTitles.length > 0) {
+      return [
+        ...explicitGoals,
+        ...goalTitles.map((goal) => `Working toward: ${goal}.`)
+      ];
+    }
+
+    const topSkills = this.getTopSkills().slice(0, 2);
+    if (topSkills.length > 0) {
+      return [
+        ...explicitGoals,
+        `Likely growth direction around ${topSkills.join(' and ')} based on demonstrated capability signals.`
+      ];
+    }
+
+    return explicitGoals.length > 0
+      ? explicitGoals
+      : ['Career aspirations have not yet been stated explicitly in this profile.'];
+  }
+
+  getPassionCards(): PassionCard[] {
+    const cv = this.modalCv();
+    if (!cv) {
+      return [];
+    }
+
+    const workExperience = cv.workExperience ?? [];
+    const topSkills = this.getTopSkills();
+    const skillSeeds = [...topSkills, 'Systems Architecture', 'Coding', 'DevOps'];
+    const uniqueTitles: string[] = [];
+
+    for (const seed of skillSeeds) {
+      const normalized = seed.trim();
+      if (!normalized) {
+        continue;
+      }
+      if (!uniqueTitles.some((value) => value.toLowerCase() === normalized.toLowerCase())) {
+        uniqueTitles.push(normalized);
+      }
+      if (uniqueTitles.length === 3) {
+        break;
+      }
+    }
+
+    return uniqueTitles.map((title, index) => {
+      const experienceMatch = this.findExperienceHighlight(workExperience, title, index);
+      return {
+        title,
+        frontDescription: this.buildFrontCardDescription(title),
+        backTitle: experienceMatch.jobTitle || 'Experience highlight',
+        backDescription: `${experienceMatch.companyName}${experienceMatch.description ? ` - ${experienceMatch.description}` : ''}`
+      };
+    });
+  }
+
+  private extractAspirationGoalTitles(): string[] {
+    const bio = this.modalCv()?.profile.biography ?? '';
+    const separators = /[.;\n]/;
+    const phrases = bio.split(separators)
+      .map((item) => item.trim())
+      .filter((item) => item.length >= 18)
+      .slice(0, 2);
+    return phrases;
+  }
+
+  private buildFrontCardDescription(title: string): string {
+    return `Consistently engaged in ${title.toLowerCase()} work with practical delivery outcomes.`;
+  }
+
+  private findExperienceHighlight(
+    workExperience: PublicLivingCv['workExperience'],
+    keyword: string,
+    indexFallback: number
+  ): PublicLivingCv['workExperience'][number] {
+    const normalizedKeyword = keyword.toLowerCase();
+    const match = workExperience.find((item) => {
+      const job = (item.jobTitle ?? '').toLowerCase();
+      const description = (item.description ?? '').toLowerCase();
+      return job.includes(normalizedKeyword) || description.includes(normalizedKeyword);
+    });
+
+    if (match) {
+      return match;
+    }
+
+    return workExperience[indexFallback] ?? workExperience[0] ?? {
+      id: '',
+      companyName: 'No company listed',
+      jobTitle: 'No role listed',
+      employmentType: null,
+      startDate: new Date().toISOString(),
+      endDate: null,
+      isCurrent: false,
+      location: null,
+      description: 'No detailed work experience description available.',
+      gapReason: null,
+      includeInCv: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  setCvDetailTab(tab: CvDetailTab): void {
+    this.activeCvDetailTab.set(tab);
+  }
+
+  hasCvDetailTabData(tab: CvDetailTab): boolean {
+    const cv = this.modalCv();
+    if (!cv) {
+      return false;
+    }
+
+    switch (tab) {
+      case 'SKILLS':
+        return cv.skills.length > 0;
+      case 'CERTIFICATIONS':
+        return cv.certifications.length > 0;
+      case 'REFERENCES':
+        return cv.references.length > 0;
+      case 'GROWTH':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  skillsByCategoryForModal(): { category: string; skills: CandidateSkill[] }[] {
+    const cv = this.modalCv();
+    const skills = cv?.skills ?? [];
+    const map = new Map<string, CandidateSkill[]>();
+
+    for (const skill of skills) {
+      const category = skill.skillCategory?.trim() || 'General';
+      if (!map.has(category)) {
+        map.set(category, []);
+      }
+      map.get(category)!.push(skill);
+    }
+
+    const order = ['EXPERT', 'ADVANCED', 'INTERMEDIATE', 'BEGINNER'];
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, categorySkills]) => ({
+        category,
+        skills: [...categorySkills].sort(
+          (a, b) => order.indexOf(a.proficiencyLevel?.toUpperCase()) - order.indexOf(b.proficiencyLevel?.toUpperCase())
+        )
+      }));
+  }
+
+  proficiencyPct(level: string): number {
+    const map: Record<string, number> = {
+      BEGINNER: 25,
+      INTERMEDIATE: 55,
+      ADVANCED: 80,
+      EXPERT: 100
+    };
+    return map[level?.toUpperCase()] ?? 50;
+  }
+
+  proficiencyColor(level: string): string {
+    const map: Record<string, string> = {
+      EXPERT: '#0ea5e9',
+      ADVANCED: '#10b981',
+      INTERMEDIATE: '#f59e0b',
+      BEGINNER: '#94a3b8'
+    };
+    return map[level?.toUpperCase()] ?? '#94a3b8';
+  }
+
+  formatSkillCategory(category: string | null): string {
+    if (!category || !category.trim()) {
+      return 'General';
+    }
+
+    return category
+      .toLowerCase()
+      .split('_')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
   getTopSkills(): string[] {
     const cv = this.modalCv();
     if (!cv) {
@@ -436,6 +702,8 @@ export class CandidateSearchComponent implements OnInit {
     this.showAllSkills.set(false);
     this.showAllCertifications.set(false);
     this.showAllReferences.set(false);
+    this.activeCvDetailTab.set('SKILLS');
+    this.activeExecutiveStep.set('ABOUT');
 
     this.livingCvService.getPublicLivingCv(candidate.publicAlias).subscribe({
       next: (cv) => {
@@ -453,5 +721,7 @@ export class CandidateSearchComponent implements OnInit {
     this.modalOpen.set(false);
     this.modalCandidate.set(null);
     this.modalCv.set(null);
+    this.activeCvDetailTab.set('SKILLS');
+    this.activeExecutiveStep.set('ABOUT');
   }
 }
