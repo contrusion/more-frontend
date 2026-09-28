@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { TimelineModule } from 'primeng/timeline';
 import { CandidateSearchService, WatchReason } from '../services/candidate-search.service';
 import { LivingCvService } from '../../candidate/services/living-cv.service';
 import { CandidateClassBadgeComponent } from '../../../../shared/components/candidate-class-badge/candidate-class-badge.component';
@@ -35,10 +36,19 @@ interface PassionCard {
   backDescription: string;
 }
 
+interface WorkTimelineEvent {
+  title: string;
+  company: string;
+  location: string;
+  period: string;
+  description: string;
+  isCurrent: boolean;
+}
+
 @Component({
   selector: 'app-candidate-search',
   standalone: true,
-  imports: [CommonModule, CandidateClassBadgeComponent],
+  imports: [CommonModule, CandidateClassBadgeComponent, TimelineModule],
   templateUrl: './candidate-search.component.html',
   styleUrls: ['./candidate-search.component.css']
 })
@@ -395,6 +405,24 @@ export class CandidateSearchComponent implements OnInit {
     });
   }
 
+  getWorkTimelineEvents(): WorkTimelineEvent[] {
+    const cv = this.modalCv();
+    if (!cv) {
+      return [];
+    }
+
+    return [...cv.workExperience]
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+      .map((item) => ({
+        title: item.jobTitle,
+        company: item.companyName,
+        location: item.location || 'Remote / Not specified',
+        period: `${this.formatMonthYear(item.startDate)} - ${item.isCurrent ? 'Present' : this.formatMonthYear(item.endDate)}`,
+        description: item.description || 'No role summary provided.',
+        isCurrent: !!item.isCurrent
+      }));
+  }
+
   private extractAspirationGoalTitles(): string[] {
     const bio = this.modalCv()?.profile.biography ?? '';
     const separators = /[.;\n]/;
@@ -407,6 +435,13 @@ export class CandidateSearchComponent implements OnInit {
 
   private buildFrontCardDescription(title: string): string {
     return `Consistently engaged in ${title.toLowerCase()} work with practical delivery outcomes.`;
+  }
+
+  private formatMonthYear(dateValue: string | null): string {
+    if (!dateValue) {
+      return 'Unknown';
+    }
+    return new Date(dateValue).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
   }
 
   private findExperienceHighlight(

@@ -191,8 +191,6 @@
                     <h3>Executive Summary</h3>
 
                     <div class="exec-interpretation">
-                      <span class="exec-interpretation__eyebrow">Readiness interpretation</span>
-
                       <div class="exec-stepper" role="tablist" aria-label="Executive summary steps">
                         @for (step of executiveSteps(); track step.key) {
                           <button
@@ -265,9 +263,7 @@
                       }
                     </section>
                   }
-                </div>
 
-                <aside class="modal-side-column">
                   <section class="modal-section">
                     <h3>Work Preference Highlights</h3>
                     <div class="passion-grid">
@@ -456,6 +452,29 @@
                       </div>
                     }
                     </div>
+                  </section>
+                </div>
+
+                <aside class="modal-side-column">
+                  <section class="modal-section">
+                    <h3>Work History Timeline</h3>
+                    @if (getWorkTimelineEvents().length > 0) {
+                      <p-timeline [value]="getWorkTimelineEvents()" align="left" styleClass="work-timeline">
+                        <ng-template pTemplate="opposite" let-event>
+                          <span class="work-timeline__period">{{ event.period }}</span>
+                        </ng-template>
+
+                        <ng-template pTemplate="content" let-event>
+                          <article class="work-timeline__card" [class.work-timeline__card--current]="event.isCurrent">
+                            <h4>{{ event.title }}</h4>
+                            <p class="work-timeline__company">{{ event.company }} · {{ event.location }}</p>
+                            <p class="work-timeline__desc">{{ event.description }}</p>
+                          </article>
+                        </ng-template>
+                      </p-timeline>
+                    } @else {
+                      <p class="work-timeline__empty">No work experience captured yet.</p>
+                    }
                   </section>
                 </aside>
               </div>

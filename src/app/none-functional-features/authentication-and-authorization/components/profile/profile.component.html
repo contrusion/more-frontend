@@ -1,0 +1,143 @@
+<div class="profile-page">
+  <div class="profile-shell">
+    <aside class="profile-rail">
+      <div class="rail-card rail-card--identity">
+        <div class="avatar">{{ userInitials }}</div>
+        <div class="identity-copy">
+          <p class="eyebrow">My Profile</p>
+          <h1>{{ userName() }}</h1>
+          <p class="email">{{ userEmail() }}</p>
+        </div>
+      </div>
+
+      <p-fieldset legend="Snapshot" styleClass="rail-card rail-card--summary rail-fieldset">
+        <div class="summary-line">
+          <span class="summary-label">Current role</span>
+          <strong class="summary-value">{{ currentJobTitle() }}</strong>
+        </div>
+        <div class="summary-line summary-line--spaced">
+          <span class="summary-label">Location</span>
+          <strong class="summary-value">{{ location() }}</strong>
+        </div>
+        <div class="summary-line summary-line--spaced">
+          <span class="summary-label">Registration date</span>
+          <strong class="summary-value">{{ registrationDate() }}</strong>
+        </div>
+      </p-fieldset>
+
+      <p-fieldset legend="Contact" styleClass="rail-card rail-card--summary rail-fieldset">
+        <div class="summary-line">
+          <span class="summary-label">Email</span>
+          <strong class="summary-value">{{ userEmail() || 'Not available' }}</strong>
+        </div>
+        <div class="summary-line summary-line--spaced">
+          <span class="summary-label">Phone number</span>
+          <strong class="summary-value">{{ phoneNumber() }}</strong>
+        </div>
+        <div class="summary-line summary-line--spaced">
+          <span class="summary-label">Preferred contact</span>
+          <strong class="summary-value">{{ preferredContactMethod() }}</strong>
+        </div>
+      </p-fieldset>
+
+      <p-fieldset legend="Activity" styleClass="rail-card rail-card--summary rail-fieldset">
+        <div class="summary-line">
+          <span class="summary-label">Last login</span>
+          <strong class="summary-value">{{ lastLogin() }}</strong>
+        </div>
+        <div class="summary-line summary-line--spaced">
+          <span class="summary-label">Login count</span>
+          <strong class="summary-value">{{ loginCount() }}</strong>
+        </div>
+      </p-fieldset>
+    </aside>
+
+    <main class="profile-content">
+      <p-fieldset legend="Overview" styleClass="content-card profile-fieldset">
+        <dl class="detail-grid">
+          <div>
+            <dt>Name</dt>
+            <dd>{{ userName() }}</dd>
+          </div>
+          <div>
+            <dt>Persona</dt>
+            <dd>{{ personaLabel }}</dd>
+          </div>
+          <div>
+            <dt>Current role</dt>
+            <dd>{{ currentJobTitle() }}</dd>
+          </div>
+          <div>
+            <dt>Location</dt>
+            <dd>{{ location() }}</dd>
+          </div>
+          <div>
+            <dt>Phone number</dt>
+            <dd>{{ phoneNumber() }}</dd>
+          </div>
+          <div>
+            <dt>Availability</dt>
+            <dd>{{ availability() }} month{{ availability() === 1 ? '' : 's' }}</dd>
+          </div>
+          <div>
+            <dt>Preferred contact method</dt>
+            <dd>{{ preferredContactMethod() }}</dd>
+          </div>
+        </dl>
+      </p-fieldset>
+
+      <p-fieldset legend="About" styleClass="content-card profile-fieldset">
+        <p class="preference-copy">{{ bio() }}</p>
+      </p-fieldset>
+
+      <p-fieldset legend="Profile completeness" styleClass="content-card profile-fieldset">
+        <div class="completeness-summary">
+          <div>
+            <strong class="completeness-score">{{ profileCompletenessPercent() }}%</strong>
+            <p class="preference-copy">Completed profile sections based on the information currently saved.</p>
+          </div>
+
+          <p-progressBar [value]="profileCompletenessPercent()" [showValue]="false" styleClass="profile-progress" />
+        </div>
+
+        <div class="completeness-list" role="list" aria-label="Profile completeness checklist">
+          @for (item of profileCompletenessItems(); track item.label) {
+            <div class="completeness-item" role="listitem">
+              <p-checkbox [binary]="true" [ngModel]="item.complete" [disabled]="true" />
+
+              <div>
+                <strong>{{ item.label }}</strong>
+                <p>{{ item.description }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </p-fieldset>
+
+      <p-fieldset legend="Activity" styleClass="content-card profile-fieldset">
+        <div class="activity-list">
+          <div class="activity-item">
+            <span class="activity-dot"></span>
+            <div>
+              <strong>Last login</strong>
+              <p>{{ lastLogin() }}</p>
+            </div>
+          </div>
+          <div class="activity-item">
+            <span class="activity-dot"></span>
+            <div>
+              <strong>Login count</strong>
+              <p>{{ loginCount() }} total sign-ins recorded for this account.</p>
+            </div>
+          </div>
+        </div>
+      </p-fieldset>
+
+      <p-fieldset legend="Preferences" styleClass="content-card profile-fieldset">
+        <p class="preference-copy">
+          Your current persona and visibility signals are shown here for quick review. Use Settings for opportunity-preference tuning.
+        </p>
+      </p-fieldset>
+    </main>
+  </div>
+</div>

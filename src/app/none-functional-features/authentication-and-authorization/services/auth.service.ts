@@ -5,6 +5,25 @@ import { BehaviorSubject, Observable, map } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 
+export interface AccountProfile {
+  email: string;
+  firstName: string;
+  lastName: string;
+  jobTitle: string | null;
+  bio: string | null;
+  location: string | null;
+  phoneNumber: string | null;
+  preferredContactMethod: string | null;
+  roleCategory: string | null;
+  talentPersona: string | null;
+  availableInMonths: number | null;
+  companyWebsite: string | null;
+  userTypes: string[];
+  createdAt: string;
+  lastLogin: string | null;
+  loginCount: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -78,6 +97,10 @@ export class AuthService {
 
   public getAccessToken(): Observable<string> {
     return this.oidcSecurityService.getAccessToken();
+  }
+
+  public getMyProfile(): Observable<AccountProfile> {
+    return this.http.get<AccountProfile>(`${environment.apiUrl}/api/v1/accounts/me/profile`);
   }
 
   private syncCurrentUserStatus(): void {

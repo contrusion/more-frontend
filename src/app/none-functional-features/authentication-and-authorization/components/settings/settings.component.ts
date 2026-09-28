@@ -1,6 +1,6 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
@@ -74,7 +74,7 @@ export class SettingsComponent implements OnInit {
   get selectedPersonaLabel(): string {
     return this.personaOptions.find(option => option.value === this.selectedPersona)?.label ?? 'Passive Prospect';
   }
-
+  
   onSubmit(): void {
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
