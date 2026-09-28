@@ -24,6 +24,18 @@ export interface AccountProfile {
   loginCount: number;
 }
 
+export interface UpdateAccountProfileRequest {
+  firstName: string;
+  lastName: string;
+  bio?: string | null;
+  location?: string | null;
+  phoneNumber?: string | null;
+  preferredContactMethod?: string | null;
+  talentPersona?: 'PASSIVE_PROSPECT' | 'WARM_LEAD' | 'ACTIVE_JOB_SEEKER' | null;
+  availableInMonths?: number | null;
+  companyWebsite?: string | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -101,6 +113,10 @@ export class AuthService {
 
   public getMyProfile(): Observable<AccountProfile> {
     return this.http.get<AccountProfile>(`${environment.apiUrl}/api/v1/accounts/me/profile`);
+  }
+
+  public updateMyProfile(payload: UpdateAccountProfileRequest): Observable<AccountProfile> {
+    return this.http.put<AccountProfile>(`${environment.apiUrl}/api/v1/accounts/me/profile`, payload);
   }
 
   private syncCurrentUserStatus(): void {

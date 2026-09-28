@@ -1,143 +1,320 @@
 <div class="profile-page">
-  <div class="profile-shell">
-    <aside class="profile-rail">
-      <div class="rail-card rail-card--identity">
-        <div class="avatar">{{ userInitials }}</div>
-        <div class="identity-copy">
-          <p class="eyebrow">My Profile</p>
-          <h1>{{ userName() }}</h1>
-          <p class="email">{{ userEmail() }}</p>
+  <mat-drawer-container class="profile-drawer-shell" [hasBackdrop]="editDrawerOpen()">
+    <mat-drawer
+      class="profile-drawer"
+      position="end"
+      mode="over"
+      [opened]="editDrawerOpen()"
+      (openedChange)="onDrawerStateChange($event)">
+      <div class="drawer-hero">
+        <div class="drawer-hero__copy">
+          <p class="drawer-kicker">Edit Profile</p>
+          <h2>Keep your profile current without leaving the page.</h2>
+          <p>We kept the form grouped and focused, using the registration flow as the visual reference.</p>
         </div>
+        <button mat-stroked-button type="button" class="drawer-close-button" (click)="closeEditDrawer()">Close</button>
       </div>
 
-      <p-fieldset legend="Snapshot" styleClass="rail-card rail-card--summary rail-fieldset">
-        <div class="summary-line">
-          <span class="summary-label">Current role</span>
-          <strong class="summary-value">{{ currentJobTitle() }}</strong>
-        </div>
-        <div class="summary-line summary-line--spaced">
-          <span class="summary-label">Location</span>
-          <strong class="summary-value">{{ location() }}</strong>
-        </div>
-        <div class="summary-line summary-line--spaced">
-          <span class="summary-label">Registration date</span>
-          <strong class="summary-value">{{ registrationDate() }}</strong>
-        </div>
-      </p-fieldset>
+      <form [formGroup]="profileForm" class="drawer-form" (ngSubmit)="saveProfile()">
+        @if (saveError()) {
+          <div class="drawer-alert drawer-alert--error" role="alert">{{ saveError() }}</div>
+        }
 
-      <p-fieldset legend="Contact" styleClass="rail-card rail-card--summary rail-fieldset">
-        <div class="summary-line">
-          <span class="summary-label">Email</span>
-          <strong class="summary-value">{{ userEmail() || 'Not available' }}</strong>
-        </div>
-        <div class="summary-line summary-line--spaced">
-          <span class="summary-label">Phone number</span>
-          <strong class="summary-value">{{ phoneNumber() }}</strong>
-        </div>
-        <div class="summary-line summary-line--spaced">
-          <span class="summary-label">Preferred contact</span>
-          <strong class="summary-value">{{ preferredContactMethod() }}</strong>
-        </div>
-      </p-fieldset>
-
-      <p-fieldset legend="Activity" styleClass="rail-card rail-card--summary rail-fieldset">
-        <div class="summary-line">
-          <span class="summary-label">Last login</span>
-          <strong class="summary-value">{{ lastLogin() }}</strong>
-        </div>
-        <div class="summary-line summary-line--spaced">
-          <span class="summary-label">Login count</span>
-          <strong class="summary-value">{{ loginCount() }}</strong>
-        </div>
-      </p-fieldset>
-    </aside>
-
-    <main class="profile-content">
-      <p-fieldset legend="Overview" styleClass="content-card profile-fieldset">
-        <dl class="detail-grid">
-          <div>
-            <dt>Name</dt>
-            <dd>{{ userName() }}</dd>
-          </div>
-          <div>
-            <dt>Persona</dt>
-            <dd>{{ personaLabel }}</dd>
-          </div>
-          <div>
-            <dt>Current role</dt>
-            <dd>{{ currentJobTitle() }}</dd>
-          </div>
-          <div>
-            <dt>Location</dt>
-            <dd>{{ location() }}</dd>
-          </div>
-          <div>
-            <dt>Phone number</dt>
-            <dd>{{ phoneNumber() }}</dd>
-          </div>
-          <div>
-            <dt>Availability</dt>
-            <dd>{{ availability() }} month{{ availability() === 1 ? '' : 's' }}</dd>
-          </div>
-          <div>
-            <dt>Preferred contact method</dt>
-            <dd>{{ preferredContactMethod() }}</dd>
-          </div>
-        </dl>
-      </p-fieldset>
-
-      <p-fieldset legend="About" styleClass="content-card profile-fieldset">
-        <p class="preference-copy">{{ bio() }}</p>
-      </p-fieldset>
-
-      <p-fieldset legend="Profile completeness" styleClass="content-card profile-fieldset">
-        <div class="completeness-summary">
-          <div>
-            <strong class="completeness-score">{{ profileCompletenessPercent() }}%</strong>
-            <p class="preference-copy">Completed profile sections based on the information currently saved.</p>
+        <p-fieldset legend="Identity" styleClass="drawer-fieldset">
+          <div class="drawer-section__header">
+            <h3>Core account details</h3>
           </div>
 
-          <p-progressBar [value]="profileCompletenessPercent()" [showValue]="false" styleClass="profile-progress" />
+          <div class="drawer-grid drawer-grid--two-up">
+            <mat-form-field appearance="outline">
+              <mat-label>First name</mat-label>
+              <input matInput formControlName="firstName" />
+              @if (profileForm.controls.firstName.hasError('required')) {
+                <mat-error>First name is required.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Last name</mat-label>
+              <input matInput formControlName="lastName" />
+              @if (profileForm.controls.lastName.hasError('required')) {
+                <mat-error>Last name is required.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer-field drawer-field--full">
+            <mat-label>Email address</mat-label>
+            <input matInput formControlName="email" readonly />
+            <mat-hint>Email is currently read-only on this page.</mat-hint>
+          </mat-form-field>
+        </p-fieldset>
+
+        <p-fieldset legend="Professional Snapshot" styleClass="drawer-fieldset drawer-fieldset--accent">
+          <div class="drawer-section__header">
+            <h3>Current role is derived from work history</h3>
+            <p class="drawer-section__copy">This value stays read-only here so the profile does not drift from your active work experience.</p>
+          </div>
+
+          <div class="read-only-role-card">
+            <span class="read-only-role-card__label">Current role</span>
+            <strong [class.missing-value]="isFallbackValue(currentJobTitle())">{{ currentJobTitle() }}</strong>
+          </div>
+        </p-fieldset>
+
+        <p-fieldset legend="Contact" styleClass="drawer-fieldset">
+          <div class="drawer-section__header">
+            <h3>How recruiters should reach you</h3>
+          </div>
+
+          <div class="drawer-grid drawer-grid--two-up">
+            <mat-form-field appearance="outline">
+              <mat-label>Location</mat-label>
+              <input matInput formControlName="location" placeholder="City, region or country" />
+              @if (profileForm.controls.location.hasError('maxlength')) {
+                <mat-error>Location must be 255 characters or fewer.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Phone number</mat-label>
+              <input matInput formControlName="phoneNumber" placeholder="Preferred contact number" />
+              @if (profileForm.controls.phoneNumber.hasError('maxlength')) {
+                <mat-error>Phone number must be 50 characters or fewer.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer-field drawer-field--full">
+            <mat-label>Preferred contact method</mat-label>
+            <mat-select formControlName="preferredContactMethod">
+              @for (option of contactMethodOptions; track option.value) {
+                <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </p-fieldset>
+
+        @if (!isRecruiter()) {
+          <p-fieldset legend="Preferences" styleClass="drawer-fieldset">
+            <div class="drawer-section__header">
+              <h3>Signal your availability clearly</h3>
+              <p class="drawer-section__copy">These settings shape how your profile is interpreted elsewhere in the product.</p>
+            </div>
+
+            <div class="persona-picker" role="list" aria-label="Talent persona options">
+              @for (option of personaOptions; track option.value) {
+                <button
+                  type="button"
+                  class="persona-card"
+                  [class.persona-card--active]="profileForm.controls.talentPersona.value === option.value"
+                  (click)="profileForm.controls.talentPersona.setValue(option.value)">
+                  <span class="persona-card__title">{{ option.label }}</span>
+                  <span class="persona-card__description">{{ option.description }}</span>
+                </button>
+              }
+            </div>
+
+            <p class="persona-selected-copy">{{ selectedPersonaDescription }}</p>
+
+            <mat-form-field appearance="outline" class="drawer-field drawer-field--full">
+              <mat-label>Availability</mat-label>
+              <mat-select formControlName="availableInMonths">
+                @for (month of availabilityOptions; track month) {
+                  <mat-option [value]="month">{{ month }} month{{ month === 1 ? '' : 's' }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </p-fieldset>
+        }
+
+        @if (isRecruiter()) {
+          <p-fieldset legend="Company" styleClass="drawer-fieldset">
+            <div class="drawer-section__header">
+              <h3>Recruiter company profile</h3>
+            </div>
+
+            <mat-form-field appearance="outline" class="drawer-field drawer-field--full">
+              <mat-label>Company website</mat-label>
+              <input matInput formControlName="companyWebsite" placeholder="https://example.com" />
+              @if (profileForm.controls.companyWebsite.hasError('pattern')) {
+                <mat-error>Enter a valid website URL.</mat-error>
+              }
+            </mat-form-field>
+          </p-fieldset>
+        }
+
+        <p-fieldset legend="About" styleClass="drawer-fieldset">
+          <div class="drawer-section__header">
+            <h3>Personal summary</h3>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer-field drawer-field--full">
+            <mat-label>Biography</mat-label>
+            <textarea matInput formControlName="bio" rows="6" placeholder="Add a concise summary of your experience and focus."></textarea>
+            <mat-hint align="end">{{ profileForm.controls.bio.value.length }}/2000</mat-hint>
+            @if (profileForm.controls.bio.hasError('maxlength')) {
+              <mat-error>Biography must be 2000 characters or fewer.</mat-error>
+            }
+          </mat-form-field>
+        </p-fieldset>
+
+        <div class="drawer-actions">
+          <button mat-button type="button" class="drawer-cancel-button" (click)="closeEditDrawer()">Cancel</button>
+          <button mat-flat-button type="submit" class="drawer-save-button" [disabled]="profileForm.invalid || isSaving()">
+            {{ isSaving() ? 'Saving...' : 'Save profile' }}
+          </button>
+        </div>
+      </form>
+    </mat-drawer>
+
+    <div class="profile-shell">
+      <aside class="profile-rail">
+        <div class="rail-card rail-card--identity">
+          <div class="avatar">{{ userInitials }}</div>
+          <div class="identity-copy">
+            <p class="eyebrow">My Profile</p>
+            <h1>{{ userName() }}</h1>
+            <p class="email">{{ userEmail() }}</p>
+          </div>
+          <div class="identity-actions">
+            <button mat-flat-button type="button" class="edit-profile-button" (click)="openEditDrawer()">Edit profile</button>
+          </div>
         </div>
 
-        <div class="completeness-list" role="list" aria-label="Profile completeness checklist">
-          @for (item of profileCompletenessItems(); track item.label) {
-            <div class="completeness-item" role="listitem">
-              <p-checkbox [binary]="true" [ngModel]="item.complete" [disabled]="true" />
+        <p-fieldset legend="Snapshot" styleClass="rail-card rail-card--summary rail-fieldset">
+          <div class="summary-line">
+            <span class="summary-label">Current role</span>
+            <strong class="summary-value" [class.missing-value]="isFallbackValue(currentJobTitle())">{{ currentJobTitle() }}</strong>
+          </div>
+          <div class="summary-line summary-line--spaced">
+            <span class="summary-label">Location</span>
+            <strong class="summary-value" [class.missing-value]="isFallbackValue(location())">{{ location() }}</strong>
+          </div>
+          <div class="summary-line summary-line--spaced">
+            <span class="summary-label">Registration date</span>
+            <strong class="summary-value" [class.missing-value]="isFallbackValue(registrationDate())">{{ registrationDate() }}</strong>
+          </div>
+        </p-fieldset>
 
+        <p-fieldset legend="Contact" styleClass="rail-card rail-card--summary rail-fieldset">
+          <div class="summary-line">
+            <span class="summary-label">Email</span>
+            <strong class="summary-value" [class.missing-value]="!userEmail()">{{ userEmail() || 'Not available' }}</strong>
+          </div>
+          <div class="summary-line summary-line--spaced">
+            <span class="summary-label">Phone number</span>
+            <strong class="summary-value" [class.missing-value]="isFallbackValue(phoneNumber())">{{ phoneNumber() }}</strong>
+          </div>
+          <div class="summary-line summary-line--spaced">
+            <span class="summary-label">Preferred contact</span>
+            <strong class="summary-value" [class.missing-value]="isFallbackValue(preferredContactMethod())">{{ preferredContactMethod() }}</strong>
+          </div>
+        </p-fieldset>
+
+        <p-fieldset legend="Activity" styleClass="rail-card rail-card--summary rail-fieldset">
+          <div class="summary-line">
+            <span class="summary-label">Last login</span>
+            <strong class="summary-value" [class.missing-value]="isFallbackValue(lastLogin())">{{ lastLogin() }}</strong>
+          </div>
+          <div class="summary-line summary-line--spaced">
+            <span class="summary-label">Login count</span>
+            <strong class="summary-value">{{ loginCount() }}</strong>
+          </div>
+        </p-fieldset>
+      </aside>
+
+      <main class="profile-content">
+        @if (saveMessage()) {
+          <div class="profile-banner" role="status">{{ saveMessage() }}</div>
+        }
+
+        <p-fieldset legend="Overview" styleClass="content-card profile-fieldset">
+          <dl class="detail-grid">
+            <div>
+              <dt>Name</dt>
+              <dd [class.missing-value]="isFallbackValue(userName())">{{ userName() }}</dd>
+            </div>
+            <div>
+              <dt>Persona</dt>
+              <dd [class.missing-value]="isFallbackValue(personaLabel)">{{ personaLabel }}</dd>
+            </div>
+            <div>
+              <dt>Current role</dt>
+              <dd [class.missing-value]="isFallbackValue(currentJobTitle())">{{ currentJobTitle() }}</dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd [class.missing-value]="isFallbackValue(location())">{{ location() }}</dd>
+            </div>
+            <div>
+              <dt>Phone number</dt>
+              <dd [class.missing-value]="isFallbackValue(phoneNumber())">{{ phoneNumber() }}</dd>
+            </div>
+            <div>
+              <dt>Availability</dt>
+              <dd>{{ availability() }} month{{ availability() === 1 ? '' : 's' }}</dd>
+            </div>
+            <div>
+              <dt>Preferred contact method</dt>
+              <dd [class.missing-value]="isFallbackValue(preferredContactMethod())">{{ preferredContactMethod() }}</dd>
+            </div>
+          </dl>
+        </p-fieldset>
+
+        <p-fieldset legend="About" styleClass="content-card profile-fieldset">
+          <p class="preference-copy" [class.missing-value]="isFallbackValue(bio())">{{ bio() }}</p>
+        </p-fieldset>
+
+        <p-fieldset legend="Profile completeness" styleClass="content-card profile-fieldset">
+          <div class="completeness-summary">
+            <div>
+              <strong class="completeness-score">{{ profileCompletenessPercent() }}%</strong>
+              <p class="preference-copy">Completed profile sections based on the information currently saved.</p>
+            </div>
+
+            <p-progressBar [value]="profileCompletenessPercent()" [showValue]="false" styleClass="profile-progress" />
+          </div>
+
+          <div class="completeness-list" role="list" aria-label="Profile completeness checklist">
+            @for (item of profileCompletenessItems(); track item.label) {
+              <div class="completeness-item" role="listitem">
+                <p-checkbox [binary]="true" [ngModel]="item.complete" [disabled]="true" />
+
+                <div>
+                  <strong>{{ item.label }}</strong>
+                  <p>{{ item.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </p-fieldset>
+
+        <p-fieldset legend="Activity" styleClass="content-card profile-fieldset">
+          <div class="activity-list">
+            <div class="activity-item">
+              <span class="activity-dot"></span>
               <div>
-                <strong>{{ item.label }}</strong>
-                <p>{{ item.description }}</p>
+                <strong>Last login</strong>
+                <p [class.missing-value]="isFallbackValue(lastLogin())">{{ lastLogin() }}</p>
               </div>
             </div>
-          }
-        </div>
-      </p-fieldset>
-
-      <p-fieldset legend="Activity" styleClass="content-card profile-fieldset">
-        <div class="activity-list">
-          <div class="activity-item">
-            <span class="activity-dot"></span>
-            <div>
-              <strong>Last login</strong>
-              <p>{{ lastLogin() }}</p>
+            <div class="activity-item">
+              <span class="activity-dot"></span>
+              <div>
+                <strong>Login count</strong>
+                <p>{{ loginCount() }} total sign-ins recorded for this account.</p>
+              </div>
             </div>
           </div>
-          <div class="activity-item">
-            <span class="activity-dot"></span>
-            <div>
-              <strong>Login count</strong>
-              <p>{{ loginCount() }} total sign-ins recorded for this account.</p>
-            </div>
-          </div>
-        </div>
-      </p-fieldset>
+        </p-fieldset>
 
-      <p-fieldset legend="Preferences" styleClass="content-card profile-fieldset">
-        <p class="preference-copy">
-          Your current persona and visibility signals are shown here for quick review. Use Settings for opportunity-preference tuning.
-        </p>
-      </p-fieldset>
-    </main>
-  </div>
+        <p-fieldset legend="Preferences" styleClass="content-card profile-fieldset">
+          <p class="preference-copy">
+            Your current persona and visibility signals are shown here for quick review. Use the profile drawer when you want to update them in one pass.
+          </p>
+        </p-fieldset>
+      </main>
+    </div>
+  </mat-drawer-container>
 </div>
