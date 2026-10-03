@@ -1,7 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TimelineModule } from 'primeng/timeline';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { CandidateSearchService, WatchReason } from '../services/candidate-search.service';
 import { LivingCvService } from '../../candidate/services/living-cv.service';
 import { CandidateClassBadgeComponent } from '../../../../shared/components/candidate-class-badge/candidate-class-badge.component';
@@ -37,6 +39,7 @@ interface PassionCard {
 }
 
 interface WorkTimelineEvent {
+  workExperienceId: string;
   title: string;
   company: string;
   location: string;
@@ -45,10 +48,19 @@ interface WorkTimelineEvent {
   isCurrent: boolean;
 }
 
+interface EducationTimelineEvent {
+  educationId: string;
+  degree: string;
+  institution: string;
+  period: string;
+  fieldOfStudy: string;
+  isCurrent: boolean;
+}
+
 @Component({
   selector: 'app-candidate-search',
   standalone: true,
-  imports: [CommonModule, CandidateClassBadgeComponent, TimelineModule],
+  imports: [CommonModule, CandidateClassBadgeComponent, MatExpansionModule, MatProgressBarModule, ProgressBarModule],
   templateUrl: './candidate-search.component.html',
   styleUrls: ['./candidate-search.component.css']
 })
@@ -90,6 +102,10 @@ export class CandidateSearchComponent implements OnInit {
   showAllReferences = signal(false);
   activeCvDetailTab = signal<CvDetailTab>('SKILLS');
   activeExecutiveStep = signal<ExecutiveStep>('ABOUT');
+  activeWorkDetailId = signal<string | null>(null);
+  pendingWorkDetailFocusId = signal<string | null>(null);
+  highlightedWorkDetailId = signal<string | null>(null);
+  private panelHighlightTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   watchModalOpen = signal(false);
   watchCandidate = signal<CandidateSearchResult | null>(null);
@@ -278,6 +294,41 @@ export class CandidateSearchComponent implements OnInit {
     return Math.round((cv.stats.verifiedProofItems / cv.stats.totalMilestones) * 100);
   }
 
+  getProfileStrengthPercentile(): number {
+    const candidate = this.modalCandidate();
+    if (!candidate) {
+      return 0;
+    }
+
+    const baseScore = Math.max(0, Math.min(100, candidate.marketReadinessScore));
+
+    const tierLift = candidate.marketReadinessTier === 'PLATINUM'
+      ? 18
+      : candidate.marketReadinessTier === 'GOLD'
+        ? 12
+        : candidate.marketReadinessTier === 'SILVER'
+          ? 6
+          : 0;
+
+    const allStarLift = candidate.isAllStar ? 5 : 0;
+    return Math.max(1, Math.min(99, Math.round(baseScore * 0.7 + tierLift + allStarLift)));
+  }
+
+  getProfileStrengthLevel(): string {
+    const percentile = this.getProfileStrengthPercentile();
+
+    if (percentile >= 90) {
+      return 'Exceptional';
+    }
+    if (percentile >= 75) {
+      return 'Strong';
+    }
+    if (percentile >= 55) {
+      return 'Developing';
+    }
+    return 'Early';
+  }
+
   getExecutiveSummaryPoints(): string[] {
     const candidate = this.modalCandidate();
     const cv = this.modalCv();
@@ -413,7 +464,8 @@ export class CandidateSearchComponent implements OnInit {
 
     return [...cv.workExperience]
       .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
-      .map((item) => ({
+      .map((item, index) => ({
+        workExperienceId: this.getWorkExperienceKey(item, index),
         title: item.jobTitle,
         company: item.companyName,
         location: item.location || 'Remote / Not specified',
@@ -421,6 +473,96 @@ export class CandidateSearchComponent implements OnInit {
         description: item.description || 'No role summary provided.',
         isCurrent: !!item.isCurrent
       }));
+  }
+
+  getEducationTimelineEvents(): EducationTimelineEvent[] {
+    const cv = this.modalCv();
+    if (!cv) {
+      return [];
+    }
+
+    return [...cv.education]
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+      .map((item, index) => ({
+        educationId: item.id?.trim() || `education-${index}`,
+        degree: item.degree || 'Education record',
+        institution: item.institution || 'Institution not specified',
+        period: `${this.formatMonthYear(item.startDate)} - ${item.isCurrent ? 'Present' : this.formatMonthYear(item.endDate)}`,
+        fieldOfStudy: item.fieldOfStudy || 'Field not specified',
+        isCurrent: !!item.isCurrent
+      }));
+  }
+
+  getWorkExperienceKey(workExperience: PublicLivingCv['workExperience'][number], index: number): string {
+    const persistentId = workExperience.id?.trim();
+    if (persistentId) {
+      return persistentId;
+    }
+
+    const title = (workExperience.jobTitle ?? 'untitled').trim().toLowerCase().replace(/\s+/g, '-');
+    const company = (workExperience.companyName ?? 'company').trim().toLowerCase().replace(/\s+/g, '-');
+    const start = workExperience.startDate ?? 'unknown-start';
+    const end = workExperience.endDate ?? (workExperience.isCurrent ? 'present' : 'unknown-end');
+
+    return `${title}__${company}__${start}__${end}`;
+  }
+
+  jumpToWorkDetail(workExperienceId: string): void {
+    if (this.activeWorkDetailId() === workExperienceId) {
+      this.focusWorkDetailPanel(workExperienceId);
+      return;
+    }
+
+    this.pendingWorkDetailFocusId.set(workExperienceId);
+    this.activeWorkDetailId.set(workExperienceId);
+  }
+
+  onWorkDetailOpened(workExperienceId: string): void {
+    this.activeWorkDetailId.set(workExperienceId);
+
+    if (this.pendingWorkDetailFocusId() === workExperienceId) {
+      this.focusWorkDetailPanel(workExperienceId);
+      this.pendingWorkDetailFocusId.set(null);
+    }
+  }
+
+  onWorkDetailClosed(workExperienceId: string): void {
+    if (this.activeWorkDetailId() === workExperienceId) {
+      this.activeWorkDetailId.set(null);
+    }
+  }
+
+  private focusWorkDetailPanel(workExperienceId: string): void {
+    requestAnimationFrame(() => {
+      const panel = document.getElementById(`work-detail-${workExperienceId}`);
+      if (!panel) {
+        return;
+      }
+
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const header = panel.querySelector<HTMLElement>('.mat-expansion-panel-header');
+      header?.focus({ preventScroll: true });
+
+      const startPulse = () => {
+        this.highlightedWorkDetailId.set(workExperienceId);
+        if (this.panelHighlightTimeoutId) {
+          clearTimeout(this.panelHighlightTimeoutId);
+        }
+        this.panelHighlightTimeoutId = setTimeout(() => {
+          if (this.highlightedWorkDetailId() === workExperienceId) {
+            this.highlightedWorkDetailId.set(null);
+          }
+        }, 1300);
+      };
+
+      // Reset first to force animation replay even when clicking the same timeline item repeatedly.
+      if (this.highlightedWorkDetailId() === workExperienceId) {
+        this.highlightedWorkDetailId.set(null);
+        requestAnimationFrame(startPulse);
+      } else {
+        startPulse();
+      }
+    });
   }
 
   private extractAspirationGoalTitles(): string[] {
@@ -739,10 +881,14 @@ export class CandidateSearchComponent implements OnInit {
     this.showAllReferences.set(false);
     this.activeCvDetailTab.set('SKILLS');
     this.activeExecutiveStep.set('ABOUT');
+    this.activeWorkDetailId.set(null);
+    this.pendingWorkDetailFocusId.set(null);
+    this.highlightedWorkDetailId.set(null);
 
     this.livingCvService.getPublicLivingCv(candidate.publicAlias).subscribe({
       next: (cv) => {
         this.modalCv.set(cv);
+        this.activeWorkDetailId.set(null);
         this.modalLoading.set(false);
       },
       error: () => {
@@ -758,5 +904,12 @@ export class CandidateSearchComponent implements OnInit {
     this.modalCv.set(null);
     this.activeCvDetailTab.set('SKILLS');
     this.activeExecutiveStep.set('ABOUT');
+    this.activeWorkDetailId.set(null);
+    this.pendingWorkDetailFocusId.set(null);
+    this.highlightedWorkDetailId.set(null);
+    if (this.panelHighlightTimeoutId) {
+      clearTimeout(this.panelHighlightTimeoutId);
+      this.panelHighlightTimeoutId = null;
+    }
   }
 }

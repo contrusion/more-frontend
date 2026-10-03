@@ -14,6 +14,8 @@
   border-bottom-left-radius: 1.75rem;
   background: #f8fafc;
   box-shadow: -1.5rem 0 3rem rgba(15, 23, 42, 0.18);
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 :host ::ng-deep .profile-drawer .mat-drawer-inner-container {
@@ -187,6 +189,24 @@
 
 :host ::ng-deep .profile-drawer .mat-mdc-text-field-wrapper {
   background: #fff;
+}
+
+:host ::ng-deep .profile-drawer .mat-mdc-form-field-infix {
+  min-height: 2.75rem;
+  line-height: 1.35;
+}
+
+:host ::ng-deep .profile-drawer .mat-mdc-input-element,
+:host ::ng-deep .profile-drawer .mat-mdc-select-trigger,
+:host ::ng-deep .profile-drawer .mat-mdc-select-value-text {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+:host ::ng-deep .profile-drawer .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .profile-drawer .mat-mdc-form-field-hint-wrapper,
+:host ::ng-deep .profile-drawer .mat-mdc-form-field-error-wrapper {
+  line-height: 1.3;
 }
 
 :host ::ng-deep .profile-drawer .mdc-notched-outline__leading,
@@ -659,6 +679,12 @@
 @media (max-width: 640px) {
   .profile-page {
     padding: 1rem;
+  }
+
+  :host ::ng-deep .profile-drawer {
+    width: 100vw;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 
   .drawer-hero {

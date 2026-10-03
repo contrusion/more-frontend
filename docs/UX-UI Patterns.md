@@ -130,6 +130,21 @@ Includes:
 Ask phrase:
 - Apply cross-browser table typography consistency checks.
 
+## 12) Cross-Browser Form and Drawer Typography Consistency (TODO)
+Use when: form-heavy surfaces (drawers, dialogs, profile forms) look larger or tighter in one browser.
+
+Includes:
+- Validate form spacing and typography in both Chrome and Edge before final UI sign-off
+- Use explicit `font-size` and `line-height` for field labels, input text, helper text, and error text on critical forms
+- Standardize form-control content height and vertical rhythm for compact drawers and modal forms
+- Keep responsive drawer widths and mobile full-width behavior consistent across feature areas
+
+TODO:
+- Apply the same cross-browser drawer/form typography normalization currently used on the Profile drawer to other major form surfaces as they are updated.
+
+Ask phrase:
+- Apply cross-browser form and drawer typography consistency checks.
+
 ---
 
 ## Recommended Quick Commands

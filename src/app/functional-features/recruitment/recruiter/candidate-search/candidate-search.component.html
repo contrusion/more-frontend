@@ -228,39 +228,74 @@
                     </div>
                   </section>
 
-                  @if (modalCv()!.workExperience.length > 0) {
-                    <section class="modal-section">
-                      <div class="section-head">
-                        <h3>Career Evidence</h3>
-                        @if (hasMoreExperience()) {
-                          <button class="btn-link" (click)="showAllExperience.set(!showAllExperience())">
-                            {{ showAllExperience() ? 'Show Less' : 'Show All' }}
-                          </button>
-                        }
+                  <section class="modal-section">
+                    <h3>Profile Strength</h3>
+
+                    <div class="profile-strength-header">
+                      <div>
+                        <span class="profile-strength-label">Profile strength percentile</span>
+                        <strong class="profile-strength-value">{{ getProfileStrengthPercentile() }}th</strong>
                       </div>
-                      @for (w of getDisplayedExperience(); track w.id) {
-                        <div class="modal-entry">
-                          <div class="modal-entry__title">{{ w.jobTitle }}</div>
-                          <div class="modal-entry__sub">{{ w.companyName }}@if (w.location) { · {{ w.location }} }</div>
-                          <div class="modal-entry__dates">{{ w.startDate | date:'MMM yyyy' }} – {{ w.isCurrent ? 'Present' : (w.endDate | date:'MMM yyyy') }}</div>
-                          @if (w.description) {
-                            <p class="modal-entry__desc">{{ w.description }}</p>
-                          }
-                        </div>
-                      }
-                    </section>
-                  }
+                      <span class="profile-strength-level">{{ getProfileStrengthLevel() }}</span>
+                    </div>
+
+                    <mat-progress-bar
+                      mode="determinate"
+                      [value]="getProfileStrengthPercentile()"
+                      aria-label="Profile strength percentile"></mat-progress-bar>
+
+                    <div class="profile-strength-meta">
+                      <span>Market readiness score: {{ modalCv()!.marketReadinessScore }}</span>
+                      <span>Tier: {{ modalCv()!.marketReadinessTier }}</span>
+                    </div>
+
+                    <div class="profile-strength-stats">
+                      <div class="profile-strength-stat">
+                        <span>Proof verification</span>
+                        <strong>{{ getProofVerificationRate() }}%</strong>
+                        <p-progressBar [value]="getProofVerificationRate()" [showValue]="false" />
+                      </div>
+
+                      <div class="profile-strength-stat">
+                        <span>Goal completion</span>
+                        <strong>{{ getGoalProgressPercent() }}%</strong>
+                        <p-progressBar [value]="getGoalProgressPercent()" [showValue]="false" />
+                      </div>
+
+                      <div class="profile-strength-stat">
+                        <span>Milestone quality</span>
+                        <strong>{{ getMilestoneProgressPercent() }}%</strong>
+                        <p-progressBar [value]="getMilestoneProgressPercent()" [showValue]="false" />
+                      </div>
+                    </div>
+                  </section>
 
                   @if (modalCv()!.education.length > 0) {
                     <section class="modal-section">
                       <h3>Education</h3>
-                      @for (e of modalCv()!.education; track e.id) {
-                        <div class="modal-entry">
-                          <div class="modal-entry__title">{{ e.degree }}@if (e.fieldOfStudy) { — {{ e.fieldOfStudy }} }</div>
-                          <div class="modal-entry__sub">{{ e.institution }}</div>
-                          <div class="modal-entry__dates">{{ e.startDate | date:'yyyy' }} – {{ e.isCurrent ? 'Present' : (e.endDate | date:'yyyy') }}</div>
-                        </div>
-                      }
+                      <div class="career-timeline career-timeline--modal career-timeline--education">
+                        @for (e of getEducationTimelineEvents(); track e.educationId; let last = $last) {
+                          <div class="ct-item">
+                            <div class="ct-left">
+                              <div class="ct-dot" [class.ct-dot--active]="e.isCurrent"></div>
+                              @if (!last) { <div class="ct-line"></div> }
+                            </div>
+                            <article class="ct-card ct-card--static" [class.ct-card--current]="e.isCurrent">
+                              <div class="ct-card__head">
+                                <div>
+                                  <h4 class="ct-card__title">{{ e.degree }}</h4>
+                                  <p class="ct-card__sub">{{ e.institution }}</p>
+                                </div>
+                                @if (e.isCurrent) {
+                                  <span class="ct-tag ct-tag--active">Current</span>
+                                }
+                              </div>
+                              <p class="ct-card__dates">{{ e.period }}</p>
+                              <p class="ct-card__desc">{{ e.fieldOfStudy }}</p>
+                            </article>
+                          </div>
+                        }
+                      </div>
                     </section>
                   }
 
@@ -285,6 +320,7 @@
                   </section>
 
                   <section class="modal-section">
+                    <h3>Skills, Certifications & References</h3>
                     <div class="cv-detail-tabs" role="tablist" aria-label="CV details tabs">
                       <button
                         id="cv-tab-skills"
@@ -293,7 +329,7 @@
                         [class.cv-detail-tab--active]="activeCvDetailTab() === 'SKILLS'"
                         [attr.aria-selected]="activeCvDetailTab() === 'SKILLS'"
                         aria-controls="cv-tabpanel"
-                        [disabled]="!hasCvDetailTabData('SKILLS')"
+                        [disabled]="!modalCv()"
                         (click)="setCvDetailTab('SKILLS')">Skills</button>
                       <button
                         id="cv-tab-certifications"
@@ -302,7 +338,7 @@
                         [class.cv-detail-tab--active]="activeCvDetailTab() === 'CERTIFICATIONS'"
                         [attr.aria-selected]="activeCvDetailTab() === 'CERTIFICATIONS'"
                         aria-controls="cv-tabpanel"
-                        [disabled]="!hasCvDetailTabData('CERTIFICATIONS')"
+                        [disabled]="!modalCv()"
                         (click)="setCvDetailTab('CERTIFICATIONS')">Certifications</button>
                       <button
                         id="cv-tab-references"
@@ -311,7 +347,7 @@
                         [class.cv-detail-tab--active]="activeCvDetailTab() === 'REFERENCES'"
                         [attr.aria-selected]="activeCvDetailTab() === 'REFERENCES'"
                         aria-controls="cv-tabpanel"
-                        [disabled]="!hasCvDetailTabData('REFERENCES')"
+                        [disabled]="!modalCv()"
                         (click)="setCvDetailTab('REFERENCES')">References</button>
                       <button
                         id="cv-tab-growth"
@@ -320,7 +356,7 @@
                         [class.cv-detail-tab--active]="activeCvDetailTab() === 'GROWTH'"
                         [attr.aria-selected]="activeCvDetailTab() === 'GROWTH'"
                         aria-controls="cv-tabpanel"
-                        [disabled]="!hasCvDetailTabData('GROWTH')"
+                        [disabled]="!modalCv()"
                         (click)="setCvDetailTab('GROWTH')">Growth</button>
                     </div>
 
@@ -392,11 +428,15 @@
                           </button>
                         }
                       </div>
-                      @for (certification of getDisplayedCertifications(); track certification.id) {
-                        <div class="modal-entry modal-entry--compact">
-                          <div class="modal-entry__title">{{ certification.name }}</div>
-                          <div class="modal-entry__sub">{{ certification.issuingOrganization }}</div>
-                        </div>
+                      @if (getDisplayedCertifications().length === 0) {
+                        <p class="empty-state-note">No certifications shared on this Living CV yet.</p>
+                      } @else {
+                        @for (certification of getDisplayedCertifications(); track certification.id) {
+                          <div class="modal-entry modal-entry--compact">
+                            <div class="modal-entry__title">{{ certification.name }}</div>
+                            <div class="modal-entry__sub">{{ certification.issuingOrganization }}</div>
+                          </div>
+                        }
                       }
                     }
 
@@ -408,12 +448,16 @@
                           </button>
                         }
                       </div>
-                      @for (reference of getDisplayedReferences(); track $index) {
-                        <div class="modal-entry modal-entry--compact">
-                          <div class="modal-entry__title">{{ reference.jobTitle }}</div>
-                          <div class="modal-entry__sub">{{ reference.company }}</div>
-                          <div class="modal-entry__dates">{{ reference.relationship }}</div>
-                        </div>
+                      @if (getDisplayedReferences().length === 0) {
+                        <p class="empty-state-note">No references shared on this Living CV yet.</p>
+                      } @else {
+                        @for (reference of getDisplayedReferences(); track $index) {
+                          <div class="modal-entry modal-entry--compact">
+                            <div class="modal-entry__title">{{ reference.jobTitle }}</div>
+                            <div class="modal-entry__sub">{{ reference.company }}</div>
+                            <div class="modal-entry__dates">{{ reference.relationship }}</div>
+                          </div>
+                        }
                       }
                     }
 
@@ -453,25 +497,71 @@
                     }
                     </div>
                   </section>
+
+                  @if (modalCv()!.workExperience.length > 0) {
+                    <section class="modal-section">
+                      <h3>Work Experience Detail View</h3>
+                      <mat-accordion class="work-detail-accordion" multi="true">
+                        @for (w of modalCv()!.workExperience; track w.id; let i = $index) {
+                          <mat-expansion-panel
+                            class="work-detail-panel"
+                            [class.work-detail-panel--pulse]="highlightedWorkDetailId() === getWorkExperienceKey(w, i)"
+                            [id]="'work-detail-' + getWorkExperienceKey(w, i)"
+                            [expanded]="activeWorkDetailId() === getWorkExperienceKey(w, i)"
+                            (opened)="onWorkDetailOpened(getWorkExperienceKey(w, i))"
+                            (closed)="onWorkDetailClosed(getWorkExperienceKey(w, i))">
+                            <mat-expansion-panel-header>
+                              <mat-panel-title>
+                                {{ w.jobTitle }} at {{ w.companyName }}
+                              </mat-panel-title>
+                            </mat-expansion-panel-header>
+
+                            <div class="work-detail-content">
+                              <p class="work-detail-meta">
+                                {{ w.startDate | date:'MMM yyyy' }} – {{ w.isCurrent ? 'Present' : (w.endDate | date:'MMM yyyy') }}
+                                @if (w.location) { · {{ w.location }} }
+                              </p>
+                              <p class="work-detail-placeholder">Detailed work experience content will appear here.</p>
+                            </div>
+                          </mat-expansion-panel>
+                        }
+                      </mat-accordion>
+                    </section>
+                  }
                 </div>
 
                 <aside class="modal-side-column">
                   <section class="modal-section">
                     <h3>Work History Timeline</h3>
                     @if (getWorkTimelineEvents().length > 0) {
-                      <p-timeline [value]="getWorkTimelineEvents()" align="left" styleClass="work-timeline">
-                        <ng-template pTemplate="opposite" let-event>
-                          <span class="work-timeline__period">{{ event.period }}</span>
-                        </ng-template>
+                      <div class="career-timeline career-timeline--modal">
+                        @for (event of getWorkTimelineEvents(); track event.workExperienceId; let last = $last) {
+                          <div class="ct-item">
+                            <div class="ct-left">
+                              <div class="ct-dot" [class.ct-dot--active]="event.isCurrent"></div>
+                              @if (!last) { <div class="ct-line"></div> }
+                            </div>
 
-                        <ng-template pTemplate="content" let-event>
-                          <article class="work-timeline__card" [class.work-timeline__card--current]="event.isCurrent">
-                            <h4>{{ event.title }}</h4>
-                            <p class="work-timeline__company">{{ event.company }} · {{ event.location }}</p>
-                            <p class="work-timeline__desc">{{ event.description }}</p>
-                          </article>
-                        </ng-template>
-                      </p-timeline>
+                            <button
+                              type="button"
+                              class="timeline-jump ct-card"
+                              [class.ct-card--current]="event.isCurrent"
+                              (click)="jumpToWorkDetail(event.workExperienceId)">
+                              <div class="ct-card__head">
+                                <div>
+                                  <h4 class="ct-card__title">{{ event.title }}</h4>
+                                  <p class="ct-card__sub">{{ event.company }} <span class="ct-card__muted">· {{ event.location }}</span></p>
+                                </div>
+                                @if (event.isCurrent) {
+                                  <span class="ct-tag ct-tag--active">Current</span>
+                                }
+                              </div>
+                              <p class="ct-card__dates">{{ event.period }}</p>
+                              <p class="ct-card__desc">{{ event.description }}</p>
+                            </button>
+                          </div>
+                        }
+                      </div>
                     } @else {
                       <p class="work-timeline__empty">No work experience captured yet.</p>
                     }
