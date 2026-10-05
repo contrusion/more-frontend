@@ -1,0 +1,309 @@
+.companies-page {
+  min-height: 100%;
+  background: var(--color-bg-page);
+  display: flex;
+  flex-direction: column;
+
+  --ac-header-pad-y: clamp(1rem, 1.1vw, 1.4rem);
+  --ac-header-pad-x: clamp(1rem, 1.4vw, 1.7rem);
+  --ac-body-pad: clamp(0.95rem, 1.8vw, 2rem);
+  --ac-title-fs: clamp(1.1rem, 1.05vw, 1.35rem);
+  --ac-subtitle-fs: clamp(0.68rem, 0.74vw, 0.74rem);
+  --ac-pill-fs: clamp(0.72rem, 0.78vw, 0.78rem);
+  --ac-table-fs: clamp(0.78rem, 0.86vw, 0.84rem);
+  --ac-th-fs: clamp(0.69rem, 0.72vw, 0.74rem);
+}
+
+.companies-header {
+  background: linear-gradient(135deg, var(--color-header-start) 0%, var(--color-header-mid) 50%, var(--color-header-end) 100%);
+  padding: var(--ac-header-pad-y) var(--ac-header-pad-x);
+  border-bottom: 1px solid var(--color-overlay-header-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.companies-header__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.companies-header__text h1 {
+  color: var(--color-text-on-dark);
+  font-size: var(--ac-title-fs);
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+}
+
+.companies-header__text p {
+  color: var(--color-overlay-header-muted);
+  margin: 0;
+  font-size: var(--ac-subtitle-fs);
+  max-width: 42rem;
+  line-height: 1.35;
+}
+
+.companies-header__count {
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.4);
+  color: var(--color-info-hover);
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  font-size: clamp(0.72rem, 0.76vw, 0.78rem);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.companies-body {
+  padding: var(--ac-body-pad);
+  flex: 1;
+}
+
+.search-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.search-wrap {
+  position: relative;
+  width: min(100%, 600px);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #a0aec0;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  color: #2d3748;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+}
+
+.filter-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-group__label {
+  font-size: clamp(0.68rem, 0.72vw, 0.72rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-pill {
+  padding: clamp(0.34rem, 0.45vw, 0.4rem) clamp(0.72rem, 0.95vw, 0.95rem);
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-size: var(--ac-pill-fs);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.filter-pill:hover {
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+.filter-pill--active {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+}
+
+.btn-refresh,
+.btn-retry {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  background: #0ea5e9;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-refresh[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  gap: 1rem;
+}
+
+.state-block--error {
+  color: #ef4444;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.table-wrapper {
+  border-radius: 12px;
+  overflow-x: auto;
+  height: clamp(20rem, 55vh, 34rem);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  background: #fff;
+}
+
+.companies-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: var(--ac-table-fs);
+  table-layout: fixed;
+}
+
+.companies-table thead th {
+  padding: 0.9rem 1.25rem;
+  text-align: left;
+  font-size: var(--ac-th-fs);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border-subtle));
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--color-surface) 95%, var(--color-primary) 5%);
+}
+
+.companies-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.companies-table tbody tr:hover {
+  background: #f0f9ff;
+}
+
+.companies-table td {
+  padding: 0.85rem 1.25rem;
+  vertical-align: middle;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.td-website a {
+  color: #0ea5e9;
+  text-decoration: none;
+}
+
+.td-website a:hover {
+  text-decoration: underline;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.status-online {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+}
+
+.status-offline {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+.status-pending_check {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.status-unverified {
+  background: rgba(100, 116, 139, 0.16);
+  color: #475569;
+}
+
+@media (max-width: 920px) {
+  .companies-body {
+    padding: 0.9rem;
+  }
+
+  .filter-section {
+    justify-content: center;
+  }
+
+  .table-wrapper {
+    height: auto;
+    max-height: 70vh;
+  }
+}

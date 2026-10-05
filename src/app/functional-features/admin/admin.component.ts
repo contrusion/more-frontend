@@ -38,6 +38,21 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
         </button>
         <button
           class="nav-item"
+          [class.active]="isActive('companies')"
+          (click)="navigate('companies')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 21h18"/>
+            <path d="M5 21V7l7-4 7 4v14"/>
+            <path d="M9 9h.01"/>
+            <path d="M15 9h.01"/>
+            <path d="M9 13h.01"/>
+            <path d="M15 13h.01"/>
+          </svg>
+          <span>Companies</span>
+        </button>
+        <button
+          class="nav-item"
           [class.active]="isActive('outreach-ml')"
           (click)="navigate('outreach-ml')"
         >

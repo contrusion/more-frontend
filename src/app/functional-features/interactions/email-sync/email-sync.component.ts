@@ -1,17 +1,24 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EmailSyncService, GmailStatusResponse, EmailSyncResult } from '../services/email-sync.service';
+import {
+  EmailScanStrategyType,
+  EmailSyncService,
+  EmailSyncResult,
+  GmailStatusResponse,
+  UserEmailSettings
+} from '../services/email-sync.service';
 import { InteractionService } from '../services/interaction.service';
 
 @Component({
   selector: 'app-email-sync',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './email-sync.component.html',
   styleUrls: ['./email-sync.component.css']
 })
-export class EmailSyncComponent implements OnInit {
+export class EmailSyncComponent implements OnInit, OnDestroy {
   loading = false;
   gmailStatus: GmailStatusResponse | null = null;
   error: string | null = null;
@@ -20,16 +27,46 @@ export class EmailSyncComponent implements OnInit {
   
   // Sync state
   syncInProgress = false;
+  syncPhase = 'Idle';
+  syncOverallProgress = 0;
+  fetchProgress = 0;
+  processProgress = 0;
+  syncFetched = 0;
+  syncProcessed = 0;
+  syncSkipped = 0;
+  syncFailed = 0;
   lastSyncResult: EmailSyncResult | null = null;
   syncError: string | null = null;
   showDisconnectConfirmation = false;
+  private syncStatusPollId: number | null = null;
+
+  settingsForm: FormGroup;
+  settingsLoading = false;
+  settingsSaving = false;
+  settingsError: string | null = null;
+  settingsSuccess: string | null = null;
+  readonly strategyOptions: { value: EmailScanStrategyType; label: string; }[] = [
+    { value: 'THRESHOLD_MAILBOX', label: 'Threshold Mailbox Scan' },
+    { value: 'LABELLED_EMAILS', label: 'Labelled Emails (Pending)' },
+    { value: 'SPECIFIC_EMAIL_ADDRESS', label: 'Specific Email Address (Pending)' },
+    { value: 'EMAIL_DOMAIN', label: 'Email Domain (Pending)' }
+  ];
 
   constructor(
     private emailSyncService: EmailSyncService,
     private interactionService: InteractionService,
     private route: ActivatedRoute,
-    private router: Router
-  ) {}
+    private router: Router,
+    private fb: FormBuilder
+  ) {
+    this.settingsForm = this.fb.group({
+      historicalDataLimitDays: [180, [Validators.required, Validators.min(1), Validators.max(3650)]],
+      scanStrategyType: ['THRESHOLD_MAILBOX' as EmailScanStrategyType, Validators.required],
+      scanLabelName: [''],
+      scanSenderEmail: [''],
+      scanSenderDomain: ['']
+    });
+  }
 
   ngOnInit(): void {
     // Check for OAuth callback status
@@ -67,7 +104,12 @@ export class EmailSyncComponent implements OnInit {
     // Initial status check (only if not in popup)
     if (!window.opener) {
       this.checkGmailStatus();
+      this.loadSettings();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.stopSyncStatusPolling();
   }
 
   checkGmailStatus(): void {
@@ -172,16 +214,35 @@ export class EmailSyncComponent implements OnInit {
     }
 
     this.syncInProgress = true;
+    this.syncPhase = 'Starting sync';
+    this.syncOverallProgress = 0;
+    this.fetchProgress = 0;
+    this.processProgress = 0;
+    this.syncFetched = 0;
+    this.syncProcessed = 0;
+    this.syncSkipped = 0;
+    this.syncFailed = 0;
     this.syncError = null;
     this.error = null;
     this.success = null;
+
+    this.startSyncStatusPolling();
 
     console.log('Starting email sync...');
 
     this.emailSyncService.syncNow().subscribe({
       next: (result) => {
+        this.stopSyncStatusPolling();
         this.lastSyncResult = result;
         this.syncInProgress = false;
+        this.syncPhase = 'Completed';
+        this.syncOverallProgress = 100;
+        this.fetchProgress = 100;
+        this.processProgress = 100;
+        this.syncFetched = result.totalFetched;
+        this.syncProcessed = result.processed;
+        this.syncSkipped = result.skipped;
+        this.syncFailed = result.failed;
         
         console.log('Sync completed:', result);
 
@@ -209,6 +270,7 @@ export class EmailSyncComponent implements OnInit {
       },
       error: (err) => {
         console.error('Email sync failed:', err);
+        this.stopSyncStatusPolling();
         this.syncInProgress = false;
         
         if (err.status === 409) {
@@ -218,5 +280,155 @@ export class EmailSyncComponent implements OnInit {
         }
       }
     });
+  }
+
+  private startSyncStatusPolling(): void {
+    this.stopSyncStatusPolling();
+    this.refreshSyncStatus();
+    this.syncStatusPollId = window.setInterval(() => this.refreshSyncStatus(), 1000);
+  }
+
+  private stopSyncStatusPolling(): void {
+    if (this.syncStatusPollId !== null) {
+      window.clearInterval(this.syncStatusPollId);
+      this.syncStatusPollId = null;
+    }
+  }
+
+  private refreshSyncStatus(): void {
+    this.emailSyncService.getSyncStatus().subscribe({
+      next: (status) => {
+        this.syncInProgress = status.syncing;
+        this.syncPhase = this.formatSyncPhase(status.phase, status.syncing);
+        this.syncOverallProgress = typeof status.progressPercent === 'number'
+          ? status.progressPercent
+          : this.syncOverallProgress;
+        this.fetchProgress = this.resolveFetchProgress(status);
+        this.processProgress = this.resolveProcessProgress(status);
+        this.syncFetched = status.totalFetched ?? this.syncFetched;
+        this.syncProcessed = status.processed ?? this.syncProcessed;
+        this.syncSkipped = status.skipped ?? this.syncSkipped;
+        this.syncFailed = status.failed ?? this.syncFailed;
+      },
+      error: (err) => {
+        console.error('Failed to refresh sync status:', err);
+      }
+    });
+  }
+
+  private resolveFetchProgress(status: { phase?: string; fetchProgressPercent?: number; syncing: boolean; }): number {
+    if (typeof status.fetchProgressPercent === 'number') {
+      return status.fetchProgressPercent;
+    }
+
+    if (status.phase === 'FETCHING_EMAILS') {
+      return status.syncing ? 60 : 100;
+    }
+
+    if (status.phase === 'PROCESSING_EMAILS' || status.phase === 'COMPLETED') {
+      return 100;
+    }
+
+    return this.fetchProgress;
+  }
+
+  private resolveProcessProgress(status: { phase?: string; processProgressPercent?: number; syncing: boolean; }): number {
+    if (typeof status.processProgressPercent === 'number') {
+      return status.processProgressPercent;
+    }
+
+    if (status.phase === 'PROCESSING_EMAILS') {
+      return status.syncing ? Math.max(this.processProgress, 5) : 100;
+    }
+
+    if (status.phase === 'COMPLETED') {
+      return 100;
+    }
+
+    return this.processProgress;
+  }
+
+  private formatSyncPhase(phase?: string, syncing?: boolean): string {
+    switch (phase) {
+      case 'FETCHING_EMAILS':
+        return 'Fetching emails';
+      case 'PROCESSING_EMAILS':
+        return 'Processing emails';
+      case 'COMPLETED':
+        return 'Completed';
+      case 'FAILED':
+        return 'Failed';
+      default:
+        return syncing ? 'Syncing emails' : 'Idle';
+    }
+  }
+
+  loadSettings(): void {
+    this.settingsLoading = true;
+    this.settingsError = null;
+
+    this.emailSyncService.getSettings().subscribe({
+      next: (settings) => {
+        this.applySettings(settings);
+        this.settingsLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load email settings:', err);
+        this.settingsError = 'Failed to load scan settings';
+        this.settingsLoading = false;
+      }
+    });
+  }
+
+  saveSettings(): void {
+    if (this.settingsForm.invalid || this.settingsSaving) {
+      this.settingsForm.markAllAsTouched();
+      return;
+    }
+
+    this.settingsSaving = true;
+    this.settingsError = null;
+    this.settingsSuccess = null;
+
+    const payload: UserEmailSettings = {
+      historicalDataLimitDays: Number(this.settingsForm.value.historicalDataLimitDays),
+      scanStrategyType: this.settingsForm.value.scanStrategyType,
+      scanLabelName: this.normalizeOptionalField(this.settingsForm.value.scanLabelName),
+      scanSenderEmail: this.normalizeOptionalField(this.settingsForm.value.scanSenderEmail),
+      scanSenderDomain: this.normalizeOptionalField(this.settingsForm.value.scanSenderDomain)
+    };
+
+    this.emailSyncService.updateSettings(payload).subscribe({
+      next: (settings) => {
+        this.applySettings(settings);
+        this.settingsSaving = false;
+        this.settingsSuccess = 'Scan settings saved';
+      },
+      error: (err) => {
+        console.error('Failed to save email settings:', err);
+        this.settingsError = err.error?.message || 'Failed to save scan settings';
+        this.settingsSaving = false;
+      }
+    });
+  }
+
+  isStrategyPending(): boolean {
+    const strategy = this.settingsForm.value.scanStrategyType as EmailScanStrategyType;
+    return strategy !== 'THRESHOLD_MAILBOX';
+  }
+
+  private applySettings(settings: UserEmailSettings): void {
+    this.settingsForm.patchValue({
+      historicalDataLimitDays: settings.historicalDataLimitDays ?? 180,
+      scanStrategyType: settings.scanStrategyType ?? 'THRESHOLD_MAILBOX',
+      scanLabelName: settings.scanLabelName ?? '',
+      scanSenderEmail: settings.scanSenderEmail ?? '',
+      scanSenderDomain: settings.scanSenderDomain ?? ''
+    });
+  }
+
+  private normalizeOptionalField(value: string | null | undefined): string | null {
+    const normalized = value?.trim() ?? '';
+    return normalized.length > 0 ? normalized : null;
   }
 }

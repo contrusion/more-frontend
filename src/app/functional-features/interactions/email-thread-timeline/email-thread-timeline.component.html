@@ -1,0 +1,27 @@
+@if (loading()) {
+  <p class="thread-status" role="status">Loading conversation...</p>
+} @else if (error()) {
+  <p class="thread-status thread-error" role="alert">{{ error() }}</p>
+} @else if (messages().length === 0) {
+  <p class="thread-status">No messages found in this conversation.</p>
+} @else {
+  <p-timeline [value]="messages()" align="left" styleClass="email-thread-timeline">
+    <ng-template #marker let-message>
+      <span class="thread-marker" [class.thread-marker-user]="message.fromUser"></span>
+    </ng-template>
+    <ng-template #content let-message>
+      <div class="thread-message">
+        <div class="thread-message-meta">
+          <span class="thread-sender" [class.thread-sender-user]="message.fromUser">
+            {{ message.fromUser ? 'You' : (message.senderName || message.senderEmail) }}
+          </span>
+          <span class="thread-date">{{ message.sentAt | date: 'medium' }}</span>
+        </div>
+        @if (message.subject) {
+          <div class="thread-subject">{{ message.subject }}</div>
+        }
+        <div class="thread-body">{{ message.body }}</div>
+      </div>
+    </ng-template>
+  </p-timeline>
+}

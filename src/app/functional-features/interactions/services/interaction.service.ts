@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
-import { InteractionThread, InteractionEvent, CreateEventRequest, ChannelType, EventType, InteractionStatus } from '../models/interaction.model';
+import { InteractionThread, InteractionEvent, EmailThreadMessage, CreateEventRequest, ChannelType, EventType, InteractionStatus } from '../models/interaction.model';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
@@ -63,6 +63,16 @@ export class InteractionService {
   }
   
   /**
+   * Load the full Gmail thread (recruiter messages and the candidate's replies) behind an interaction.
+   * The backend reads it live from Gmail; nothing is cached here.
+   */
+  getEmailThread(interactionId: string, threadId: string): Observable<EmailThreadMessage[]> {
+    return this.http
+      .get<any[]>(`${this.apiUrl}/${interactionId}/threads/${threadId}`)
+      .pipe(map(messages => messages.map(m => ({ ...m, sentAt: new Date(m.sentAt) }))));
+  }
+
+  /**
    * Map backend RecruiterInteractionDto to frontend InteractionThread model
    */
   private mapToThread(dto: any): InteractionThread {
@@ -80,6 +90,8 @@ export class InteractionService {
           timestamp: new Date(e.timestamp),
           senderId: isUserSent ? 'current-user' : (dto.externalRecruiterEmail || dto.recruiter?.email || 'recruiter'),
           senderName: isUserSent ? 'You' : (dto.externalRecruiterName || dto.recruiter?.name || 'Recruiter'),
+          threadId: e.threadId || undefined,
+          subject: e.subject || undefined,
           metadata: {
             personalizationLevel: e.personalized ? 80 : 20,
             containsUrgencyCue: e.containsUrgencyCue
@@ -116,15 +128,14 @@ export class InteractionService {
   }
   
   private mapEventType(backendType: string): EventType {
-    const mapping: Record<string, EventType> = {
+    if (Object.values(EventType).includes(backendType as EventType)) {
+      return backendType as EventType;
+    }
+    const legacyMapping: Record<string, EventType> = {
       'JOB_OPPORTUNITY': EventType.OUTREACH,
-      'CV_REQUEST': EventType.CV_REQUEST,
-      'INTERVIEW_INVITE': EventType.INTERVIEW_INVITE,
-      'FOLLOW_UP': EventType.FOLLOW_UP,
-      'REJECTION': EventType.FOLLOW_UP,
-      'OTHER': EventType.EXPLORATION
+      'REJECTION': EventType.FOLLOW_UP
     };
-    return mapping[backendType] || EventType.EXPLORATION;
+    return legacyMapping[backendType] || EventType.EXPLORATION;
   }
   
   private mapChannel(backendChannel: string): ChannelType {

@@ -1,0 +1,106 @@
+<div class="companies-page">
+  <div class="companies-header">
+    <div class="companies-header__content">
+      <div class="companies-header__text">
+        <h1>Recruiter Companies</h1>
+        <p>Manage and review company records discovered from recruiter email flows.</p>
+      </div>
+      @if (!loading()) {
+        <span class="companies-header__count">{{ filteredCompanies().length }} companies</span>
+      }
+    </div>
+  </div>
+
+  <div class="companies-body">
+    <div class="search-row">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by company, website, industry or location"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="setSearch($event)"
+          class="search-input"
+        />
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-group__label">Status</span>
+        <div class="filter-bar">
+          @for (status of statusOptions; track status) {
+            <button
+              class="filter-pill"
+              [class.filter-pill--active]="activeStatusFilter() === status"
+              (click)="applyStatusFilter(status)">
+              {{ status === 'ALL' ? 'All' : status.replace('_', ' ') }}
+            </button>
+          }
+        </div>
+      </div>
+      <button class="btn-refresh" (click)="loadCompanies()" [disabled]="loading()">Refresh</button>
+    </div>
+
+    @if (loading()) {
+      <div class="state-block">
+        <div class="spinner"></div>
+        <p>Loading companies...</p>
+      </div>
+    }
+
+    @if (!loading() && error()) {
+      <div class="state-block state-block--error">
+        <p>{{ error() }}</p>
+        <button class="btn-retry" (click)="loadCompanies()">Retry</button>
+      </div>
+    }
+
+    @if (!loading() && !error() && filteredCompanies().length === 0) {
+      <div class="state-block">
+        <p>No companies found for this filter.</p>
+      </div>
+    }
+
+    @if (!loading() && !error() && filteredCompanies().length > 0) {
+      <div class="table-wrapper">
+        <table class="companies-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Website</th>
+              <th>Industry</th>
+              <th>Headquarters</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (company of filteredCompanies(); track company.id) {
+              <tr>
+                <td class="td-name">{{ company.name || '—' }}</td>
+                <td class="td-website">
+                  @if (company.website) {
+                    <a [href]="company.website" target="_blank" rel="noopener noreferrer">{{ company.website }}</a>
+                  } @else {
+                    <span>—</span>
+                  }
+                </td>
+                <td>{{ company.industry || '—' }}</td>
+                <td>{{ company.headquarters || '—' }}</td>
+                <td>
+                  <span class="status-badge" [class]="'status-badge status-' + (company.websiteStatus || 'UNVERIFIED').toLowerCase()">
+                    {{ statusLabel(company.websiteStatus) }}
+                  </span>
+                </td>
+                <td>{{ formatDate(company.createdAt) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

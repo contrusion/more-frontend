@@ -3,11 +3,13 @@ import { EmailSyncComponent } from './email-sync.component';
 import { EmailSyncService } from '../services/email-sync.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { InteractionService } from '../services/interaction.service';
 
 describe('EmailSyncComponent', () => {
   let component: EmailSyncComponent;
   let fixture: ComponentFixture<EmailSyncComponent>;
   let emailSyncService: jasmine.SpyObj<EmailSyncService>;
+  let interactionService: jasmine.SpyObj<InteractionService>;
   let router: jasmine.SpyObj<Router>;
   let activatedRoute: any;
 
@@ -16,8 +18,13 @@ describe('EmailSyncComponent', () => {
       'getGmailStatus',
       'getGmailAuthUrl',
       'revokeGmailAccess',
-      'openOAuthPopup'
+      'openOAuthPopup',
+      'syncNow',
+      'getSyncStatus',
+      'getSettings',
+      'updateSettings'
     ]);
+    const interactionServiceSpy = jasmine.createSpyObj('InteractionService', ['getThreads']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
     
     activatedRoute = {
@@ -28,15 +35,25 @@ describe('EmailSyncComponent', () => {
       imports: [EmailSyncComponent],
       providers: [
         { provide: EmailSyncService, useValue: emailSyncServiceSpy },
+        { provide: InteractionService, useValue: interactionServiceSpy },
         { provide: Router, useValue: routerSpy },
         { provide: ActivatedRoute, useValue: activatedRoute }
       ]
     }).compileComponents();
 
     emailSyncService = TestBed.inject(EmailSyncService) as jasmine.SpyObj<EmailSyncService>;
+    interactionService = TestBed.inject(InteractionService) as jasmine.SpyObj<InteractionService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     fixture = TestBed.createComponent(EmailSyncComponent);
     component = fixture.componentInstance;
+
+    emailSyncService.getGmailStatus.and.returnValue(of({ connected: false }));
+    emailSyncService.getSyncStatus.and.returnValue(of({ syncing: false, userId: 'user-1', progressPercent: 0 }));
+    emailSyncService.getSettings.and.returnValue(of({
+      historicalDataLimitDays: 180,
+      scanStrategyType: 'THRESHOLD_MAILBOX'
+    }));
+    interactionService.getThreads.and.returnValue(of([]));
   });
 
   it('should create', () => {
@@ -63,13 +80,36 @@ describe('EmailSyncComponent', () => {
   });
 
   it('should disconnect Gmail successfully', () => {
-    spyOn(window, 'confirm').and.returnValue(true);
     emailSyncService.revokeGmailAccess.and.returnValue(of({ message: 'ok', status: 'success' }));
-    
+
     component.disconnectGmail();
-    
+
+    expect(component.showDisconnectConfirmation).toBeTrue();
+
+    component.confirmDisconnect();
+
     expect(emailSyncService.revokeGmailAccess).toHaveBeenCalled();
     expect(component.gmailStatus).toBeNull();
+  });
+
+  it('should save scan settings successfully', () => {
+    emailSyncService.updateSettings.and.returnValue(of({
+      historicalDataLimitDays: 60,
+      scanStrategyType: 'THRESHOLD_MAILBOX'
+    }));
+
+    component.settingsForm.patchValue({
+      historicalDataLimitDays: 60,
+      scanStrategyType: 'THRESHOLD_MAILBOX'
+    });
+
+    component.saveSettings();
+
+    expect(emailSyncService.updateSettings).toHaveBeenCalledWith(jasmine.objectContaining({
+      historicalDataLimitDays: 60,
+      scanStrategyType: 'THRESHOLD_MAILBOX'
+    }));
+    expect(component.settingsSuccess).toBe('Scan settings saved');
   });
 
   it('should handle errors when connecting Gmail', () => {
@@ -80,5 +120,42 @@ describe('EmailSyncComponent', () => {
     
     expect(component.error).toBe('Connection failed');
     expect(component.loading).toBeFalse();
+  });
+
+  it('should update progress while syncing emails', () => {
+    emailSyncService.syncNow.and.returnValue(of({
+      userId: 'user-1',
+      syncedAt: new Date().toISOString(),
+      totalFetched: 10,
+      processed: 7,
+      skipped: 2,
+      failed: 1,
+      errors: [],
+      durationMs: 1200,
+      success: true
+    }));
+    emailSyncService.getSyncStatus.and.returnValue(of({
+      syncing: true,
+      userId: 'user-1',
+      phase: 'PROCESSING_EMAILS',
+      progressPercent: 55,
+      fetchProgressPercent: 100,
+      processProgressPercent: 55,
+      totalFetched: 10,
+      processed: 5,
+      skipped: 0,
+      failed: 0
+    }));
+
+    component.syncEmails();
+
+    expect(emailSyncService.getSyncStatus).toHaveBeenCalled();
+    expect(component.syncOverallProgress).toBe(100);
+    expect(component.fetchProgress).toBe(100);
+    expect(component.processProgress).toBe(100);
+    expect(component.syncPhase).toBe('Completed');
+    expect(component.syncFetched).toBe(10);
+    expect(component.syncProcessed).toBe(7);
+    expect(component.lastSyncResult?.success).toBeTrue();
   });
 });

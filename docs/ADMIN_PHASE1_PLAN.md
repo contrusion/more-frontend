@@ -203,7 +203,74 @@ The existing admin shell (`AdminComponent`) is already wired with a sidebar card
 
 ---
 
-## Epic 5 — ML Data Pipeline & Dataset Management
+## Epic 5 — ML Review, Governance & Dataset Management
+
+### US-013A · Review low-confidence ML classifications
+**As** an admin  
+**I want** to view all inbound classifications that were flagged for human review  
+**So that** I can confirm, reject, or correct uncertain AI outputs before they affect downstream workflows
+
+**Status:** ✅ Backend and admin dashboard implemented in Phase 1 via the ML monitoring endpoints and the operational dashboard UI.
+
+**Acceptance criteria:**
+- Admin queue shows: message ID, source provider, event type, confidence score, company name, job title, created at, current status
+- Default filter is `PENDING` items first
+- Each row can be approved, rejected, or marked as needing follow-up
+- The review action is auditable and linked to the admin user performing it
+- The dashboard surfaces summary cards, review decisions, recent audit events, and dataset export controls in the admin experience
+- Only structured metadata is shown; raw email body is never loaded in the DB or UI without explicit governance controls
+
+**Backend:** `GET /api/admin/ml/reviews/pending`, `PATCH /api/admin/ml/reviews/{messageId}/decision`
+
+---
+
+### US-013B · Audit the ML classification trail
+**As** an admin  
+**I want** to inspect the recent classification and review history for model decisions  
+**So that** I can detect drift, verify review outcomes, and investigate data quality issues
+
+**Status:** ✅ Backend implemented in Phase 1 with recent audit feed access.
+
+**Acceptance criteria:**
+- Audit list includes event type, source provider, confidence, company/job extraction, review flag, status, and timestamps
+- Admin can filter by date range, provider, and review-required flag
+- List remains bounded and queryable for operational review
+- The history supports later Phase 2 model comparison and retraining decisions
+
+**Backend:** `GET /api/admin/ml/audit/recent?limit=`
+
+---
+
+### US-013C · Monitor ML quality and review rate
+**As** an admin  
+**I want** to see the live ML quality summary for the last period  
+**So that** I can understand review volume, confidence distribution, and overall classification health
+
+**Status:** ✅ Backend implemented in Phase 1 and exposed through the admin performance endpoint.
+
+**Acceptance criteria:**
+- Dashboard cards show: total predictions, review-required count, review rate, average confidence, accepted/rejected review count
+- Event-type breakdown is shown by count
+- Summary refreshes from the persisted ML audit and review tables
+- Data is suitable for Phase 2 model benchmarking and cross-model comparison
+
+**Backend:** `GET /api/admin/ml/performance`
+
+---
+
+### US-013D · Review model disagreement and retraining candidates
+**As** an admin  
+**I want** to identify cases where AI classification and human review disagree  
+**So that** I can flag the highest-value datasets for model improvement before Phase 2 rollout
+
+**Acceptance criteria:**
+- Summary shows disagreement counts versus accepted labels
+- Admin can drill into a sample of flagged cases without exposing raw message content
+- Disagreement cases are tagged for model feedback and future retraining
+
+**Backend:** `GET /api/admin/ml/disagreements?page=&size=&from=&to=`
+
+---
 
 ### US-013 · Export outreach email dataset for ML training (existing feature)
 **As** an admin  
@@ -571,19 +638,23 @@ All admin child routes are lazy-loaded under the existing `/admin` parent:
 | US-002 User profile | High | Low | ✅ Done |
 | US-016 KPI dashboard | High | Medium | ✅ Done |
 | US-004 Suspend account | High | Low | ✅ Done |
+| US-013A Review low-confidence ML classifications | High | Medium | 🔴 P1 |
+| US-013B Audit ML classification trail | High | Medium | 🔴 P1 |
+| US-013C Monitor ML quality and review rate | High | Medium | 🔴 P1 |
+| US-013D Review model disagreement and retraining candidates | High | Medium | 🔴 P1 |
 | US-003 Assign roles | High | Medium | 🔴 P1 |
+| US-020 Placement trends | High | Medium | 🔴 P1 |
 | US-005 View all job ads | Medium | Low | 🟡 P2 |
 | US-006 Remove job ad | Medium | Low | 🟡 P2 |
 | US-008 Class distribution | Medium | Medium | 🟡 P2 |
 | US-011 Interaction oversight | Medium | Medium | 🟡 P2 |
-| US-013 ML export | — | — | ✅ Done |
 | US-007 Applications overview | Medium | Medium | 🟡 P2 |
+| US-013 ML export | — | — | ✅ Done |
+| US-014/015 ML history | Medium | Medium | 🟡 P2 |
 | US-009 Leaderboard | Low | Low | 🟢 P3 |
 | US-010 Inactive candidates | Low | Medium | 🟢 P3 |
 | US-012 Recruiter performance | Low | Medium | 🟢 P3 |
-| US-014/015 ML history | Low | Medium | 🟢 P3 |
 | US-017 Registration & login trends | Low | Medium | 🟢 P3 |
-| US-020 Placement trends | High | Medium | 🔴 P1 |
 | US-018 Class thresholds | Low | High | 🟢 P3 |
 | US-019 Feature flags | Low | High | 🟢 P3 |
 | US-A21 Knowledge assessment authoring | High | Medium | 🔴 P1 (Phase 2 unlock) |

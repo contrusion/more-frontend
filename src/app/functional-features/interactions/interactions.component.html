@@ -134,6 +134,14 @@
               <span class="event-timestamp">{{ formatTime(event.timestamp) }}</span>
             </div>
             <div class="event-content-text">{{ event.content }}</div>
+            @if (event.threadId) {
+              <button type="button" class="thread-toggle" (click)="toggleThread(event.id)">
+                {{ isThreadOpen(event.id) ? 'Hide full thread' : 'View full thread' }}
+              </button>
+              @if (isThreadOpen(event.id)) {
+                <app-email-thread-timeline [interactionId]="event.interactionThreadId" [threadId]="event.threadId" />
+              }
+            }
           </div>
         </div>
       </div>

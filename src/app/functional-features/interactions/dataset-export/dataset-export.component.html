@@ -1,202 +1,253 @@
-<div class="dataset-export-container">
-  <h2>📊 ML Dataset Export</h2>
-  <p class="description">
-    Export recruitment emails from Gmail to build your machine learning training dataset.
-  </p>
+<div class="ml-dashboard">
+  <header class="ml-hero">
+    <div class="ml-hero__inner">
+      <div class="ml-hero__copy">
+        <p class="eyebrow">ML operations</p>
+        <h1>Outreach intelligence</h1>
+        <p class="subtitle">Monitor classification quality, review review queue items, and export training data for model improvement.</p>
+      </div>
 
-  <!-- Export Configuration -->
-  <div class="export-config-card">
-    <h3>Export Configuration</h3>
-    
-    <div class="config-grid">
-      <div class="config-item">
-        <label for="sinceDays">Days to Look Back:</label>
-        <input 
-          type="number" 
-          id="sinceDays" 
-          [(ngModel)]="exportConfig.sinceDays" 
-          min="1" 
-          max="3650"
-          class="config-input"
-        />
-      </div>
-      
-      <div class="config-item">
-        <label for="maxResults">Max Emails:</label>
-        <input 
-          type="number" 
-          id="maxResults" 
-          [(ngModel)]="exportConfig.maxResults" 
-          min="1" 
-          max="5000"
-          class="config-input"
-        />
-      </div>
-      
-      <div class="config-item checkbox-item">
-        <label>
-          <input 
-            type="checkbox" 
-            [(ngModel)]="exportConfig.includeInbox"
-          />
-          Include Inbox
-        </label>
-      </div>
-      
-      <div class="config-item checkbox-item">
-        <label>
-          <input 
-            type="checkbox" 
-            [(ngModel)]="exportConfig.includeSent"
-          />
-          Include Sent
-        </label>
+      <div class="ml-hero__actions">
+        <button class="secondary-btn" type="button" (click)="refreshOverview()" [disabled]="refreshing()">
+          {{ refreshing() ? 'Refreshing...' : 'Refresh' }}
+        </button>
+        <button class="primary-btn" type="button" (click)="exportCsv()" [disabled]="loading()">
+          {{ loading() ? 'Exporting...' : 'Export CSV' }}
+        </button>
       </div>
     </div>
-    
-    <div class="action-buttons">
-      <button 
-        (click)="exportJson()" 
-        [disabled]="loading"
-        class="btn btn-primary"
-      >
-        {{ loading ? '⏳ Exporting...' : '📥 Export as JSON' }}
-      </button>
-      
-      <button 
-        (click)="exportCsv()" 
-        [disabled]="loading"
-        class="btn btn-secondary"
-      >
-        {{ loading ? '⏳ Exporting...' : '📊 Export as CSV' }}
-      </button>
-      
-      <button 
-        (click)="resetConfig()" 
-        class="btn btn-outline"
-      >
-        🔄 Reset
-      </button>
-    </div>
-  </div>
+  </header>
 
-  <!-- Error Message -->
-  <div *ngIf="errorMessage" class="error-message">
-    ⚠️ {{ errorMessage }}
-  </div>
+  <main class="page-body">
+    @if (summaryLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading ML quality metrics...</p>
+      </div>
+    }
 
-  <!-- Export Results -->
-  <div *ngIf="exportResponse" class="export-results">
-    <h3>Export Results</h3>
-    
-    <div class="stats-grid">
-      <div class="stat-item">
-        <span class="stat-label">Total Emails:</span>
-        <span class="stat-value">{{ exportResponse.totalEmails }}</span>
+    @if (errorMessage) {
+      <div class="inline-message inline-message--danger">
+        {{ errorMessage }}
       </div>
-      
-      <div class="stat-item" *ngIf="exportResponse.stats">
-        <span class="stat-label">Inbox:</span>
-        <span class="stat-value">{{ exportResponse.stats.inboxCount }}</span>
-      </div>
-      
-      <div class="stat-item" *ngIf="exportResponse.stats">
-        <span class="stat-label">Sent:</span>
-        <span class="stat-value">{{ exportResponse.stats.sentCount }}</span>
-      </div>
-      
-      <div class="stat-item" *ngIf="exportResponse.stats">
-        <span class="stat-label">With Attachments:</span>
-        <span class="stat-value">{{ exportResponse.stats.withAttachments }}</span>
-      </div>
-    </div>
-    
-    <div class="export-info">
-      <p><strong>Exported At:</strong> {{ exportResponse.exportedAt | date:'medium' }}</p>
-      <p *ngIf="exportResponse.stats?.oldestEmail">
-        <strong>Date Range:</strong> 
-        {{ exportResponse.stats.oldestEmail | date:'shortDate' }} - 
-        {{ exportResponse.stats.newestEmail | date:'shortDate' }}
-      </p>
-    </div>
-    
-    <div class="success-message" *ngIf="exportResponse.success">
-      ✅ Export completed successfully! Dataset ready for labeling.
-    </div>
-  </div>
+    }
 
-  <!-- Preview Section -->
-  <div class="preview-section">
-    <div class="preview-header">
-      <h3>📧 Recent Recruitment Emails (Preview)</h3>
-      <button 
-        (click)="loadPreview()" 
-        [disabled]="previewLoading"
-        class="btn btn-sm"
-      >
-        {{ previewLoading ? '⏳' : '🔄' }} Refresh
-      </button>
-    </div>
-    
-    <div *ngIf="previewLoading" class="loading-spinner">
-      Loading preview...
-    </div>
-    
-    <div *ngIf="!previewLoading && previewData" class="preview-list">
-      <div 
-        *ngFor="let email of previewData.emails" 
-        class="email-preview-card"
-      >
-        <div class="email-header">
-          <span class="email-subject">{{ email.subject || '(No Subject)' }}</span>
-          <span class="email-folder" [class.inbox]="email.folder === 'INBOX'">
-            {{ email.folder }}
-          </span>
-        </div>
-        
-        <div class="email-meta">
-          <span class="email-from">
-            {{ email.fromName || email.fromEmail }}
-          </span>
-          <span class="email-date">
-            {{ email.receivedDate | date:'short' }}
-          </span>
-        </div>
-        
-        <div class="email-snippet">
-          {{ email.snippet }}
-        </div>
-        
-        <div class="email-tags">
-          <span class="tag" *ngIf="email.hasAttachments">📎 Attachment</span>
-          <span class="tag" *ngIf="email.companyName">🏢 {{ email.companyName }}</span>
+    @if (performance() && !summaryLoading()) {
+      <section class="summary-grid" aria-label="ML summary metrics">
+        <article class="summary-card accent">
+          <div class="summary-card__label">Total predictions</div>
+          <div class="summary-card__value">{{ performance()!.totalPredictions | number }}</div>
+          <div class="summary-card__meta">Review rate {{ performance()!.reviewRate * 100 | number: '1.0-0' }}%</div>
+        </article>
+
+        <article class="summary-card success">
+          <div class="summary-card__label">Review required</div>
+          <div class="summary-card__value">{{ performance()!.reviewRequiredCount | number }}</div>
+          <div class="summary-card__meta">Average confidence {{ performance()!.averageConfidence | number: '1.2-2' }}</div>
+        </article>
+
+        <article class="summary-card info">
+          <div class="summary-card__label">Pending review</div>
+          <div class="summary-card__value">{{ performance()!.pendingReviewCount | number }}</div>
+          <div class="summary-card__meta">Accepted {{ performance()!.acceptedReviewCount | number }}</div>
+        </article>
+
+        <article class="summary-card warning">
+          <div class="summary-card__label">Rejected</div>
+          <div class="summary-card__value">{{ performance()!.rejectedReviewCount | number }}</div>
+          <div class="summary-card__meta">Model health check</div>
+        </article>
+      </section>
+    }
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Human review</p>
+          <h2>Review queue</h2>
         </div>
       </div>
-      
-      <div *ngIf="previewData.emails.length === 0" class="no-emails">
-        No recruitment emails found in the last 30 days.
-      </div>
-    </div>
-  </div>
 
-  <!-- Instructions -->
-  <div class="instructions-card">
-    <h3>📝 Next Steps</h3>
-    <ol>
-      <li>Click <strong>"Export as CSV"</strong> to download your recruitment emails</li>
-      <li>Open the CSV file in Excel or Google Sheets</li>
-      <li>Add labels to the <code>label</code> column:
-        <ul>
-          <li><code>outreach</code> - Initial recruiter contact</li>
-          <li><code>cv_requested</code> - Asking for your resume</li>
-          <li><code>cv_submitted</code> - Confirmation of application</li>
-          <li><code>interview_scheduled</code> - Interview invitation</li>
-          <li><code>interview_feedback</code> - Post-interview updates</li>
-          <li><code>follow_up</code> - Status check emails</li>
-          <li><code>non_recruitment</code> - Not recruitment related</li>
+      @if (pendingReviews().length) {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Message</th>
+                <th>Provider</th>
+                <th>Event</th>
+                <th>Confidence</th>
+                <th>Company</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of pendingReviews(); track entry.messageId) {
+                <tr>
+                  <td>
+                    <div class="table-title">{{ entry.messageId }}</div>
+                    <div class="table-subtitle">{{ entry.createdAt | date:'medium' }}</div>
+                  </td>
+                  <td>{{ entry.sourceProvider }}</td>
+                  <td>{{ entry.eventType }}</td>
+                  <td>{{ entry.confidence | number: '1.2-2' }}</td>
+                  <td>{{ entry.companyName || '—' }}</td>
+                  <td>
+                    <div class="table-actions">
+                      <button class="table-btn table-btn--accept" type="button" (click)="resolveQueueItem(entry.messageId, true)" [disabled]="resolvingMessageId === entry.messageId">
+                        {{ resolvingMessageId === entry.messageId ? '...' : 'Accept' }}
+                      </button>
+                      <button class="table-btn table-btn--reject" type="button" (click)="resolveQueueItem(entry.messageId, false)" [disabled]="resolvingMessageId === entry.messageId">
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-state__icon">✓</div>
+          <h3>No pending ML review items</h3>
+          <p>Low-confidence classifications are being accepted without manual intervention.</p>
+        </div>
+      }
+    </section>
+
+    <section class="panel panel--split">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Operational signal</p>
+          <h2>Recent audit trail</h2>
+        </div>
+      </div>
+
+      @if (auditEntries().length) {
+        <ul class="audit-list">
+          @for (entry of auditEntries(); track entry.messageId) {
+            <li class="audit-item">
+              <div class="audit-item__meta">
+                <strong>{{ entry.eventType }}</strong>
+                <span>{{ entry.sourceProvider }}</span>
+              </div>
+              <div class="audit-item__detail">
+                <span>{{ entry.companyName || 'Unknown company' }}</span>
+                <span>{{ entry.jobTitle || 'No title captured' }}</span>
+              </div>
+              <div class="audit-item__footer">
+                <span>Confidence {{ entry.confidence | number: '1.2-2' }}</span>
+                <span>{{ entry.timestamp | date:'short' }}</span>
+              </div>
+            </li>
+          }
         </ul>
-      </li>
-      <li>Save the labeled CSV for training your ML model</li>
-    </ol>
-  </div>
+      } @else {
+        <div class="empty-state empty-state--compact">
+          <p>No recent ML audit events.</p>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Training data</p>
+          <h2>Dataset export</h2>
+        </div>
+      </div>
+
+      <div class="export-config-card">
+        <div class="config-grid">
+          <label class="config-item">
+            <span>Days to look back</span>
+            <input type="number" [(ngModel)]="exportConfig.sinceDays" min="1" max="3650" />
+          </label>
+
+          <label class="config-item">
+            <span>Max emails</span>
+            <input type="number" [(ngModel)]="exportConfig.maxResults" min="1" max="5000" />
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" [(ngModel)]="exportConfig.includeInbox" />
+            Include inbox
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" [(ngModel)]="exportConfig.includeSent" />
+            Include sent
+          </label>
+        </div>
+
+        <div class="action-row">
+          <button class="primary-btn" type="button" (click)="exportJson()" [disabled]="loading()">
+            {{ loading() ? 'Exporting...' : 'Export JSON' }}
+          </button>
+          <button class="secondary-btn" type="button" (click)="exportCsv()" [disabled]="loading()">
+            Export CSV
+          </button>
+          <button class="ghost-btn" type="button" (click)="resetConfig()">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      @if (exportResponse) {
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span>Total emails</span>
+            <strong>{{ exportResponse.totalEmails }}</strong>
+          </div>
+          <div class="stat-item">
+            <span>Inbox</span>
+            <strong>{{ exportResponse.stats.inboxCount }}</strong>
+          </div>
+          <div class="stat-item">
+            <span>Sent</span>
+            <strong>{{ exportResponse.stats.sentCount }}</strong>
+          </div>
+          <div class="stat-item">
+            <span>Attachments</span>
+            <strong>{{ exportResponse.stats.withAttachments }}</strong>
+          </div>
+        </div>
+      }
+
+      <div class="preview-section">
+        <div class="preview-header">
+          <h3>Recent email preview</h3>
+          <button class="ghost-btn" type="button" (click)="loadPreview()" [disabled]="previewLoading()">
+            {{ previewLoading() ? 'Loading...' : 'Refresh preview' }}
+          </button>
+        </div>
+
+        @if (previewLoading()) {
+          <div class="loading-state loading-state--small">
+            <div class="spinner"></div>
+            <p>Loading preview...</p>
+          </div>
+        }
+
+        @if (previewData && !previewLoading()) {
+          <div class="preview-list">
+            @for (email of previewData.emails; track email.emailId) {
+              <article class="email-card">
+                <div class="email-card__header">
+                  <span class="email-card__subject">{{ email.subject || '(No Subject)' }}</span>
+                  <span class="folder-pill">{{ email.folder }}</span>
+                </div>
+                <div class="email-card__meta">
+                  <span>{{ email.fromName || email.fromEmail }}</span>
+                  <span>{{ email.receivedDate | date:'short' }}</span>
+                </div>
+                <p>{{ email.snippet }}</p>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  </main>
 </div>

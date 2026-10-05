@@ -36,12 +36,24 @@ export interface InteractionEvent {
   timestamp: Date;
   senderId: string;
   senderName: string;
+  threadId?: string;
+  subject?: string;
   metadata?: {
     personalizationLevel?: number;
     sourceType?: string;
     attachments?: string[];
     [key: string]: any;
   };
+}
+
+export interface EmailThreadMessage {
+  messageId: string;
+  senderName: string;
+  senderEmail: string;
+  subject: string;
+  body: string;
+  sentAt: Date;
+  fromUser: boolean;
 }
 
 export interface InteractionThread {

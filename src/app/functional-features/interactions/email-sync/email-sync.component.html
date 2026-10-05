@@ -79,6 +79,59 @@
         </div>
       </div>
 
+      <div class="settings-panel">
+        <div class="settings-panel-header">
+          <h4>Scan Settings</h4>
+          <p>Choose how mailbox messages are selected before ML classification.</p>
+        </div>
+
+        <div *ngIf="settingsError" class="settings-message settings-message-error">{{ settingsError }}</div>
+        <div *ngIf="settingsSuccess" class="settings-message settings-message-success">{{ settingsSuccess }}</div>
+
+        <form [formGroup]="settingsForm" class="settings-form" (ngSubmit)="saveSettings()">
+          <div class="settings-field">
+            <label for="scanStrategyType">Scan strategy</label>
+            <select id="scanStrategyType" formControlName="scanStrategyType">
+              <option *ngFor="let option of strategyOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label for="historicalDataLimitDays">Mailbox lookback (days)</label>
+            <input id="historicalDataLimitDays" type="number" min="1" max="3650" formControlName="historicalDataLimitDays" />
+            <small class="field-hint">Used by threshold mailbox scanning.</small>
+          </div>
+
+          <div class="settings-grid">
+            <div class="settings-field">
+              <label for="scanLabelName">Gmail label (pending strategy)</label>
+              <input id="scanLabelName" type="text" formControlName="scanLabelName" placeholder="e.g. recruiters" />
+            </div>
+
+            <div class="settings-field">
+              <label for="scanSenderEmail">Sender email (pending strategy)</label>
+              <input id="scanSenderEmail" type="email" formControlName="scanSenderEmail" placeholder="recruiter@company.com" />
+            </div>
+
+            <div class="settings-field">
+              <label for="scanSenderDomain">Sender domain (pending strategy)</label>
+              <input id="scanSenderDomain" type="text" formControlName="scanSenderDomain" placeholder="company.com" />
+            </div>
+          </div>
+
+          <div class="settings-note" *ngIf="isStrategyPending()">
+            Selected strategy is planned but not implemented yet. Sync currently executes threshold mailbox scanning.
+          </div>
+
+          <div class="settings-actions">
+            <button class="btn btn-secondary" type="submit" [disabled]="settingsLoading || settingsSaving || settingsForm.invalid">
+              <span *ngIf="!settingsSaving">Save Scan Settings</span>
+              <span *ngIf="settingsSaving">Saving...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
       <div class="sync-error" *ngIf="syncError">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
@@ -86,6 +139,40 @@
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
         <span>{{ syncError }}</span>
+      </div>
+
+      <div class="sync-progress" *ngIf="syncInProgress || fetchProgress > 0 || processProgress > 0">
+        <div class="sync-progress-header">
+          <span>{{ syncPhase }}</span>
+          <span>{{ syncOverallProgress }}%</span>
+        </div>
+
+        <div class="sync-stage" [class.active]="syncPhase === 'Fetching emails'">
+          <div class="sync-stage-header">
+            <span>Fetching emails</span>
+            <span>{{ syncPhase === 'Fetching emails' ? 'In progress' : 'Done' }}</span>
+          </div>
+          <div class="sync-stage-track">
+            <div class="sync-stage-fill fetch-fill" [style.width.%]="fetchProgress"></div>
+          </div>
+        </div>
+
+        <div class="sync-stage" [class.active]="syncPhase === 'Processing emails'">
+          <div class="sync-stage-header">
+            <span>Processing emails</span>
+            <span>{{ processProgress }}%</span>
+          </div>
+          <div class="sync-stage-track">
+            <div class="sync-stage-fill process-fill" [style.width.%]="processProgress"></div>
+          </div>
+        </div>
+
+        <div class="sync-progress-details">
+          <span>Fetched {{ syncFetched }}</span>
+          <span>Processed {{ syncProcessed }}</span>
+          <span>Skipped {{ syncSkipped }}</span>
+          <span>Failed {{ syncFailed }}</span>
+        </div>
       </div>
 
       <div class="button-group">
@@ -101,7 +188,7 @@
             <path d="M16 21h5v-5"></path>
           </svg>
           <span *ngIf="!syncInProgress">Sync Now</span>
-          <span *ngIf="syncInProgress">Syncing...</span>
+          <span *ngIf="syncInProgress">Syncing... {{ syncOverallProgress }}%</span>
         </button>
 
         <button 

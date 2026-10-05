@@ -32,6 +32,32 @@ export interface EmailSyncResult {
 export interface SyncStatusResponse {
   syncing: boolean;
   userId: string;
+  phase?: string;
+  progressPercent?: number;
+  fetchProgressPercent?: number;
+  processProgressPercent?: number;
+  totalFetched?: number;
+  processed?: number;
+  skipped?: number;
+  failed?: number;
+}
+
+export type EmailScanStrategyType =
+  | 'THRESHOLD_MAILBOX'
+  | 'LABELLED_EMAILS'
+  | 'SPECIFIC_EMAIL_ADDRESS'
+  | 'EMAIL_DOMAIN';
+
+export interface UserEmailSettings {
+  id?: string;
+  userId?: string;
+  syncOnLogin?: boolean;
+  historicalDataLimitDays?: number;
+  notifyOnNewInteractions?: boolean;
+  scanStrategyType?: EmailScanStrategyType;
+  scanLabelName?: string | null;
+  scanSenderEmail?: string | null;
+  scanSenderDomain?: string | null;
 }
 
 @Injectable({
@@ -77,6 +103,20 @@ export class EmailSyncService {
    */
   getSyncStatus(): Observable<SyncStatusResponse> {
     return this.http.get<SyncStatusResponse>(`${this.apiUrl}/sync-status`);
+  }
+
+  /**
+   * Get current user email sync settings
+   */
+  getSettings(): Observable<UserEmailSettings> {
+    return this.http.get<UserEmailSettings>(`${this.apiUrl}/settings`);
+  }
+
+  /**
+   * Update current user email sync settings
+   */
+  updateSettings(settings: UserEmailSettings): Observable<UserEmailSettings> {
+    return this.http.put<UserEmailSettings>(`${this.apiUrl}/settings`, settings);
   }
 
   /**

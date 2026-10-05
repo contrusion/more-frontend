@@ -1,11 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { 
-  RecruitmentDatasetService, 
-  DatasetExportRequest, 
-  DatasetExportResponse 
+import { forkJoin } from 'rxjs';
+import {
+  RecruitmentDatasetService,
+  DatasetExportRequest,
+  DatasetExportResponse
 } from '../services/recruitment-dataset.service';
+import {
+  MlMonitoringService,
+  MlPerformanceSummary,
+  MlReviewQueueEntry,
+  MlAuditEntry
+} from '../../admin/ml-monitoring/ml-monitoring.service';
 
 @Component({
   selector: 'app-dataset-export',
@@ -15,120 +22,146 @@ import {
   styleUrls: ['./dataset-export.component.css']
 })
 export class DatasetExportComponent implements OnInit {
-  
-  // Export configuration
   exportConfig: DatasetExportRequest = {
     sinceDays: 365,
     maxResults: 500,
     includeSent: true,
     includeInbox: true
   };
-  
-  // UI State
-  loading = false;
-  previewLoading = false;
+
+  performance = signal<MlPerformanceSummary | null>(null);
+  pendingReviews = signal<MlReviewQueueEntry[]>([]);
+  auditEntries = signal<MlAuditEntry[]>([]);
+  loading = signal(false);
+  previewLoading = signal(false);
+  summaryLoading = signal(true);
+  refreshing = signal(false);
   exportResponse: DatasetExportResponse | null = null;
   previewData: DatasetExportResponse | null = null;
   errorMessage: string | null = null;
-  
-  constructor(private datasetService: RecruitmentDatasetService) {}
-  
+  resolvingMessageId: string | null = null;
+
+  constructor(
+    private datasetService: RecruitmentDatasetService,
+    private mlMonitoringService: MlMonitoringService
+  ) {}
+
   ngOnInit(): void {
-    // Load preview on init
+    this.loadMlOverview();
     this.loadPreview();
   }
-  
-  /**
-   * Load preview of first 10 emails
-   */
+
+  refreshOverview(): void {
+    this.refreshing.set(true);
+    this.loadMlOverview();
+  }
+
   loadPreview(): void {
-    this.previewLoading = true;
+    this.previewLoading.set(true);
     this.errorMessage = null;
-    
+
     this.datasetService.previewDataset(30).subscribe({
       next: (response) => {
         this.previewData = response;
-        this.previewLoading = false;
-        console.log('Preview loaded:', response);
+        this.previewLoading.set(false);
       },
       error: (error) => {
-        console.error('Failed to load preview:', error);
         this.errorMessage = 'Failed to load preview: ' + (error.error?.message || error.message);
-        this.previewLoading = false;
+        this.previewLoading.set(false);
       }
     });
   }
-  
-  /**
-   * Export full dataset as JSON
-   */
+
+  private loadMlOverview(): void {
+    this.summaryLoading.set(true);
+    this.errorMessage = null;
+
+    forkJoin({
+      performance: this.mlMonitoringService.getPerformanceSummary(),
+      reviews: this.mlMonitoringService.getPendingReviews(),
+      audit: this.mlMonitoringService.getRecentAuditEntries(6)
+    }).subscribe({
+      next: ({ performance, reviews, audit }) => {
+        this.performance.set(performance);
+        this.pendingReviews.set(reviews);
+        this.auditEntries.set(audit);
+        this.summaryLoading.set(false);
+        this.refreshing.set(false);
+      },
+      error: (error) => {
+        this.errorMessage = 'Failed to load ML monitoring data: ' + (error.error?.message || error.message);
+        this.summaryLoading.set(false);
+        this.refreshing.set(false);
+      }
+    });
+  }
+
+  resolveQueueItem(messageId: string, accepted: boolean): void {
+    this.resolvingMessageId = messageId;
+    this.mlMonitoringService.resolveReviewDecision(messageId, accepted).subscribe({
+      next: () => {
+        this.resolvingMessageId = null;
+        this.refreshOverview();
+      },
+      error: (error) => {
+        this.resolvingMessageId = null;
+        this.errorMessage = 'Unable to update review status: ' + (error.error?.message || error.message);
+      }
+    });
+  }
+
   exportJson(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.errorMessage = null;
     this.exportResponse = null;
-    
+
     this.datasetService.exportDataset(this.exportConfig).subscribe({
       next: (response) => {
         this.exportResponse = response;
-        this.loading = false;
-        
+        this.loading.set(false);
+
         if (response.success) {
-          console.log('Export successful:', response);
-          
-          // Optionally download as JSON file
           this.downloadJson(response);
         } else {
           this.errorMessage = 'Export completed with errors: ' + response.errors.join(', ');
         }
       },
       error: (error) => {
-        console.error('Export failed:', error);
         this.errorMessage = 'Export failed: ' + (error.error?.message || error.message);
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
-  
-  /**
-   * Export dataset as CSV for labeling
-   */
+
   exportCsv(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.errorMessage = null;
-    
+
     this.datasetService.exportDatasetCsv(this.exportConfig).subscribe({
       next: (csvBlob) => {
         this.datasetService.downloadCsv(csvBlob);
-        this.loading = false;
-        console.log('CSV export successful');
+        this.loading.set(false);
       },
       error: (error) => {
-        console.error('CSV export failed:', error);
         this.errorMessage = 'CSV export failed: ' + (error.error?.message || error.message);
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
-  
-  /**
-   * Download JSON data as file
-   */
+
   private downloadJson(data: DatasetExportResponse): void {
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = `recruitment_dataset_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
-    
+
     window.URL.revokeObjectURL(url);
   }
-  
-  /**
-   * Reset export configuration to defaults
-   */
+
   resetConfig(): void {
     this.exportConfig = {
       sinceDays: 365,

@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { InteractionService } from './services/interaction.service';
 import { InteractionThread, InteractionEvent, ChannelType, EventType, InteractionStatus } from './models/interaction.model';
+import { EmailThreadTimelineComponent } from './email-thread-timeline/email-thread-timeline.component';
 
 @Component({
   selector: 'app-interactions',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EmailThreadTimelineComponent],
   templateUrl: './interactions.component.html',
   styleUrls: ['./interactions.component.css']
 })
@@ -21,6 +22,9 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   showInsightsPanel: boolean = true;
   isRefreshing: boolean = false;
+  
+  // Events whose full email thread is currently expanded
+  private openThreadEventIds = new Set<string>();
   
   // For new event
   showNewEventModal: boolean = false;
@@ -94,6 +98,16 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     if (thread.unreadCount > 0) {
       this.interactionService.markAsRead(thread.id).subscribe();
     }
+  }
+
+  toggleThread(eventId: string): void {
+    if (!this.openThreadEventIds.delete(eventId)) {
+      this.openThreadEventIds.add(eventId);
+    }
+  }
+
+  isThreadOpen(eventId: string): boolean {
+    return this.openThreadEventIds.has(eventId);
   }
 
   onSearch(): void {

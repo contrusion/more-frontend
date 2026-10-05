@@ -77,6 +77,10 @@ export const routes: Routes = [
         loadComponent: () => import('./functional-features/admin/users/user-detail.component').then(m => m.UserDetailComponent)
       },
       {
+        path: 'companies',
+        loadComponent: () => import('./functional-features/admin/companies/company-list.component').then(m => m.CompanyListComponent)
+      },
+      {
         path: 'challenges',
         loadComponent: () => import('./functional-features/admin/challenges/library/challenge-library.component').then(m => m.ChallengeLibraryComponent)
       },

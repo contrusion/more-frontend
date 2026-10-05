@@ -527,6 +527,21 @@
   color: #475569;
 }
 
+.thread-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0ea5e9;
+  cursor: pointer;
+}
+
+.thread-toggle:hover {
+  text-decoration: underline;
+}
+
 /* ========== EMPTY STATES ========== */
 .empty-state {
   text-align: center;
