@@ -17,6 +17,20 @@
           </span>
           <span class="thread-date">{{ message.sentAt | date: 'medium' }}</span>
         </div>
+        @if (message.eventType) {
+          <div class="thread-classification-row">
+            <span class="thread-event-type" [class.thread-event-type-provisional]="message.eventType === 'PENDING_CLASSIFICATION'">
+              {{ toLabel(message.eventType) }}
+            </span>
+            @for (extraType of (message.additionalEventTypes || []); track extraType) {
+              <span class="thread-event-type thread-event-type-secondary">{{ toLabel(extraType) }}</span>
+            }
+          </div>
+        } @else if (message.persistedClassification === false) {
+          <div class="thread-classification-row">
+            <span class="thread-event-type thread-event-type-provisional">Awaiting Sync Classification</span>
+          </div>
+        }
         @if (message.subject) {
           <div class="thread-subject">{{ message.subject }}</div>
         }

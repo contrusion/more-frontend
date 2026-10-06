@@ -34,7 +34,9 @@ export class EmailThreadTimelineComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: messages => {
-          this.messages.set(messages);
+          this.messages.set(
+            [...messages].sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime())
+          );
           this.loading.set(false);
         },
         error: () => {
@@ -42,5 +44,9 @@ export class EmailThreadTimelineComponent implements OnInit {
           this.loading.set(false);
         }
       });
+  }
+
+  toLabel(value: string): string {
+    return value.replaceAll('_', ' ');
   }
 }

@@ -69,7 +69,13 @@ export class InteractionService {
   getEmailThread(interactionId: string, threadId: string): Observable<EmailThreadMessage[]> {
     return this.http
       .get<any[]>(`${this.apiUrl}/${interactionId}/threads/${threadId}`)
-      .pipe(map(messages => messages.map(m => ({ ...m, sentAt: new Date(m.sentAt) }))));
+      .pipe(map(messages => messages.map(m => ({
+        ...m,
+        sentAt: new Date(m.sentAt),
+        eventType: this.mapThreadEventType(m.eventType),
+        additionalEventTypes: this.mapEventTypeList(m.additionalEventTypes),
+        persistedClassification: !!m.persistedClassification
+      }))));
   }
 
   /**
@@ -85,6 +91,7 @@ export class InteractionService {
           id: e.id,
           interactionThreadId: dto.id,
           eventType: this.mapEventType(e.type),
+          additionalEventTypes: this.mapEventTypeList(e.additionalEventTypes),
           channel: this.mapChannel(e.channel),
           content: e.messagePreview || e.notes || '',
           timestamp: new Date(e.timestamp),
@@ -101,13 +108,14 @@ export class InteractionService {
       .sort((a: InteractionEvent, b: InteractionEvent) => a.timestamp.getTime() - b.timestamp.getTime()); // Sort chronologically
     
     const lastEvent = events[events.length - 1];
+    const recruiterName = this.buildRecruiterDisplayName(dto.recruiter?.firstName, dto.recruiter?.lastName);
     
     return {
       id: dto.id,
       participantId: dto.recruiter?.id || dto.externalRecruiterEmail || 'external',
-      participantName: dto.externalRecruiterName || dto.recruiter?.name || dto.externalRecruiterEmail || 'Unknown Recruiter',
+      participantName: dto.externalRecruiterName || recruiterName || dto.externalRecruiterEmail || dto.recruiter?.email || 'Unknown Recruiter',
       participantRole: 'RECRUITER',
-      companyName: dto.externalCompanyName || dto.recruiter?.company || undefined,
+      companyName: dto.externalCompanyName || dto.recruiter?.companyName || undefined,
       jobTitle: this.extractJobTitle(events),
       status: this.mapStatus(dto.status),
       lastEventDate: lastEvent?.timestamp || new Date(dto.initiatedAt),
@@ -118,12 +126,21 @@ export class InteractionService {
       events: events
     };
   }
+
+  private buildRecruiterDisplayName(firstName?: string, lastName?: string): string | undefined {
+    const name = [firstName, lastName]
+      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+      .map(part => part.trim())
+      .join(' ');
+
+    return name.length > 0 ? name : undefined;
+  }
   
   /**
    * Determine if an event was sent by the user based on event type
    */
   private isUserSentEvent(eventType: string): boolean {
-    const userSentTypes = ['REPLY', 'CV_SUBMISSION'];
+    const userSentTypes = ['REPLY', 'CV_SUBMISSION', 'INTERESTED', 'NOT_INTERESTED'];
     return userSentTypes.includes(eventType);
   }
   
@@ -159,6 +176,28 @@ export class InteractionService {
       'CLOSED': InteractionStatus.CLOSED
     };
     return mapping[backendStatus] || InteractionStatus.NEW;
+  }
+
+  private mapThreadEventType(backendType: string | undefined): EventType | undefined {
+    if (!backendType) {
+      return undefined;
+    }
+
+    if (Object.values(EventType).includes(backendType as EventType)) {
+      return backendType as EventType;
+    }
+
+    return this.mapEventType(backendType);
+  }
+
+  private mapEventTypeList(backendTypes: string[] | undefined): EventType[] {
+    if (!Array.isArray(backendTypes) || backendTypes.length === 0) {
+      return [];
+    }
+
+    return backendTypes
+      .map(type => this.mapThreadEventType(type))
+      .filter((type): type is EventType => type !== undefined);
   }
   
   private extractJobTitle(events: InteractionEvent[]): string | undefined {

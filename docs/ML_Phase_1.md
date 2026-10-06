@@ -63,6 +63,9 @@ Status as of the current phase checkpoint:
 - Completed: interaction persistence is fire-and-forget. Classification runs outside any transaction; each accepted email is saved by a single-thread executor created per sync run, and the sync waits for those saves before deciding the scan watermark so a failed save does not advance it
 - Completed: one `InteractionEvent` per email (the earlier one-row-per-additional-intent behaviour is replaced; extra intents are recorded in the event notes as `Also: ...`). Events now store `thread_id`, `gmail_message_id`, `subject` and `message_body` (Flyway `V20261004_190000`)
 - Completed: `GET /api/interactions/{interactionId}/threads/{threadId}` reads the full Gmail thread live (recruiter messages and the candidate's replies, not stored) and the interactions page shows it in a PrimeNG timeline
+- Completed: live timeline safety hardening under `US-ML10` now treats unsynced thread messages as provisional (`PENDING_CLASSIFICATION`) until sync persists the final `eventType` and `additionalEventTypes`
+- Completed: sync stays inbox-only (sent mail is not ingested: it doubled the volume and grouped replies under the user's own address). The user's own replies in a live thread get a keyword label (`REPLY`, `CV_SUBMISSION`, `INTERESTED`, `NOT_INTERESTED`) at read time with no model call
+- Completed: job spec categories are `JOB_SPEC_TO_BE_SENT` (recruiter will send the spec if needed; not in the email) and `JOB_SPEC_ATTACHED` (spec already sent, attached or written out). They replace `JOB_SPEC_OFFERED`/`JOB_SPEC_SHARED`, whose names the model treated as synonyms; Flyway `V20261006_160000` migrates stored values. Interest semantics are stricter so recruiter prompts like "if you're interested" are not labelled as candidate interest
 - Completed: recruiter-company base seeding is fire-and-forget. For recruiter-relevant emails, sender domains are processed asynchronously and passed through `CompanyService` normalization/creation rules to grow the company base without blocking sync
 - Completed: `EMAIL_DOMAIN` scan strategy skeleton is active for new user defaults. It first queries Gmail using known recruiter-company domains, then fills remaining slots with the baseline inbox query
 - Policy change to confirm: full body text of recruiter-relevant emails is now stored on the event so it can feed inhouse model training; rejected emails are never stored. This supersedes the "no original email body" line in the policy below
@@ -134,6 +137,7 @@ Phase 1 scope:
 | Confidence scoring | US-ML5: Model Produces Confidence Scores | In progress |
 | Human review for low-confidence cases | US-ML6: Low-Confidence Output Is Flagged For Review | Completed |
 | Logging and evaluation of model outputs | US-ML7: Model Outputs Are Logged And Evaluated | Completed |
+| Sync-safe live timeline classification | US-ML10: Live Messages Are Marked Pending Until Sync Classification | Completed |
 
 Note: classification audit logging and evaluation summaries are now active in the ML layer for operational review and Phase 2 handoff preparation.
 
@@ -265,6 +269,21 @@ Status: Pending
 - Sender email/domain values can be saved in user settings
 - The sync pipeline uses only messages matching the selected sender criteria when these strategies are implemented
 
+#### US-ML10: Live Messages Are Marked Pending Until Sync Classification
+
+Status: In progress
+
+**As a** recruiter user  
+**I want to** see new Gmail thread messages immediately but marked as pending until sync persists classification  
+**So that** automation and UI decisions are not made from unsafe fallback labels
+
+**Acceptance Criteria:**
+- Live thread messages that are not yet persisted by the sync workflow are labeled `PENDING_CLASSIFICATION`
+- The timeline distinguishes persisted classifications from provisional live messages
+- Synthetic fallback labels (for example forcing `REPLY` or `OUTREACH`) are not used for unsynced messages
+- Automation that depends on intent labels runs only on persisted sync classifications, not provisional live labels
+- Once sync persists the message classification, `PENDING_CLASSIFICATION` is replaced by the persisted `eventType` and `additionalEventTypes`
+
 ### Story Breakdown Summary: ML Phase 1 Foundation & Follow-On Roadmap
 
 > This summary covers the ML stream from the initial package separation and local Llama validation through the structured-extraction boundary and the confidence/review gating work.
@@ -281,6 +300,7 @@ Status: Pending
 | **US-ML5** | Confidence scoring | Phase 1 | US-ML2, US-ML3, US-ML4 | 🔄 In progress |
 | **US-ML6** | Low-confidence review gating | Phase 1 | US-ML5 | ✅ Completed |
 | **US-ML7** | Logging and evaluation | Phase 1 | US-ML5, US-ML6 | ✅ Completed |
+| **US-ML10** | Live pending until sync classification | Phase 1 | US-ML3, US-ML5, US-ML6 | ✅ Completed |
 
 ## Operating Principles
 

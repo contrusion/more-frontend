@@ -56,7 +56,7 @@
               Company unknown
             </span>            <span class="thread-job" *ngIf="thread.jobTitle">• {{ thread.jobTitle }}</span>
           </div>
-          <div class="thread-preview">{{ thread.lastEventPreview }}</div>
+          <div class="thread-preview">{{ getThreadStatusSummary(thread) }}</div>
           <div class="thread-meta">
             <span class="status-badge" [ngClass]="getStatusBadgeClass(thread.status)">
               {{ thread.status.replace('_', ' ') }}
@@ -107,44 +107,16 @@
     </div>
 
     <div class="conversation-timeline">
-      <div class="events-list">
-        <div 
-          *ngFor="let event of selectedThread.events; let i = index" 
-          class="event-row"
-          [class.from-user]="event.senderId === 'current-user'"
-          [class.from-recruiter]="event.senderId !== 'current-user'"
-        >
-          <div class="event-indicator">
-            <div class="event-dot"></div>
-            <div class="event-line" *ngIf="i < selectedThread.events.length - 1"></div>
+      @if (getSelectedThreadIds().length > 0) {
+        <div class="thread-conversation-panel">
+          <div class="thread-conversation-header">
+            <h4>Conversation Timeline</h4>
           </div>
-          <div class="event-details">
-            <div class="event-meta">
-              <div class="event-sender-info">
-                <span class="sender-name">{{ event.senderName }}</span>
-                <span 
-                  class="channel-badge" 
-                  [style.background-color]="getChannelColor(event.channel)"
-                  [title]="event.channel"
-                >
-                  {{ event.channel }}
-                </span>
-                <span class="type-badge">{{ event.eventType.replace('_', ' ') }}</span>
-              </div>
-              <span class="event-timestamp">{{ formatTime(event.timestamp) }}</span>
-            </div>
-            <div class="event-content-text">{{ event.content }}</div>
-            @if (event.threadId) {
-              <button type="button" class="thread-toggle" (click)="toggleThread(event.id)">
-                {{ isThreadOpen(event.id) ? 'Hide full thread' : 'View full thread' }}
-              </button>
-              @if (isThreadOpen(event.id)) {
-                <app-email-thread-timeline [interactionId]="event.interactionThreadId" [threadId]="event.threadId" />
-              }
-            }
-          </div>
+          @for (threadId of getSelectedThreadIds(); track threadId) {
+            <app-email-thread-timeline [interactionId]="selectedThread.id" [threadId]="threadId" />
+          }
         </div>
-      </div>
+      }
     </div>
   </div>
 
@@ -158,7 +130,7 @@
         <line x1="3" y1="10" x2="21" y2="10"></line>
       </svg>
       <h3>Select a conversation</h3>
-      <p>Choose an interaction from the list to view the event timeline</p>
+      <p>Choose an interaction from the list to view the conversation timeline</p>
     </div>
   </div>
 
@@ -237,6 +209,18 @@
           <option [value]="EventType.CV_REQUEST">CV Request</option>
           <option [value]="EventType.CV_SUBMISSION">CV Submission</option>
           <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
+          <option [value]="EventType.JOB_SPEC_TO_BE_SENT">Job Spec To Be Sent</option>
+          <option [value]="EventType.JOB_SPEC_ATTACHED">Job Spec Attached</option>
+          <option [value]="EventType.INQUIRY">Inquiry</option>
+          <option [value]="EventType.COMPENSATION_INQUIRY">Compensation Inquiry</option>
+          <option [value]="EventType.VISA_INQUIRY">Visa Inquiry</option>
+          <option [value]="EventType.LOCATION_INQUIRY">Location Inquiry</option>
+          <option [value]="EventType.NOTICE_PERIOD_INQUIRY">Notice Period Inquiry</option>
+          <option [value]="EventType.AVAILABILITY_INQUIRY">Availability Inquiry</option>
+          <option [value]="EventType.BENEFITS_INQUIRY">Benefits Inquiry</option>
+          <option [value]="EventType.INTERESTED">Interested</option>
+          <option [value]="EventType.NOT_INTERESTED">Not Interested</option>
+          <option [value]="EventType.REJECTION">Rejection</option>
         </select>
       </div>
 
@@ -323,6 +307,21 @@
           <option [value]="EventType.OUTREACH">Outreach (recruiter contacted you)</option>
           <option [value]="EventType.REPLY">Reply (you responded)</option>
           <option [value]="EventType.EXPLORATION">Exploration</option>
+          <option [value]="EventType.CV_REQUEST">CV Request</option>
+          <option [value]="EventType.CV_SUBMISSION">CV Submission</option>
+          <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
+          <option [value]="EventType.JOB_SPEC_TO_BE_SENT">Job Spec To Be Sent</option>
+          <option [value]="EventType.JOB_SPEC_ATTACHED">Job Spec Attached</option>
+          <option [value]="EventType.INQUIRY">Inquiry</option>
+          <option [value]="EventType.COMPENSATION_INQUIRY">Compensation Inquiry</option>
+          <option [value]="EventType.VISA_INQUIRY">Visa Inquiry</option>
+          <option [value]="EventType.LOCATION_INQUIRY">Location Inquiry</option>
+          <option [value]="EventType.NOTICE_PERIOD_INQUIRY">Notice Period Inquiry</option>
+          <option [value]="EventType.AVAILABILITY_INQUIRY">Availability Inquiry</option>
+          <option [value]="EventType.BENEFITS_INQUIRY">Benefits Inquiry</option>
+          <option [value]="EventType.INTERESTED">Interested</option>
+          <option [value]="EventType.NOT_INTERESTED">Not Interested</option>
+          <option [value]="EventType.REJECTION">Rejection</option>
         </select>
       </div>
 

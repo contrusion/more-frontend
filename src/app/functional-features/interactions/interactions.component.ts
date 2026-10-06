@@ -23,9 +23,6 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   showInsightsPanel: boolean = true;
   isRefreshing: boolean = false;
   
-  // Events whose full email thread is currently expanded
-  private openThreadEventIds = new Set<string>();
-  
   // For new event
   showNewEventModal: boolean = false;
   newEventType: EventType = EventType.EXPLORATION;
@@ -100,14 +97,14 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleThread(eventId: string): void {
-    if (!this.openThreadEventIds.delete(eventId)) {
-      this.openThreadEventIds.add(eventId);
+  getSelectedThreadIds(): string[] {
+    if (!this.selectedThread) {
+      return [];
     }
-  }
 
-  isThreadOpen(eventId: string): boolean {
-    return this.openThreadEventIds.has(eventId);
+    return [...new Set(this.selectedThread.events
+      .map(event => event.threadId)
+      .filter((threadId): threadId is string => Boolean(threadId)))];
   }
 
   onSearch(): void {
@@ -274,6 +271,117 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  getThreadStatusSummary(thread: InteractionThread): string {
+    const lastEvent = thread.events[thread.events.length - 1];
+    if (!lastEvent) {
+      return thread.lastEventPreview || 'No activity yet';
+    }
+
+    const fromUser = lastEvent.senderId === 'current-user';
+
+    switch (lastEvent.eventType) {
+      case EventType.CV_REQUEST:
+        return fromUser ? 'You requested a CV update' : 'They are waiting for you to send CV';
+      case EventType.CV_SUBMISSION:
+        return fromUser ? 'You sent your CV' : 'They shared a CV with you';
+      case EventType.INTERVIEW_INVITE:
+        return fromUser ? 'You proposed an interview time' : 'They invited you to interview';
+      case EventType.JOB_SPEC_TO_BE_SENT:
+        return fromUser ? 'You will send role details if needed' : 'They will send the job spec if you need it';
+      case EventType.JOB_SPEC_ATTACHED:
+        return fromUser ? 'You sent role details' : 'They sent you the job spec';
+      case EventType.COMPENSATION_INQUIRY:
+        return fromUser ? 'You asked about compensation' : 'They asked about your compensation expectations';
+      case EventType.LOCATION_INQUIRY:
+        return fromUser ? 'You asked about location setup' : 'They asked about your location preference';
+      case EventType.NOTICE_PERIOD_INQUIRY:
+        return fromUser ? 'You asked about notice period' : 'They asked about your notice period';
+      case EventType.AVAILABILITY_INQUIRY:
+        return fromUser ? 'You asked about availability' : 'They asked about your availability';
+      case EventType.VISA_INQUIRY:
+        return fromUser ? 'You asked about visa support' : 'They asked about visa or sponsorship status';
+      case EventType.BENEFITS_INQUIRY:
+        return fromUser ? 'You asked about benefits' : 'They asked about benefits expectations';
+      case EventType.INQUIRY:
+        if (fromUser) {
+          return 'You sent a hiring-related question';
+        }
+        return this.buildInquiryWaitingSummary(lastEvent.additionalEventTypes || []);
+      case EventType.INTERESTED:
+        return fromUser ? 'You confirmed interest in the role' : 'They confirmed interest to continue';
+      case EventType.NOT_INTERESTED:
+        return fromUser ? 'You declined this opportunity' : 'They are no longer proceeding';
+      case EventType.REJECTION:
+        return fromUser ? 'You closed this opportunity' : 'They shared an unsuccessful outcome';
+      case EventType.FOLLOW_UP:
+        return fromUser ? 'You followed up for an update' : 'They followed up and are waiting for your response';
+      case EventType.REPLY:
+        return fromUser ? 'You replied and they may respond next' : 'They replied and are waiting for your response';
+      case EventType.OUTREACH:
+        return fromUser ? 'You initiated the conversation' : 'New recruiter outreach needs your response';
+      case EventType.EXPLORATION:
+        return fromUser ? 'You are exploring this opportunity' : 'They are exploring fit for this opportunity';
+      case EventType.PENDING_CLASSIFICATION:
+        return 'Message synced and awaiting classification';
+      default:
+        return thread.lastEventPreview || 'Latest status updated';
+    }
+  }
+
+  private buildInquiryWaitingSummary(additionalTypes: EventType[]): string {
+    const inquiryOrder: EventType[] = [
+      EventType.LOCATION_INQUIRY,
+      EventType.COMPENSATION_INQUIRY,
+      EventType.NOTICE_PERIOD_INQUIRY,
+      EventType.AVAILABILITY_INQUIRY,
+      EventType.VISA_INQUIRY,
+      EventType.BENEFITS_INQUIRY
+    ];
+
+    const labels: Record<EventType, string> = {
+      [EventType.LOCATION_INQUIRY]: 'location',
+      [EventType.COMPENSATION_INQUIRY]: 'salary',
+      [EventType.NOTICE_PERIOD_INQUIRY]: 'notice period',
+      [EventType.AVAILABILITY_INQUIRY]: 'availability',
+      [EventType.VISA_INQUIRY]: 'visa status',
+      [EventType.BENEFITS_INQUIRY]: 'benefits expectations',
+      [EventType.OUTREACH]: 'outreach',
+      [EventType.EXPLORATION]: 'exploration',
+      [EventType.REPLY]: 'reply',
+      [EventType.FOLLOW_UP]: 'follow up',
+      [EventType.CV_REQUEST]: 'CV',
+      [EventType.CV_SUBMISSION]: 'CV',
+      [EventType.INTERVIEW_INVITE]: 'interview availability',
+      [EventType.JOB_SPEC_TO_BE_SENT]: 'role details',
+      [EventType.JOB_SPEC_ATTACHED]: 'role details',
+      [EventType.INQUIRY]: 'screening details',
+      [EventType.INTERESTED]: 'interest confirmation',
+      [EventType.NOT_INTERESTED]: 'interest decision',
+      [EventType.REJECTION]: 'decision outcome',
+      [EventType.PENDING_CLASSIFICATION]: 'classification review'
+    };
+
+    const ordered = inquiryOrder
+      .filter(type => additionalTypes.includes(type))
+      .map(type => labels[type]);
+
+    if (ordered.length === 0) {
+      return 'They are waiting on your answers to screening questions';
+    }
+
+    if (ordered.length === 1) {
+      return `They are waiting for your ${ordered[0]} details`;
+    }
+
+    if (ordered.length === 2) {
+      return `They are waiting for your ${ordered[0]} and ${ordered[1]} details`;
+    }
+
+    const head = ordered.slice(0, ordered.length - 1).join(', ');
+    const tail = ordered[ordered.length - 1];
+    return `They are waiting for your ${head}, and ${tail} details`;
   }
 
   addCompany(thread: InteractionThread): void {
