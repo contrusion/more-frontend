@@ -47,6 +47,9 @@ export class EmailThreadTimelineComponent implements OnInit {
   }
 
   toLabel(value: string): string {
+    if (value === 'PENDING_CLASSIFICATION') {
+      return 'Not Classified';
+    }
     return value.replaceAll('_', ' ');
   }
 }

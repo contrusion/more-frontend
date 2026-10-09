@@ -203,6 +203,23 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - ✅ All search results return `publicAlias` only
 - **Phase:** Phase 1 (Foundation) - **Must come before reveal logic**
 
+**US 1.4a: Hybrid Persona Mailbox Detection & Persona-Aware Classification**
+- **As a** user who may be both a recruiter and a candidate
+- **I want to** have my inbox scanned in a way that distinguishes recruiter outreach, candidate job-search messages, and recruiter-to-recruiter contact
+- **So that** the system does not conflate my roles and incorrectly treat recruiter activity as candidate activity (or vice versa)
+- **Acceptance Criteria:**
+  - User profile supports a `persona` or `activeMailboxMode` model: `CANDIDATE_ONLY`, `RECRUITER_ONLY`, or `HYBRID`
+  - In `HYBRID` mode, the system routes scanning through persona-aware prompts or separate classifier pipelines
+  - Recruiter-sent outreach is classified under the recruiter workflow, while candidate-side replies and job-search messages are classified under the candidate workflow
+  - The same mailbox can include both recruiter behaviour and candidate behaviour without cross-contamination in the thread model
+  - If the user is outreaching as a recruiter while also being contacted for roles, the model keeps these as separate streams with separate context windows and thread ownership
+  - The system records which persona the message was interpreted under, so downstream analytics and event labels are not ambiguous
+  - A manual override or explicit role signal is available when the user has multiple identities in one mailbox
+- **Technical Notes:**
+  - Default to separate prompts or separate routing for `RECRUITER_SCAN` and `CANDIDATE_SCAN`
+  - Use the sender/author role plus thread ownership and active persona context to decide which classification path to invoke
+  - This is a known edge case for founder/recruiter users, a recruiter who is also job-seeking, or a user with multi-role mailboxes
+
 **US 1.4: System Calculates Candidate Class (All-Star/Gold/Silver/Bronze)** ✅ *Implemented*
 - **As a** system
 - **I want to** automatically classify candidates based on activity and career depth

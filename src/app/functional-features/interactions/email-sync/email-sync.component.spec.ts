@@ -95,21 +95,60 @@ describe('EmailSyncComponent', () => {
   it('should save scan settings successfully', () => {
     emailSyncService.updateSettings.and.returnValue(of({
       historicalDataLimitDays: 60,
-      scanStrategyType: 'THRESHOLD_MAILBOX'
+      scanStrategyType: 'SPECIFIC_EMAIL_ADDRESS',
+      scanSenderEmail: 'aneneb@x-idian.com\nsteven@aesglobal.io'
     }));
 
     component.settingsForm.patchValue({
       historicalDataLimitDays: 60,
-      scanStrategyType: 'THRESHOLD_MAILBOX'
+      scanStrategyType: 'SPECIFIC_EMAIL_ADDRESS',
+      scanSenderEmail: ''
     });
+    component.senderEmailInput = 'aneneb@x-idian.com, steven@aesglobal.io';
+    component.addSenderEmailInput();
 
     component.saveSettings();
 
     expect(emailSyncService.updateSettings).toHaveBeenCalledWith(jasmine.objectContaining({
       historicalDataLimitDays: 60,
-      scanStrategyType: 'THRESHOLD_MAILBOX'
+      scanStrategyType: 'SPECIFIC_EMAIL_ADDRESS',
+      scanSenderEmail: 'aneneb@x-idian.com\nsteven@aesglobal.io'
     }));
     expect(component.settingsSuccess).toBe('Scan settings saved');
+  });
+
+  it('should require sender emails for specific-email strategy', () => {
+    component.settingsForm.patchValue({
+      scanStrategyType: 'SPECIFIC_EMAIL_ADDRESS',
+      scanSenderEmail: ''
+    });
+    component.senderEmails = [];
+    component['syncSenderEmailControl']();
+
+    component.saveSettings();
+
+    expect(emailSyncService.updateSettings).not.toHaveBeenCalled();
+    expect(component.settingsForm.get('scanSenderEmail')?.hasError('requiredForStrategy')).toBeTrue();
+  });
+
+  it('should add sender emails from pasted text and remove duplicates', () => {
+    component.senderEmailInput = 'ANENEB@x-idian.com, steven@aesglobal.io; aneneb@x-idian.com';
+
+    component.addSenderEmailInput();
+
+    expect(component.senderEmails).toEqual(['aneneb@x-idian.com', 'steven@aesglobal.io']);
+    expect(component.senderEmailInput).toBe('');
+    expect(component.settingsForm.get('scanSenderEmail')?.value).toBe('aneneb@x-idian.com\nsteven@aesglobal.io');
+  });
+
+  it('should remove a sender email chip', () => {
+    component.senderEmails = ['aneneb@x-idian.com', 'steven@aesglobal.io'];
+    component['syncSenderEmailControl']();
+
+    component.removeSenderEmail(0);
+
+    expect(component.senderEmails).toEqual(['steven@aesglobal.io']);
+    expect(component.settingsForm.get('scanSenderEmail')?.value).toBe('steven@aesglobal.io');
   });
 
   it('should handle errors when connecting Gmail', () => {

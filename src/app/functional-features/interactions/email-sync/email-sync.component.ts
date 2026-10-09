@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   EmailScanStrategyType,
@@ -24,6 +24,9 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
   error: string | null = null;
   success: string | null = null;
   oauthWindow: Window | null = null;
+  senderEmails: string[] = [];
+  senderEmailInput = '';
+  senderEmailInputError: string | null = null;
   
   // Sync state
   syncInProgress = false;
@@ -48,8 +51,8 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
   readonly strategyOptions: { value: EmailScanStrategyType; label: string; }[] = [
     { value: 'THRESHOLD_MAILBOX', label: 'Threshold Mailbox Scan' },
     { value: 'LABELLED_EMAILS', label: 'Labelled Emails (Pending)' },
-    { value: 'SPECIFIC_EMAIL_ADDRESS', label: 'Specific Email Address (Pending)' },
-    { value: 'EMAIL_DOMAIN', label: 'Email Domain (Pending)' }
+    { value: 'SPECIFIC_EMAIL_ADDRESS', label: 'Specific Sender Addresses' },
+    { value: 'EMAIL_DOMAIN', label: 'Email Domain' }
   ];
 
   constructor(
@@ -63,7 +66,7 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
       historicalDataLimitDays: [180, [Validators.required, Validators.min(1), Validators.max(3650)]],
       scanStrategyType: ['THRESHOLD_MAILBOX' as EmailScanStrategyType, Validators.required],
       scanLabelName: [''],
-      scanSenderEmail: [''],
+      scanSenderEmail: ['', [this.senderEmailListValidator.bind(this)]],
       scanSenderDomain: ['']
     });
   }
@@ -106,6 +109,10 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
       this.checkGmailStatus();
       this.loadSettings();
     }
+
+    this.settingsForm.get('scanStrategyType')?.valueChanges.subscribe(() => {
+      this.settingsForm.get('scanSenderEmail')?.updateValueAndValidity({ emitEvent: false });
+    });
   }
 
   ngOnDestroy(): void {
@@ -381,6 +388,10 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
   }
 
   saveSettings(): void {
+    if (!this.commitSenderEmailInput()) {
+      return;
+    }
+
     if (this.settingsForm.invalid || this.settingsSaving) {
       this.settingsForm.markAllAsTouched();
       return;
@@ -390,12 +401,19 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
     this.settingsError = null;
     this.settingsSuccess = null;
 
+    const selectedStrategy = this.settingsForm.value.scanStrategyType as EmailScanStrategyType;
     const payload: UserEmailSettings = {
       historicalDataLimitDays: Number(this.settingsForm.value.historicalDataLimitDays),
-      scanStrategyType: this.settingsForm.value.scanStrategyType,
-      scanLabelName: this.normalizeOptionalField(this.settingsForm.value.scanLabelName),
-      scanSenderEmail: this.normalizeOptionalField(this.settingsForm.value.scanSenderEmail),
-      scanSenderDomain: this.normalizeOptionalField(this.settingsForm.value.scanSenderDomain)
+      scanStrategyType: selectedStrategy,
+      scanLabelName: selectedStrategy === 'LABELLED_EMAILS'
+        ? this.normalizeOptionalField(this.settingsForm.value.scanLabelName)
+        : null,
+      scanSenderEmail: selectedStrategy === 'SPECIFIC_EMAIL_ADDRESS'
+        ? this.normalizeSenderEmailList(this.senderEmails.join('\n'))
+        : null,
+      scanSenderDomain: selectedStrategy === 'EMAIL_DOMAIN'
+        ? this.normalizeOptionalField(this.settingsForm.value.scanSenderDomain)
+        : null
     };
 
     this.emailSyncService.updateSettings(payload).subscribe({
@@ -414,21 +432,157 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
 
   isStrategyPending(): boolean {
     const strategy = this.settingsForm.value.scanStrategyType as EmailScanStrategyType;
-    return strategy !== 'THRESHOLD_MAILBOX';
+    return strategy === 'LABELLED_EMAILS' || strategy === 'EMAIL_DOMAIN';
+  }
+
+  isSpecificEmailStrategy(): boolean {
+    return this.settingsForm?.get('scanStrategyType')?.value === 'SPECIFIC_EMAIL_ADDRESS';
   }
 
   private applySettings(settings: UserEmailSettings): void {
+    this.senderEmails = this.parseSenderEmails(settings.scanSenderEmail);
+    this.senderEmailInput = '';
+    this.senderEmailInputError = null;
+
     this.settingsForm.patchValue({
       historicalDataLimitDays: settings.historicalDataLimitDays ?? 180,
       scanStrategyType: settings.scanStrategyType ?? 'THRESHOLD_MAILBOX',
       scanLabelName: settings.scanLabelName ?? '',
-      scanSenderEmail: settings.scanSenderEmail ?? '',
+      scanSenderEmail: this.senderEmails.join('\n'),
       scanSenderDomain: settings.scanSenderDomain ?? ''
     });
+
+    this.syncSenderEmailControl();
   }
 
   private normalizeOptionalField(value: string | null | undefined): string | null {
     const normalized = value?.trim() ?? '';
     return normalized.length > 0 ? normalized : null;
+  }
+
+  private normalizeSenderEmailList(value: string | null | undefined): string | null {
+    const entries = (value ?? '')
+      .split(/[\s,;]+/)
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry, index, all) => entry.length > 0 && all.indexOf(entry) === index);
+
+    return entries.length > 0 ? entries.join('\n') : null;
+  }
+
+  addSenderEmailInput(): void {
+    if (!this.commitSenderEmailInput()) {
+      return;
+    }
+  }
+
+  removeSenderEmail(index: number): void {
+    this.senderEmails.splice(index, 1);
+    this.senderEmailInputError = null;
+    this.syncSenderEmailControl();
+  }
+
+  onSenderEmailKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+      event.preventDefault();
+      this.addSenderEmailInput();
+    }
+  }
+
+  onSenderEmailPaste(event: ClipboardEvent): void {
+    const pastedText = event.clipboardData?.getData('text') ?? '';
+    if (!pastedText) {
+      return;
+    }
+
+    const parsedEmails = this.parseSenderEmails(pastedText);
+    if (parsedEmails.length > 0) {
+      event.preventDefault();
+      this.appendSenderEmails(parsedEmails);
+      this.senderEmailInput = '';
+      this.senderEmailInputError = null;
+    }
+  }
+
+  private senderEmailListValidator(_control: AbstractControl): ValidationErrors | null {
+    if (!this.isSpecificEmailStrategy()) {
+      return null;
+    }
+
+    if (this.senderEmails.length === 0) {
+      return { requiredForStrategy: true };
+    }
+
+    return null;
+  }
+
+  private commitSenderEmailInput(): boolean {
+    const rawValue = this.senderEmailInput.trim();
+    if (!rawValue) {
+      this.senderEmailInputError = null;
+      return true;
+    }
+
+    const parsedEmails = this.parseSenderEmails(rawValue);
+    if (parsedEmails.length === 0) {
+      this.senderEmailInputError = 'Enter at least one valid sender email address.';
+      return false;
+    }
+
+    const invalidEntries = this.extractSenderEmailParts(rawValue)
+      .filter((entry) => !this.isValidEmail(entry));
+
+    if (invalidEntries.length > 0) {
+      this.senderEmailInputError = invalidEntries.length === 1
+        ? `${invalidEntries[0]} is not a valid email address.`
+        : 'One or more sender email addresses are invalid.';
+      return false;
+    }
+
+    this.appendSenderEmails(parsedEmails);
+    this.senderEmailInput = '';
+    this.senderEmailInputError = null;
+    return true;
+  }
+
+  private appendSenderEmails(emails: string[]): void {
+    const normalizedExisting = new Set(this.senderEmails.map((entry) => entry.toLowerCase()));
+
+    for (const email of emails) {
+      const normalized = email.toLowerCase();
+      if (!normalizedExisting.has(normalized)) {
+        normalizedExisting.add(normalized);
+        this.senderEmails.push(normalized);
+      }
+    }
+
+    this.syncSenderEmailControl();
+  }
+
+  private parseSenderEmails(value: string | null | undefined): string[] {
+    return this.extractSenderEmailParts(value)
+      .map((entry) => entry.toLowerCase())
+      .filter((entry, index, all) => all.indexOf(entry) === index)
+      .filter((entry) => this.isValidEmail(entry));
+  }
+
+  private extractSenderEmailParts(value: string | null | undefined): string[] {
+    return (value ?? '')
+      .split(/[\s,;]+/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  private isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  private syncSenderEmailControl(): void {
+    const control = this.settingsForm.get('scanSenderEmail');
+    if (!control) {
+      return;
+    }
+
+    control.setValue(this.senderEmails.join('\n'), { emitEvent: false });
+    control.updateValueAndValidity({ emitEvent: false });
   }
 }

@@ -80,7 +80,11 @@ export class DailyDigestService {
     // Find CV requests
     const cvRequestThreads = threads.filter(t => {
       const hasCvRequest = t.events.some(e => e.eventType === EventType.CV_REQUEST);
-      const hasCvSubmission = t.events.some(e => e.eventType === EventType.CV_SUBMISSION);
+      const hasCvSubmission = t.events.some(e =>
+        e.eventType === EventType.CV_SUBMITTED ||
+        (e.eventType as unknown as string) === 'CV_SUBMITED' ||
+        (e.eventType as unknown as string) === 'CV_SUBMISSION'
+      );
       return hasCvRequest && !hasCvSubmission;
     });
 

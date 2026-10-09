@@ -25,7 +25,7 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   
   // For new event
   showNewEventModal: boolean = false;
-  newEventType: EventType = EventType.EXPLORATION;
+  newEventType: EventType = EventType.OUTREACH;
   newEventChannel: ChannelType = ChannelType.LINKEDIN;
   newEventContent: string = '';
   
@@ -126,7 +126,7 @@ export class InteractionsComponent implements OnInit, OnDestroy {
 
   closeNewEventModal(): void {
     this.showNewEventModal = false;
-    this.newEventType = EventType.EXPLORATION;
+    this.newEventType = EventType.OUTREACH;
     this.newEventChannel = ChannelType.LINKEDIN;
     this.newEventContent = '';
   }
@@ -284,18 +284,46 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     switch (lastEvent.eventType) {
       case EventType.CV_REQUEST:
         return fromUser ? 'You requested a CV update' : 'They are waiting for you to send CV';
-      case EventType.CV_SUBMISSION:
+      case EventType.CV_SUBMITTED:
         return fromUser ? 'You sent your CV' : 'They shared a CV with you';
+      case EventType.SCREENING_ASSESSMENT_REQUEST:
+        return fromUser ? 'You requested a screening assessment' : 'They asked you to complete a screening assessment';
+      case EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT:
+        return fromUser ? 'You acknowledged the screening assessment completion' : 'They acknowledged the screening assessment completion';
+      case EventType.SCREENING_ASSESSMENT_SCHEDULED:
+        return fromUser ? 'You scheduled the screening assessment' : 'They scheduled the screening assessment';
+      case EventType.SCREENING_ASSESSMENT_COMPLETED:
+        return fromUser ? 'You completed the screening assessment' : 'They completed the screening assessment';
+      case EventType.SCREENING_ASSESSMENT_FAILED:
+        return fromUser ? 'You flagged a failed screening assessment' : 'They flagged a failed screening assessment';
+      case EventType.INTERVIEW_TIME_PROPOSED:
+        return fromUser ? 'You proposed an interview time' : 'They proposed an interview time';
+      case EventType.INTERVIEW_ACCEPTED:
+        return fromUser ? 'You accepted the interview time' : 'They accepted the interview time';
+      case EventType.INTERVIEW_SCHEDULED:
+        return fromUser ? 'You scheduled the interview' : 'They scheduled the interview';
       case EventType.INTERVIEW_INVITE:
         return fromUser ? 'You proposed an interview time' : 'They invited you to interview';
+      case EventType.JOB_SPEC_REQUEST:
+        return fromUser ? 'You requested the job spec' : 'They requested the job spec';
+      case EventType.JOB_SPEC_SHARED:
+        return fromUser ? 'You shared the job spec' : 'They shared the job spec';
+      case EventType.JOB_SPEC_REVIEWED:
+        return fromUser ? 'You reviewed the job spec' : 'They reviewed the job spec';
       case EventType.JOB_SPEC_TO_BE_SENT:
         return fromUser ? 'You will send role details if needed' : 'They will send the job spec if you need it';
       case EventType.JOB_SPEC_ATTACHED:
         return fromUser ? 'You sent role details' : 'They sent you the job spec';
       case EventType.COMPENSATION_INQUIRY:
         return fromUser ? 'You asked about compensation' : 'They asked about your compensation expectations';
+      case EventType.COMPENSATION_BOTTLENECK:
+        return fromUser ? 'You flagged a compensation bottleneck' : 'They flagged a compensation bottleneck';
       case EventType.LOCATION_INQUIRY:
         return fromUser ? 'You asked about location setup' : 'They asked about your location preference';
+      case EventType.LOCATION_BOTTLENECK:
+        return fromUser ? 'You flagged a location bottleneck' : 'They flagged a location bottleneck';
+      case EventType.RECRUITEMENT_PROCESS_UPDATE:
+        return fromUser ? 'You shared a recruitment process update' : 'They shared a recruitment process update';
       case EventType.NOTICE_PERIOD_INQUIRY:
         return fromUser ? 'You asked about notice period' : 'They asked about your notice period';
       case EventType.AVAILABILITY_INQUIRY:
@@ -311,6 +339,10 @@ export class InteractionsComponent implements OnInit, OnDestroy {
         return this.buildInquiryWaitingSummary(lastEvent.additionalEventTypes || []);
       case EventType.INTERESTED:
         return fromUser ? 'You confirmed interest in the role' : 'They confirmed interest to continue';
+      case EventType.INTEREST_CHECK:
+        return fromUser ? 'You asked if they are interested' : 'They are asking if you are interested';
+      case EventType.ACKNOWLEDGEMENT:
+        return fromUser ? 'You acknowledged their message' : 'They acknowledged your message';
       case EventType.NOT_INTERESTED:
         return fromUser ? 'You declined this opportunity' : 'They are no longer proceeding';
       case EventType.REJECTION:
@@ -321,10 +353,8 @@ export class InteractionsComponent implements OnInit, OnDestroy {
         return fromUser ? 'You replied and they may respond next' : 'They replied and are waiting for your response';
       case EventType.OUTREACH:
         return fromUser ? 'You initiated the conversation' : 'New recruiter outreach needs your response';
-      case EventType.EXPLORATION:
-        return fromUser ? 'You are exploring this opportunity' : 'They are exploring fit for this opportunity';
       case EventType.PENDING_CLASSIFICATION:
-        return 'Message synced and awaiting classification';
+        return 'Not Classified';
       default:
         return thread.lastEventPreview || 'Latest status updated';
     }
@@ -342,25 +372,40 @@ export class InteractionsComponent implements OnInit, OnDestroy {
 
     const labels: Record<EventType, string> = {
       [EventType.LOCATION_INQUIRY]: 'location',
+      [EventType.LOCATION_BOTTLENECK]: 'location bottleneck',
       [EventType.COMPENSATION_INQUIRY]: 'salary',
+      [EventType.COMPENSATION_BOTTLENECK]: 'compensation bottleneck',
       [EventType.NOTICE_PERIOD_INQUIRY]: 'notice period',
       [EventType.AVAILABILITY_INQUIRY]: 'availability',
       [EventType.VISA_INQUIRY]: 'visa status',
       [EventType.BENEFITS_INQUIRY]: 'benefits expectations',
       [EventType.OUTREACH]: 'outreach',
-      [EventType.EXPLORATION]: 'exploration',
       [EventType.REPLY]: 'reply',
       [EventType.FOLLOW_UP]: 'follow up',
       [EventType.CV_REQUEST]: 'CV',
-      [EventType.CV_SUBMISSION]: 'CV',
+      [EventType.CV_SUBMITTED]: 'CV',
+      [EventType.SCREENING_ASSESSMENT_REQUEST]: 'screening assessment',
+      [EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT]: 'screening assessment acknowledgement',
+      [EventType.SCREENING_ASSESSMENT_SCHEDULED]: 'screening assessment',
+      [EventType.SCREENING_ASSESSMENT_COMPLETED]: 'screening assessment',
+      [EventType.SCREENING_ASSESSMENT_FAILED]: 'screening assessment outcome',
+      [EventType.INTERVIEW_TIME_PROPOSED]: 'interview time',
+      [EventType.INTERVIEW_ACCEPTED]: 'interview time',
+      [EventType.INTERVIEW_SCHEDULED]: 'interview schedule',
       [EventType.INTERVIEW_INVITE]: 'interview availability',
+      [EventType.JOB_SPEC_REQUEST]: 'job spec',
+      [EventType.JOB_SPEC_SHARED]: 'job spec',
+      [EventType.JOB_SPEC_REVIEWED]: 'job spec review',
       [EventType.JOB_SPEC_TO_BE_SENT]: 'role details',
       [EventType.JOB_SPEC_ATTACHED]: 'role details',
       [EventType.INQUIRY]: 'screening details',
       [EventType.INTERESTED]: 'interest confirmation',
+      [EventType.INTEREST_CHECK]: 'interest confirmation',
+      [EventType.ACKNOWLEDGEMENT]: 'acknowledgement',
       [EventType.NOT_INTERESTED]: 'interest decision',
       [EventType.REJECTION]: 'decision outcome',
-      [EventType.PENDING_CLASSIFICATION]: 'classification review'
+      [EventType.RECRUITEMENT_PROCESS_UPDATE]: 'process update',
+      [EventType.PENDING_CLASSIFICATION]: 'classification'
     };
 
     const ordered = inquiryOrder
@@ -482,7 +527,11 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     
     // CV requested
     const hasCvRequest = this.selectedThread.events.some(e => e.eventType === EventType.CV_REQUEST);
-    const hasCvSubmission = this.selectedThread.events.some(e => e.eventType === EventType.CV_SUBMISSION);
+    const hasCvSubmission = this.selectedThread.events.some(e =>
+      e.eventType === EventType.CV_SUBMITTED ||
+      (e.eventType as unknown as string) === 'CV_SUBMITED' ||
+      (e.eventType as unknown as string) === 'CV_SUBMISSION'
+    );
     if (hasCvRequest && !hasCvSubmission) {
       actions.push('📄 CV requested - submit your latest version');
     }

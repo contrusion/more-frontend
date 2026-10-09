@@ -84,8 +84,8 @@ export class InteractionService {
   private mapToThread(dto: any): InteractionThread {
     const events = (dto.interactionEventDtos || [])
       .map((e: any) => {
-        // Determine sender based on event type
-        const isUserSent = this.isUserSentEvent(e.type);
+        // Direction is stored for synced mail; older rows fall back to a guess from the event type
+        const isUserSent = typeof e.sentByUser === 'boolean' ? e.sentByUser : this.isUserSentEvent(e.type);
         
         return {
           id: e.id,
@@ -140,7 +140,25 @@ export class InteractionService {
    * Determine if an event was sent by the user based on event type
    */
   private isUserSentEvent(eventType: string): boolean {
-    const userSentTypes = ['REPLY', 'CV_SUBMISSION', 'INTERESTED', 'NOT_INTERESTED'];
+    const userSentTypes = [
+      'REPLY',
+      'CV_SUBMITTED',
+      'CV_SUBMITED',
+      'CV_SUBMISSION',
+      'SCREENING_ASSESSMENT_REQUEST',
+      'SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT',
+      'SCREENING_ASSESSMENT_SCHEDULED',
+      'SCREENING_ASSESSMENT_COMPLETED',
+      'SCREENING_ASSESSMENT_FAILED',
+      'INTERVIEW_TIME_PROPOSED',
+      'INTERVIEW_ACCEPTED',
+      'INTERVIEW_SCHEDULED',
+      'JOB_SPEC_REQUEST',
+      'JOB_SPEC_SHARED',
+      'JOB_SPEC_REVIEWED',
+      'INTERESTED',
+      'NOT_INTERESTED'
+    ];
     return userSentTypes.includes(eventType);
   }
   
@@ -150,9 +168,12 @@ export class InteractionService {
     }
     const legacyMapping: Record<string, EventType> = {
       'JOB_OPPORTUNITY': EventType.OUTREACH,
+      'CV_SUBMITTED': EventType.CV_SUBMITTED,
+      'CV_SUBMITED': EventType.CV_SUBMITTED,
+      'CV_SUBMISSION': EventType.CV_SUBMITTED,
       'REJECTION': EventType.FOLLOW_UP
     };
-    return legacyMapping[backendType] || EventType.EXPLORATION;
+    return legacyMapping[backendType] || EventType.OUTREACH;
   }
   
   private mapChannel(backendChannel: string): ChannelType {
@@ -329,7 +350,7 @@ export class InteractionService {
           {
             id: 'e3',
             interactionThreadId: '1',
-            eventType: EventType.EXPLORATION,
+            eventType: EventType.OUTREACH,
             channel: ChannelType.MO_NATIVE,
             content: 'Thanks for your interest! When would be a good time to chat?',
             timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
@@ -544,7 +565,7 @@ export class InteractionService {
           {
             id: 'e15',
             interactionThreadId: '7',
-            eventType: EventType.EXPLORATION,
+            eventType: EventType.OUTREACH,
             channel: ChannelType.VIDEO_CALL,
             content: 'Can we set up a call to discuss the Data Engineer opportunity?',
             timestamp: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000),
@@ -616,7 +637,7 @@ export class InteractionService {
           {
             id: 'e19',
             interactionThreadId: '9',
-            eventType: EventType.EXPLORATION,
+            eventType: EventType.OUTREACH,
             channel: ChannelType.MO_NATIVE,
             content: 'Would you be available for a quick chat this week?',
             timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),

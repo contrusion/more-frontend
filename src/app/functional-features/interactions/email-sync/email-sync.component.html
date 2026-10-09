@@ -90,37 +90,86 @@
 
         <form [formGroup]="settingsForm" class="settings-form" (ngSubmit)="saveSettings()">
           <div class="settings-field">
+            <label for="historicalDataLimitDays">Mailbox lookback (days)</label>
+            <input id="historicalDataLimitDays" type="number" min="1" max="3650" formControlName="historicalDataLimitDays" />
+            <small class="field-hint">Used by threshold and specific-sender scanning.</small>
+          </div>
+
+          <div class="settings-field">
             <label for="scanStrategyType">Scan strategy</label>
             <select id="scanStrategyType" formControlName="scanStrategyType">
               <option *ngFor="let option of strategyOptions" [value]="option.value">{{ option.label }}</option>
             </select>
           </div>
 
-          <div class="settings-field">
-            <label for="historicalDataLimitDays">Mailbox lookback (days)</label>
-            <input id="historicalDataLimitDays" type="number" min="1" max="3650" formControlName="historicalDataLimitDays" />
-            <small class="field-hint">Used by threshold mailbox scanning.</small>
-          </div>
+          @switch (settingsForm.get('scanStrategyType')?.value) {
+            @case ('LABELLED_EMAILS') {
+              <div class="settings-field strategy-field">
+                <label for="scanLabelName">Gmail label</label>
+                <input id="scanLabelName" type="text" formControlName="scanLabelName" placeholder="e.g. recruiters" />
+                <small class="field-hint">Only messages with this label will be scanned.</small>
+              </div>
+            }
+            @case ('SPECIFIC_EMAIL_ADDRESS') {
+              <div class="settings-field strategy-field">
+                <label for="scanSenderEmail">Sender email addresses</label>
+                <div class="chip-list" aria-live="polite">
+                  @for (email of senderEmails; track $index) {
+                    <span class="sender-chip">
+                      <span class="sender-chip-label">{{ email }}</span>
+                      <button type="button" class="sender-chip-remove" (click)="removeSenderEmail($index)" [attr.aria-label]="'Remove ' + email">
+                        ×
+                      </button>
+                    </span>
+                  }
 
-          <div class="settings-grid">
-            <div class="settings-field">
-              <label for="scanLabelName">Gmail label (pending strategy)</label>
-              <input id="scanLabelName" type="text" formControlName="scanLabelName" placeholder="e.g. recruiters" />
-            </div>
+                  @if (senderEmails.length === 0) {
+                    <span class="chip-empty-state">No sender addresses added yet.</span>
+                  }
+                </div>
 
-            <div class="settings-field">
-              <label for="scanSenderEmail">Sender email (pending strategy)</label>
-              <input id="scanSenderEmail" type="email" formControlName="scanSenderEmail" placeholder="recruiter@company.com" />
-            </div>
+                <div class="sender-entry-row">
+                  <input
+                    #senderEmailInputField
+                    id="scanSenderEmail"
+                    type="email"
+                    [value]="senderEmailInput"
+                    (input)="senderEmailInput = senderEmailInputField.value"
+                    (keydown)="onSenderEmailKeydown($event)"
+                    (paste)="onSenderEmailPaste($event)"
+                    placeholder="Type an email address and press Enter"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                  />
+                  <button type="button" class="btn btn-secondary sender-entry-add" (click)="addSenderEmailInput()">Add</button>
+                </div>
 
-            <div class="settings-field">
-              <label for="scanSenderDomain">Sender domain (pending strategy)</label>
-              <input id="scanSenderDomain" type="text" formControlName="scanSenderDomain" placeholder="company.com" />
-            </div>
+                <small class="field-hint">Paste a list, or type one address at a time and press Enter. Each address becomes a removable chip.</small>
+                <small class="field-hint">These addresses are the only senders included in this scan strategy.</small>
+                <div class="field-error" *ngIf="isSpecificEmailStrategy() && senderEmails.length === 0">
+                  Add at least one sender email address for this strategy.
+                </div>
+                <div class="field-error" *ngIf="senderEmailInputError">
+                  {{ senderEmailInputError }}
+                </div>
+              </div>
+            }
+            @case ('EMAIL_DOMAIN') {
+              <div class="settings-field strategy-field">
+                <label for="scanSenderDomain">Sender domain</label>
+                <input id="scanSenderDomain" type="text" formControlName="scanSenderDomain" placeholder="company.com" />
+                <small class="field-hint">Only messages from this domain will be scanned.</small>
+              </div>
+            }
+          }
+
+          <div class="settings-note settings-note-active" *ngIf="isSpecificEmailStrategy()">
+            This strategy scans only messages from the sender addresses listed above. Use it to isolate one mailbox source such as X-Idian during testing.
           </div>
 
           <div class="settings-note" *ngIf="isStrategyPending()">
-            Selected strategy is planned but not implemented yet. Sync currently executes threshold mailbox scanning.
+            Selected strategy is planned but not implemented yet.
           </div>
 
           <div class="settings-actions">

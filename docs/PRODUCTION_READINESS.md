@@ -19,6 +19,14 @@
 ### User Registration
 - [ ] **Enable email verification on registration**
   - Current: User profiles may be active immediately after registration
+
+    ## ML Email Classification
+
+    - [ ] **Tune Llama classification throughput for production**
+      - Current local-testing defaults intentionally favor stability over throughput: `more.ml.classification-threads=2` and `more.ml.request-timeout-seconds=180`
+      - Re-benchmark production hardware before increasing concurrency; the current local Ollama setup can time out when several classifications run in parallel
+      - Add explicit back-pressure and capacity testing so Gmail sync does not overload the inference service during large inbox scans
+      - Revisit request timeout, worker count, and model sizing together; these should be treated as one production tuning exercise, not independent tweaks
   - Required: Send verification email before activating user profile
   - Impact: Prevents spam accounts and ensures valid email addresses
   - Implementation: Configure email verification in user registration flow

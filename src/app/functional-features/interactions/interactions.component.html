@@ -203,22 +203,37 @@
         <label>Event Type</label>
         <select [(ngModel)]="newEventType" class="form-control">
           <option [value]="EventType.OUTREACH">Outreach</option>
-          <option [value]="EventType.EXPLORATION">Exploration</option>
           <option [value]="EventType.REPLY">Reply</option>
           <option [value]="EventType.FOLLOW_UP">Follow Up</option>
           <option [value]="EventType.CV_REQUEST">CV Request</option>
-          <option [value]="EventType.CV_SUBMISSION">CV Submission</option>
+          <option [value]="EventType.CV_SUBMITTED">CV Submitted</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_REQUEST">Screening Assessment Request</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT">Screening Assessment Completion Acknowledgement</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_SCHEDULED">Screening Assessment Scheduled</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETED">Screening Assessment Completed</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_FAILED">Screening Assessment Failed</option>
+          <option [value]="EventType.INTERVIEW_TIME_PROPOSED">Interview Time Proposed</option>
+          <option [value]="EventType.INTERVIEW_ACCEPTED">Interview Accepted</option>
+          <option [value]="EventType.INTERVIEW_SCHEDULED">Interview Scheduled</option>
           <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
+          <option [value]="EventType.JOB_SPEC_REQUEST">Job Spec Request</option>
+          <option [value]="EventType.JOB_SPEC_SHARED">Job Spec Shared</option>
+          <option [value]="EventType.JOB_SPEC_REVIEWED">Job Spec Reviewed</option>
           <option [value]="EventType.JOB_SPEC_TO_BE_SENT">Job Spec To Be Sent</option>
           <option [value]="EventType.JOB_SPEC_ATTACHED">Job Spec Attached</option>
           <option [value]="EventType.INQUIRY">Inquiry</option>
           <option [value]="EventType.COMPENSATION_INQUIRY">Compensation Inquiry</option>
+          <option [value]="EventType.COMPENSATION_BOTTLENECK">Compensation Bottleneck</option>
           <option [value]="EventType.VISA_INQUIRY">Visa Inquiry</option>
           <option [value]="EventType.LOCATION_INQUIRY">Location Inquiry</option>
+          <option [value]="EventType.LOCATION_BOTTLENECK">Location Bottleneck</option>
           <option [value]="EventType.NOTICE_PERIOD_INQUIRY">Notice Period Inquiry</option>
           <option [value]="EventType.AVAILABILITY_INQUIRY">Availability Inquiry</option>
           <option [value]="EventType.BENEFITS_INQUIRY">Benefits Inquiry</option>
+          <option [value]="EventType.RECRUITEMENT_PROCESS_UPDATE">Recruitment Process Update</option>
           <option [value]="EventType.INTERESTED">Interested</option>
+          <option [value]="EventType.INTEREST_CHECK">Interest Check</option>
+          <option [value]="EventType.ACKNOWLEDGEMENT">Acknowledgement</option>
           <option [value]="EventType.NOT_INTERESTED">Not Interested</option>
           <option [value]="EventType.REJECTION">Rejection</option>
         </select>
@@ -306,20 +321,35 @@
         <select [(ngModel)]="newThreadEventType" class="form-control">
           <option [value]="EventType.OUTREACH">Outreach (recruiter contacted you)</option>
           <option [value]="EventType.REPLY">Reply (you responded)</option>
-          <option [value]="EventType.EXPLORATION">Exploration</option>
           <option [value]="EventType.CV_REQUEST">CV Request</option>
-          <option [value]="EventType.CV_SUBMISSION">CV Submission</option>
+          <option [value]="EventType.CV_SUBMITTED">CV Submitted</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_REQUEST">Screening Assessment Request</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT">Screening Assessment Completion Acknowledgement</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_SCHEDULED">Screening Assessment Scheduled</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETED">Screening Assessment Completed</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_FAILED">Screening Assessment Failed</option>
+          <option [value]="EventType.INTERVIEW_TIME_PROPOSED">Interview Time Proposed</option>
+          <option [value]="EventType.INTERVIEW_ACCEPTED">Interview Accepted</option>
+          <option [value]="EventType.INTERVIEW_SCHEDULED">Interview Scheduled</option>
           <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
+          <option [value]="EventType.JOB_SPEC_REQUEST">Job Spec Request</option>
+          <option [value]="EventType.JOB_SPEC_SHARED">Job Spec Shared</option>
+          <option [value]="EventType.JOB_SPEC_REVIEWED">Job Spec Reviewed</option>
           <option [value]="EventType.JOB_SPEC_TO_BE_SENT">Job Spec To Be Sent</option>
           <option [value]="EventType.JOB_SPEC_ATTACHED">Job Spec Attached</option>
           <option [value]="EventType.INQUIRY">Inquiry</option>
           <option [value]="EventType.COMPENSATION_INQUIRY">Compensation Inquiry</option>
+          <option [value]="EventType.COMPENSATION_BOTTLENECK">Compensation Bottleneck</option>
           <option [value]="EventType.VISA_INQUIRY">Visa Inquiry</option>
           <option [value]="EventType.LOCATION_INQUIRY">Location Inquiry</option>
+          <option [value]="EventType.LOCATION_BOTTLENECK">Location Bottleneck</option>
           <option [value]="EventType.NOTICE_PERIOD_INQUIRY">Notice Period Inquiry</option>
           <option [value]="EventType.AVAILABILITY_INQUIRY">Availability Inquiry</option>
           <option [value]="EventType.BENEFITS_INQUIRY">Benefits Inquiry</option>
+          <option [value]="EventType.RECRUITEMENT_PROCESS_UPDATE">Recruitment Process Update</option>
           <option [value]="EventType.INTERESTED">Interested</option>
+          <option [value]="EventType.INTEREST_CHECK">Interest Check</option>
+          <option [value]="EventType.ACKNOWLEDGEMENT">Acknowledgement</option>
           <option [value]="EventType.NOT_INTERESTED">Not Interested</option>
           <option [value]="EventType.REJECTION">Rejection</option>
         </select>
