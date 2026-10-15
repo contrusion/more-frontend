@@ -481,6 +481,13 @@ export class EmailSyncComponent implements OnInit, OnDestroy {
     this.syncSenderEmailControl();
   }
 
+  clearAllSenderEmails(): void {
+    this.senderEmails = [];
+    this.senderEmailInput = '';
+    this.senderEmailInputError = null;
+    this.syncSenderEmailControl();
+  }
+
   onSenderEmailKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
       event.preventDefault();

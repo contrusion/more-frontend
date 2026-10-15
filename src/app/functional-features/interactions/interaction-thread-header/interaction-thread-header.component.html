@@ -1,0 +1,19 @@
+<mat-panel-title class="thread-panel-title">
+  <span class="thread-panel-avatar">{{ initials }}</span>
+  <span class="thread-panel-identity">
+    <span class="thread-panel-name">{{ recruiterName }}</span>
+    <span class="thread-panel-role">Recruiter{{ recruiterCompany ? ' at ' + recruiterCompany : '' }}</span>
+  </span>
+</mat-panel-title>
+<mat-panel-description class="thread-panel-description">
+  <span class="thread-panel-opportunity">{{ opportunity }}</span>
+  <span class="thread-panel-message">{{ statusSummary }}</span>
+  <span class="thread-panel-risk" [class.thread-panel-risk--clear]="dealBreakerCount === 0">
+    Deal breakers ({{ dealBreakerCount }})
+  </span>
+  <span class="thread-panel-risk thread-panel-update" [class.thread-panel-risk--clear]="!updateStale">
+    Updated {{ updatedLabel }}
+  </span>
+  <span class="status-badge" [ngClass]="statusBadgeClass">{{ statusLabel }}</span>
+  <span class="thread-panel-time">{{ updatedLabel }}</span>
+</mat-panel-description>

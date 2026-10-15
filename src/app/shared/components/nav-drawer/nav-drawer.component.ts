@@ -4,6 +4,7 @@ import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { Subject, takeUntil, filter } from 'rxjs';
 import { NavDrawerService } from '../../services/nav-drawer.service';
 import { AuthService } from '../../../none-functional-features/authentication-and-authorization/services/auth.service';
+import { FeatureFlagsService } from '../../services/feature-flags.service';
 
 interface NavChild {
   label: string;
@@ -89,7 +90,9 @@ const ALL_SECTIONS: NavSection[] = [
     requiredRoles: ['MO_ADMIN'],
     routePrefix: '/admin',
     children: [
-      { label: 'Outreach ML Export', route: '/admin/outreach-ml' }
+      { label: 'Outreach ML Export', route: '/admin/outreach-ml' },
+      { label: 'Interaction Events', route: '/interactions/events' },
+      { label: 'Email Sync', route: '/interactions/email-sync' }
     ]
   }
 ];
@@ -112,7 +115,8 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
   constructor(
     public drawerService: NavDrawerService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private featureFlagsService: FeatureFlagsService
   ) {}
 
   ngOnInit(): void {
@@ -120,10 +124,16 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
     this.authService.userData$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.visibleSections = ALL_SECTIONS.filter(section =>
-          section.requiredRoles.length === 0 ||
-          section.requiredRoles.some(role => this.authService.hasRole(role))
-        );
+        this.visibleSections = ALL_SECTIONS
+          .filter(section =>
+            section.requiredRoles.length === 0 ||
+            section.requiredRoles.some(role => this.authService.hasRole(role))
+          )
+          .map(section => ({
+            ...section,
+            children: section.children.filter(child => this.isFeatureRouteEnabled(child.route))
+          }))
+          .filter(section => section.directRoute || section.children.length > 0);
         this.expandActiveSection();
       });
 
@@ -223,5 +233,13 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
   logout(): void {
     this.authService.logout();
     this.drawerService.close();
+  }
+
+  private isFeatureRouteEnabled(route: string): boolean {
+    if (route.startsWith('/interactions')) {
+      return this.featureFlagsService.isInteractionsEventsEnabled();
+    }
+
+    return true;
   }
 }

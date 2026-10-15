@@ -151,6 +151,17 @@ describe('EmailSyncComponent', () => {
     expect(component.settingsForm.get('scanSenderEmail')?.value).toBe('steven@aesglobal.io');
   });
 
+  it('should clear all sender email chips', () => {
+    component.senderEmails = ['aneneb@x-idian.com', 'steven@aesglobal.io'];
+    component['syncSenderEmailControl']();
+
+    component.clearAllSenderEmails();
+
+    expect(component.senderEmails).toEqual([]);
+    expect(component.settingsForm.get('scanSenderEmail')?.value).toBe('');
+    expect(component.senderEmailInputError).toBeNull();
+  });
+
   it('should handle errors when connecting Gmail', () => {
     const error = { error: { message: 'Connection failed' } };
     emailSyncService.getGmailAuthUrl.and.returnValue(throwError(() => error));

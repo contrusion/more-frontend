@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './none-functional-features/authentication-and-authorization/guards/auth.guard';
 import { RoleGuard } from './none-functional-features/authentication-and-authorization/guards/role.guard';
+import { InteractionsAccessGuard } from './none-functional-features/authentication-and-authorization/guards/interactions-access.guard';
 
 export const routes: Routes = [
   {
@@ -24,7 +25,7 @@ export const routes: Routes = [
   {
     path: 'interactions',
     loadComponent: () => import('./functional-features/interactions/interactions-layout.component').then(m => m.InteractionsLayoutComponent),
-    canActivate: [AuthGuard],
+    canActivate: [AuthGuard, InteractionsAccessGuard],
     children: [
       {
         path: '',

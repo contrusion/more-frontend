@@ -1,9 +1,12 @@
-<div class="interactions-container" [class.no-insights]="!showInsightsPanel">
+<div class="interactions-container" [class.no-insights]="!showInsightsPanel || isCandidateMode()" [class.candidate-mode]="isCandidateMode()">
   <!-- Left Panel - Thread List -->
-  <div class="threads-panel">
+  <div class="threads-panel" [class.candidate-accordion-panel]="isCandidateMode()">
     <div class="panel-header">
       <h2>Interactions</h2>
       <div class="header-actions">
+        <button class="btn-sync" *ngIf="interactionMode === 'admin'" (click)="triggerEmailSync()" [disabled]="syncInProgress" title="Sync recruiter emails from Gmail">
+          {{ syncInProgress ? 'Syncing...' : 'Sync Emails' }}
+        </button>
         <button class="btn-icon" (click)="refreshThreads()" title="Refresh" [disabled]="isRefreshing">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinning]="isRefreshing">
             <path d="M21 2v6h-6"></path>
@@ -21,6 +24,10 @@
       </div>
     </div>
 
+    <div class="sync-feedback" *ngIf="syncFeedback">
+      {{ syncFeedback }}
+    </div>
+
     <div class="search-box">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"></circle>
@@ -34,7 +41,7 @@
       />
     </div>
 
-    <div class="threads-list">
+    <div class="threads-list" *ngIf="!isCandidateMode(); else candidateAccordionList">
       <div 
         *ngFor="let thread of filteredThreads" 
         class="thread-item"
@@ -70,10 +77,207 @@
         <p>No interactions found</p>
       </div>
     </div>
+
+    <ng-template #candidateAccordionList>
+      <div class="threads-list accordion-list">
+        <mat-accordion class="thread-accordion">
+          <mat-expansion-panel
+            *ngFor="let thread of filteredThreads"
+            class="thread-panel"
+            [expanded]="expandedThreadId === thread.id"
+            (opened)="onThreadPanelOpened(thread)"
+            (closed)="onThreadPanelClosed(thread)"
+          >
+            <mat-expansion-panel-header>
+              <app-interaction-thread-header
+                [initials]="getInitials(thread.participantName)"
+                [recruiterName]="thread.participantName"
+                [recruiterCompany]="thread.companyName"
+                [opportunity]="getOpportunityTitle(thread)"
+                [statusSummary]="getThreadStatusSummary(thread)"
+                [dealBreakerCount]="getDealBreakerCount(thread)"
+                [updateStale]="isThreadUpdateStale(thread)"
+                [updatedLabel]="formatTime(thread.lastEventDate)"
+                [statusLabel]="thread.status.replace('_', ' ')"
+                [statusBadgeClass]="getStatusBadgeClass(thread.status)"
+              ></app-interaction-thread-header>
+            </mat-expansion-panel-header>
+
+            <ng-template matExpansionPanelContent>
+            <div class="candidate-insights accordion-expanded-view" *ngIf="thread as currentThread">
+              <div class="insight-header">
+                <div>
+                  <span class="eyebrow">Opportunity overview</span>
+                  <h4>{{ currentThread.companyName || 'Opportunity' }} · {{ currentThread.jobTitle || 'Role conversation' }}</h4>
+                  <a
+                    *ngIf="getCompanyWebsiteUrl(currentThread) as companyWebsite"
+                    class="company-link"
+                    [href]="companyWebsite"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Visit company website
+                  </a>
+                </div>
+              </div>
+
+              <div class="insight-hero">
+                <div class="hero-meta-row">
+                  <div class="meta-card">
+                    <span class="meta-label">Current stage</span>
+                    <strong>{{ getCandidateInsightSummary(currentThread)?.stage }}</strong>
+                  </div>
+                  <div class="meta-card">
+                    <span class="meta-label">Confidence</span>
+                    <strong>{{ getCandidateInsightSummary(currentThread)?.confidence }}</strong>
+                  </div>
+                  <div class="meta-card">
+                    <span class="meta-label">Freshness</span>
+                    <strong>{{ getCandidateInsightSummary(currentThread)?.freshness }}</strong>
+                  </div>
+                </div>
+                <p class="hero-summary">{{ getCandidateInsightSummary(currentThread)?.summary }}</p>
+              </div>
+
+              <section class="insight-section integrated-insights-panel">
+                <div class="section-head">
+                  <span class="section-kicker">Conversation insights</span>
+                  <h5>About {{ currentThread.participantName }}</h5>
+                </div>
+
+                <div class="integrated-stats-grid">
+                  <div class="stat-card compact-stat">
+                    <div class="stat-label">Response Rate</div>
+                    <div class="stat-value" [class.success]="getRecruiterResponseRate(currentThread) > 70">
+                      {{ getRecruiterResponseRate(currentThread) }}%
+                    </div>
+                  </div>
+                  <div class="stat-card compact-stat">
+                    <div class="stat-label">Avg Response Time</div>
+                    <div class="stat-value info">{{ getAverageResponseTime(currentThread) }}</div>
+                  </div>
+                  <div class="stat-card compact-stat">
+                    <div class="stat-label">Interaction Age</div>
+                    <div class="stat-value">{{ getInteractionAge(currentThread) }} days</div>
+                  </div>
+                  <div class="stat-card compact-stat">
+                    <div class="stat-label">Last Activity</div>
+                    <div class="stat-value" [class.warning]="getDaysSinceLastEvent(currentThread) > 7">
+                      {{ getDaysSinceLastEvent(currentThread) }} days ago
+                    </div>
+                  </div>
+                </div>
+
+                <div class="recommended-actions-block" *ngIf="getRecommendedActions(currentThread).length > 0">
+                  <h6>Recommended actions</h6>
+                  <ul>
+                    <li *ngFor="let action of getRecommendedActions(currentThread)">{{ action }}</li>
+                  </ul>
+                </div>
+              </section>
+
+              <div class="insight-grid">
+                <section class="insight-section stage-section">
+                  <div class="section-head">
+                    <span class="section-kicker">Stage tracker</span>
+                    <h5>Recruitment progression</h5>
+                  </div>
+
+                  <div class="stage-track">
+                    <div
+                      class="stage-step"
+                      *ngFor="let step of getCandidateStageSteps(); let i = index"
+                      [class.active]="step === getCandidateInsightSummary(currentThread)?.stage"
+                      [class.complete]="getCandidateStageSteps().indexOf(step) < getCandidateStageSteps().indexOf(getCandidateInsightSummary(currentThread)?.stage || 'Contacted')"
+                    >
+                      <span class="step-dot"></span>
+                      <span class="step-label">{{ step }}</span>
+                    </div>
+                  </div>
+
+                  <div class="next-unlock-box">
+                    <span class="meta-label">Next unlock</span>
+                    <strong>{{ getCandidateInsightSummary(currentThread)?.nextUnlock }}</strong>
+                  </div>
+
+                  <ul class="evidence-list" *ngIf="(getCandidateInsightSummary(currentThread)?.missingEvidence?.length ?? 0) > 0">
+                    <li *ngFor="let item of getCandidateInsightSummary(currentThread)?.missingEvidence">
+                      {{ item }}
+                    </li>
+                  </ul>
+                </section>
+
+                <section class="insight-section fit-section">
+                  <div class="section-head">
+                    <span class="section-kicker">Fit check</span>
+                    <h5>Role alignment</h5>
+                  </div>
+
+                  <div class="fit-list">
+                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.JOB_SPEC_REVIEWED, EventType.JOB_SPEC_ATTACHED])">
+                      <span>Role fit</span>
+                      <strong>{{ getRoleFitStatus(currentThread) }}</strong>
+                    </div>
+                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.LOCATION_NEEDS_MET, EventType.LOCATION_BOTTLENECK])">
+                      <span>Location fit</span>
+                      <strong>{{ getLocationFitStatus(currentThread) }}</strong>
+                    </div>
+                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.COMPENSATION_NEEDS_MET, EventType.COMPENSATION_BOTTLENECK])">
+                      <span>Compensation fit</span>
+                      <strong>{{ getCompensationFitStatus(currentThread) }}</strong>
+                    </div>
+                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.INTERVIEW_TIME_ACCEPTED, EventType.INTERVIEW_SCHEDULED])">
+                      <span>Timing fit</span>
+                      <strong>{{ getTimingFitStatus(currentThread) }}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="insight-section actions-section">
+                  <div class="section-head">
+                    <span class="section-kicker">Action plan</span>
+                    <h5>Next steps</h5>
+                  </div>
+
+                  <ul class="action-list">
+                    <li *ngFor="let action of getCandidateInsightSummary(currentThread)?.actions">
+                      {{ action }}
+                    </li>
+                  </ul>
+                </section>
+
+                <section class="insight-section risk-section">
+                  <div class="section-head">
+                    <span class="section-kicker">Risk & bottlenecks</span>
+                    <h5>Watch-outs</h5>
+                  </div>
+
+                  <ul class="risk-list">
+                    <li *ngFor="let risk of getCandidateRiskItems(currentThread)">
+                      <div class="risk-header">
+                        <span class="risk-label">{{ risk.label }}</span>
+                        <span class="risk-severity" [ngClass]="'severity-' + risk.severity.toLowerCase()">{{ risk.severity }}</span>
+                      </div>
+                      <p>{{ risk.summary }}</p>
+                      <small>{{ risk.recommendation }}</small>
+                    </li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+            </ng-template>
+          </mat-expansion-panel>
+        </mat-accordion>
+
+        <div *ngIf="filteredThreads.length === 0" class="empty-state">
+          <p>No interactions found</p>
+        </div>
+      </div>
+    </ng-template>
   </div>
 
   <!-- Center Panel - Conversation Timeline -->
-  <div class="conversation-panel" *ngIf="selectedThread">
+  <div class="conversation-panel" *ngIf="selectedThread && !isCandidateMode()">
     <div class="conversation-header">
       <div class="participant-info">
         <div class="participant-avatar">
@@ -93,7 +297,24 @@
         </div>
       </div>
       <div class="conversation-actions">
-        <button class="btn-secondary" (click)="toggleInsightsPanel()" title="Toggle insights panel">
+        <div class="view-mode-switch" aria-label="View mode selector">
+          <button class="mode-button" [class.active]="isAdminMode()" type="button" (click)="setAdminMode()">
+            Timeline
+          </button>
+          <button class="mode-button" [class.active]="isCandidateMode()" type="button" (click)="setCandidateMode()">
+            Candidate view
+          </button>
+        </div>
+        <button
+          class="btn-secondary compact-toggle"
+          *ngIf="isAdminMode()"
+          type="button"
+          (click)="toggleTimelineDensity()"
+          [attr.aria-pressed]="timelineDensity === 'compact'"
+        >
+          {{ timelineDensity === 'compact' ? 'Expanded timeline' : 'Compact timeline' }}
+        </button>
+        <button *ngIf="!isCandidateMode()" class="btn-secondary" (click)="toggleInsightsPanel()" title="Toggle insights panel">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 3v18h18"></path>
             <path d="m19 9-5 5-4-4-3 3"></path>
@@ -106,17 +327,183 @@
       </div>
     </div>
 
-    <div class="conversation-timeline">
-      @if (getSelectedThreadIds().length > 0) {
-        <div class="thread-conversation-panel">
-          <div class="thread-conversation-header">
-            <h4>Conversation Timeline</h4>
+    <div class="conversation-timeline" [class.compact]="timelineDensity === 'compact'">
+      <ng-container *ngIf="getCurrentCenterPanelMode() === 'timeline'; else candidateInsightsPanel">
+        @if (getSelectedThreadIds().length > 0) {
+          <div class="thread-conversation-panel">
+            <div class="thread-conversation-header">
+              <h4>Conversation Timeline</h4>
+            </div>
+            @for (threadId of getSelectedThreadIds(); track threadId) {
+              <app-email-thread-timeline [interactionId]="selectedThread.id" [threadId]="threadId" />
+            }
           </div>
-          @for (threadId of getSelectedThreadIds(); track threadId) {
-            <app-email-thread-timeline [interactionId]="selectedThread.id" [threadId]="threadId" />
-          }
+        }
+      </ng-container>
+
+      <ng-template #candidateInsightsPanel>
+        <div class="candidate-insights" *ngIf="selectedThread as thread">
+          <div class="insight-header">
+            <div>
+              <span class="eyebrow">Opportunity overview</span>
+              <h4>{{ thread.companyName || 'Opportunity' }} · {{ thread.jobTitle || 'Role conversation' }}</h4>
+              <a
+                *ngIf="getCompanyWebsiteUrl(thread) as companyWebsite"
+                class="company-link"
+                [href]="companyWebsite"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Visit company website
+              </a>
+            </div>
+          </div>
+
+          <div class="insight-hero">
+            <div class="hero-meta-row">
+              <div class="meta-card">
+                <span class="meta-label">Current stage</span>
+                <strong>{{ getCandidateInsightSummary(thread)?.stage }}</strong>
+              </div>
+              <div class="meta-card">
+                <span class="meta-label">Confidence</span>
+                <strong>{{ getCandidateInsightSummary(thread)?.confidence }}</strong>
+              </div>
+              <div class="meta-card">
+                <span class="meta-label">Freshness</span>
+                <strong>{{ getCandidateInsightSummary(thread)?.freshness }}</strong>
+              </div>
+            </div>
+            <p class="hero-summary">{{ getCandidateInsightSummary(thread)?.summary }}</p>
+          </div>
+
+          <section class="insight-section integrated-insights-panel">
+            <div class="section-head">
+              <span class="section-kicker">Conversation insights</span>
+              <h5>About {{ thread.participantName }}</h5>
+            </div>
+
+            <div class="integrated-stats-grid">
+              <div class="stat-card compact-stat">
+                <div class="stat-label">Response Rate</div>
+                <div class="stat-value" [class.success]="getRecruiterResponseRate() > 70">
+                  {{ getRecruiterResponseRate() }}%
+                </div>
+              </div>
+              <div class="stat-card compact-stat">
+                <div class="stat-label">Avg Response Time</div>
+                <div class="stat-value info">{{ getAverageResponseTime() }}</div>
+              </div>
+              <div class="stat-card compact-stat">
+                <div class="stat-label">Interaction Age</div>
+                <div class="stat-value">{{ getInteractionAge() }} days</div>
+              </div>
+              <div class="stat-card compact-stat">
+                <div class="stat-label">Last Activity</div>
+                <div class="stat-value" [class.warning]="getDaysSinceLastEvent() > 7">
+                  {{ getDaysSinceLastEvent() }} days ago
+                </div>
+              </div>
+            </div>
+
+            <div class="recommended-actions-block" *ngIf="getRecommendedActions().length > 0">
+              <h6>Recommended actions</h6>
+              <ul>
+                <li *ngFor="let action of getRecommendedActions()">{{ action }}</li>
+              </ul>
+            </div>
+          </section>
+
+          <div class="insight-grid">
+            <section class="insight-section stage-section">
+              <div class="section-head">
+                <span class="section-kicker">Stage tracker</span>
+                <h5>Recruitment progression</h5>
+              </div>
+
+              <div class="stage-track">
+                <div
+                  class="stage-step"
+                  *ngFor="let step of getCandidateStageSteps(); let i = index"
+                  [class.active]="step === getCandidateInsightSummary(thread)?.stage"
+                  [class.complete]="getCandidateStageSteps().indexOf(step) < getCandidateStageSteps().indexOf(getCandidateInsightSummary(thread)?.stage || 'Contacted')"
+                >
+                  <span class="step-dot"></span>
+                  <span class="step-label">{{ step }}</span>
+                </div>
+              </div>
+
+              <div class="next-unlock-box">
+                <span class="meta-label">Next unlock</span>
+                <strong>{{ getCandidateInsightSummary(thread)?.nextUnlock }}</strong>
+              </div>
+
+              <ul class="evidence-list" *ngIf="(getCandidateInsightSummary(thread)?.missingEvidence?.length ?? 0) > 0">
+                <li *ngFor="let item of getCandidateInsightSummary(thread)?.missingEvidence">
+                  {{ item }}
+                </li>
+              </ul>
+            </section>
+
+            <section class="insight-section fit-section">
+              <div class="section-head">
+                <span class="section-kicker">Fit check</span>
+                <h5>Role alignment</h5>
+              </div>
+
+              <div class="fit-list">
+                <div class="fit-row" [class.ready]="hasAnyEventType(thread, [EventType.JOB_SPEC_REVIEWED, EventType.JOB_SPEC_ATTACHED])">
+                  <span>Role fit</span>
+                  <strong>{{ getRoleFitStatus(thread) }}</strong>
+                </div>
+                <div class="fit-row" [class.ready]="hasAnyEventType(thread, [EventType.LOCATION_NEEDS_MET, EventType.LOCATION_BOTTLENECK])">
+                  <span>Location fit</span>
+                  <strong>{{ getLocationFitStatus(thread) }}</strong>
+                </div>
+                <div class="fit-row" [class.ready]="hasAnyEventType(thread, [EventType.COMPENSATION_NEEDS_MET, EventType.COMPENSATION_BOTTLENECK])">
+                  <span>Compensation fit</span>
+                  <strong>{{ getCompensationFitStatus(thread) }}</strong>
+                </div>
+                <div class="fit-row" [class.ready]="hasAnyEventType(thread, [EventType.INTERVIEW_TIME_ACCEPTED, EventType.INTERVIEW_SCHEDULED])">
+                  <span>Timing fit</span>
+                  <strong>{{ getTimingFitStatus(thread) }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="insight-section actions-section">
+              <div class="section-head">
+                <span class="section-kicker">Action plan</span>
+                <h5>Next steps</h5>
+              </div>
+
+              <ul class="action-list">
+                <li *ngFor="let action of getCandidateInsightSummary(thread)?.actions">
+                  {{ action }}
+                </li>
+              </ul>
+            </section>
+
+            <section class="insight-section risk-section">
+              <div class="section-head">
+                <span class="section-kicker">Risk & bottlenecks</span>
+                <h5>Watch-outs</h5>
+              </div>
+
+              <ul class="risk-list">
+                <li *ngFor="let risk of getCandidateRiskItems(thread)">
+                  <div class="risk-header">
+                    <span class="risk-label">{{ risk.label }}</span>
+                    <span class="risk-severity" [ngClass]="'severity-' + risk.severity.toLowerCase()">{{ risk.severity }}</span>
+                  </div>
+                  <p>{{ risk.summary }}</p>
+                  <small>{{ risk.recommendation }}</small>
+                </li>
+              </ul>
+            </section>
+          </div>
         </div>
-      }
+      </ng-template>
     </div>
   </div>
 
@@ -135,7 +522,7 @@
   </div>
 
   <!-- Right Panel - Insights & Analytics -->
-  <div class="insights-panel" *ngIf="showInsightsPanel && selectedThread">
+  <div class="insights-panel" *ngIf="showInsightsPanel && selectedThread && !isCandidateMode()">
     <div class="insights-header">
       <h3>Conversation Insights</h3>
     </div>
@@ -179,7 +566,7 @@
   </div>
 
   <!-- Insights Panel - Empty State -->
-  <div class="insights-panel" *ngIf="showInsightsPanel && !selectedThread">
+  <div class="insights-panel" *ngIf="showInsightsPanel && !selectedThread && !isCandidateMode()">
     <div class="empty-insights">
       <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M3 3v18h18"></path>
@@ -211,22 +598,28 @@
           <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT">Screening Assessment Completion Acknowledgement</option>
           <option [value]="EventType.SCREENING_ASSESSMENT_SCHEDULED">Screening Assessment Scheduled</option>
           <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETED">Screening Assessment Completed</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_PASSED">Screening Assessment Passed</option>
           <option [value]="EventType.SCREENING_ASSESSMENT_FAILED">Screening Assessment Failed</option>
           <option [value]="EventType.INTERVIEW_TIME_PROPOSED">Interview Time Proposed</option>
-          <option [value]="EventType.INTERVIEW_ACCEPTED">Interview Accepted</option>
+          <option [value]="EventType.INTERVIEW_TIME_PROPOSED_REJECTED">Interview Time Proposed Rejected</option>
+          <option [value]="EventType.INTERVIEW_TIME_ACCEPTED">Interview Time Accepted</option>
           <option [value]="EventType.INTERVIEW_SCHEDULED">Interview Scheduled</option>
           <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
           <option [value]="EventType.JOB_SPEC_REQUEST">Job Spec Request</option>
-          <option [value]="EventType.JOB_SPEC_SHARED">Job Spec Shared</option>
+          <option [value]="EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT">Job Spec Written In Mail Text</option>
           <option [value]="EventType.JOB_SPEC_REVIEWED">Job Spec Reviewed</option>
           <option [value]="EventType.JOB_SPEC_TO_BE_SENT">Job Spec To Be Sent</option>
           <option [value]="EventType.JOB_SPEC_ATTACHED">Job Spec Attached</option>
           <option [value]="EventType.INQUIRY">Inquiry</option>
+          <option [value]="EventType.SKILLS_INQUIRY">Skills Inquiry</option>
+          <option [value]="EventType.SKILLS_GAP">Skills Gap</option>
           <option [value]="EventType.COMPENSATION_INQUIRY">Compensation Inquiry</option>
           <option [value]="EventType.COMPENSATION_BOTTLENECK">Compensation Bottleneck</option>
+          <option [value]="EventType.COMPENSATION_NEEDS_MET">Compensation Needs Met</option>
           <option [value]="EventType.VISA_INQUIRY">Visa Inquiry</option>
           <option [value]="EventType.LOCATION_INQUIRY">Location Inquiry</option>
           <option [value]="EventType.LOCATION_BOTTLENECK">Location Bottleneck</option>
+          <option [value]="EventType.LOCATION_NEEDS_MET">Location Needs Met</option>
           <option [value]="EventType.NOTICE_PERIOD_INQUIRY">Notice Period Inquiry</option>
           <option [value]="EventType.AVAILABILITY_INQUIRY">Availability Inquiry</option>
           <option [value]="EventType.BENEFITS_INQUIRY">Benefits Inquiry</option>
@@ -327,22 +720,28 @@
           <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT">Screening Assessment Completion Acknowledgement</option>
           <option [value]="EventType.SCREENING_ASSESSMENT_SCHEDULED">Screening Assessment Scheduled</option>
           <option [value]="EventType.SCREENING_ASSESSMENT_COMPLETED">Screening Assessment Completed</option>
+          <option [value]="EventType.SCREENING_ASSESSMENT_PASSED">Screening Assessment Passed</option>
           <option [value]="EventType.SCREENING_ASSESSMENT_FAILED">Screening Assessment Failed</option>
           <option [value]="EventType.INTERVIEW_TIME_PROPOSED">Interview Time Proposed</option>
-          <option [value]="EventType.INTERVIEW_ACCEPTED">Interview Accepted</option>
+          <option [value]="EventType.INTERVIEW_TIME_PROPOSED_REJECTED">Interview Time Proposed Rejected</option>
+          <option [value]="EventType.INTERVIEW_TIME_ACCEPTED">Interview Time Accepted</option>
           <option [value]="EventType.INTERVIEW_SCHEDULED">Interview Scheduled</option>
           <option [value]="EventType.INTERVIEW_INVITE">Interview Invite</option>
           <option [value]="EventType.JOB_SPEC_REQUEST">Job Spec Request</option>
-          <option [value]="EventType.JOB_SPEC_SHARED">Job Spec Shared</option>
+          <option [value]="EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT">Job Spec Written In Mail Text</option>
           <option [value]="EventType.JOB_SPEC_REVIEWED">Job Spec Reviewed</option>
           <option [value]="EventType.JOB_SPEC_TO_BE_SENT">Job Spec To Be Sent</option>
           <option [value]="EventType.JOB_SPEC_ATTACHED">Job Spec Attached</option>
           <option [value]="EventType.INQUIRY">Inquiry</option>
+          <option [value]="EventType.SKILLS_INQUIRY">Skills Inquiry</option>
+          <option [value]="EventType.SKILLS_GAP">Skills Gap</option>
           <option [value]="EventType.COMPENSATION_INQUIRY">Compensation Inquiry</option>
           <option [value]="EventType.COMPENSATION_BOTTLENECK">Compensation Bottleneck</option>
+          <option [value]="EventType.COMPENSATION_NEEDS_MET">Compensation Needs Met</option>
           <option [value]="EventType.VISA_INQUIRY">Visa Inquiry</option>
           <option [value]="EventType.LOCATION_INQUIRY">Location Inquiry</option>
           <option [value]="EventType.LOCATION_BOTTLENECK">Location Bottleneck</option>
+          <option [value]="EventType.LOCATION_NEEDS_MET">Location Needs Met</option>
           <option [value]="EventType.NOTICE_PERIOD_INQUIRY">Notice Period Inquiry</option>
           <option [value]="EventType.AVAILABILITY_INQUIRY">Availability Inquiry</option>
           <option [value]="EventType.BENEFITS_INQUIRY">Benefits Inquiry</option>
@@ -418,7 +817,7 @@
       <button 
         class="btn btn-primary" 
         (click)="confirmAddCompany()"
-        [disabled]="!newCompanyName.trim()"
+        [disabled]="newCompanyName.trim().length === 0"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20 6 9 17 4 12"></polyline>

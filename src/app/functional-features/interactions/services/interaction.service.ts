@@ -116,7 +116,7 @@ export class InteractionService {
       participantName: dto.externalRecruiterName || recruiterName || dto.externalRecruiterEmail || dto.recruiter?.email || 'Unknown Recruiter',
       participantRole: 'RECRUITER',
       companyName: dto.externalCompanyName || dto.recruiter?.companyName || undefined,
-      jobTitle: this.extractJobTitle(events),
+      jobTitle: this.resolveThreadJobTitle(dto, events),
       status: this.mapStatus(dto.status),
       lastEventDate: lastEvent?.timestamp || new Date(dto.initiatedAt),
       lastEventPreview: lastEvent?.content || 'No messages yet',
@@ -125,6 +125,39 @@ export class InteractionService {
       updatedAt: new Date(dto.initiatedAt),
       events: events
     };
+  }
+
+  /**
+   * The backend stores the parsed job on recruiter events as a note: "... | Job: <title> | ...".
+   * That structured value wins; the preview-text regex is only a fallback.
+   */
+  private resolveThreadJobTitle(dto: any, events: InteractionEvent[]): string | undefined {
+    const rawEvents: any[] = Array.isArray(dto?.interactionEventDtos) ? dto.interactionEventDtos : [];
+
+    for (const rawEvent of [...rawEvents].reverse()) {
+      if (rawEvent?.sentByUser === true) {
+        continue;
+      }
+
+      const match = typeof rawEvent?.notes === 'string'
+        ? rawEvent.notes.match(/\bJob:\s*([^|\n]+)/i)
+        : null;
+      const title = this.normalizeStructuredJobTitle(match?.[1]);
+      if (title) {
+        return title;
+      }
+    }
+
+    return this.extractJobTitle(events);
+  }
+
+  private normalizeStructuredJobTitle(value: string | undefined): string | undefined {
+    const normalized = value?.trim();
+    if (!normalized || ['n/a', 'missing', '(missing)', 'unknown', 'null'].includes(normalized.toLowerCase())) {
+      return undefined;
+    }
+
+    return normalized;
   }
 
   private buildRecruiterDisplayName(firstName?: string, lastName?: string): string | undefined {
@@ -149,13 +182,18 @@ export class InteractionService {
       'SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT',
       'SCREENING_ASSESSMENT_SCHEDULED',
       'SCREENING_ASSESSMENT_COMPLETED',
+      'SCREENING_ASSESSMENT_PASSED',
       'SCREENING_ASSESSMENT_FAILED',
       'INTERVIEW_TIME_PROPOSED',
+      'INTERVIEW_TIME_PROPOSED_REJECTED',
+      'INTERVIEW_TIME_ACCEPTED',
       'INTERVIEW_ACCEPTED',
       'INTERVIEW_SCHEDULED',
       'JOB_SPEC_REQUEST',
+      'JOB_SPEC_WRITTEN_IN_MAIL_TEXT',
       'JOB_SPEC_SHARED',
       'JOB_SPEC_REVIEWED',
+      'SKILLS_GAP',
       'INTERESTED',
       'NOT_INTERESTED'
     ];
@@ -171,6 +209,8 @@ export class InteractionService {
       'CV_SUBMITTED': EventType.CV_SUBMITTED,
       'CV_SUBMITED': EventType.CV_SUBMITTED,
       'CV_SUBMISSION': EventType.CV_SUBMITTED,
+      'INTERVIEW_ACCEPTED': EventType.INTERVIEW_TIME_ACCEPTED,
+      'JOB_SPEC_SHARED': EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT,
       'REJECTION': EventType.FOLLOW_UP
     };
     return legacyMapping[backendType] || EventType.OUTREACH;

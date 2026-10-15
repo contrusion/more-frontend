@@ -1,27 +1,57 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { Subject, takeUntil } from 'rxjs';
 import { InteractionService } from './services/interaction.service';
+import { EmailSyncService } from './services/email-sync.service';
 import { InteractionThread, InteractionEvent, ChannelType, EventType, InteractionStatus } from './models/interaction.model';
 import { EmailThreadTimelineComponent } from './email-thread-timeline/email-thread-timeline.component';
+import { InteractionThreadHeaderComponent } from './interaction-thread-header/interaction-thread-header.component';
+
+export type CandidateStage = 'Contacted' | 'Qualified' | 'Interviewing' | 'Decision';
+export type CandidateConfidence = 'Low' | 'Medium' | 'High';
+export type CandidateFreshness = 'Fresh' | 'Watch' | 'Stale';
+
+export interface CandidateInsightSummary {
+  stage: CandidateStage;
+  confidence: CandidateConfidence;
+  freshness: CandidateFreshness;
+  summary: string;
+  nextUnlock: string;
+  missingEvidence: string[];
+  actions: string[];
+}
+
+export interface CandidateRiskItem {
+  label: string;
+  severity: CandidateConfidence | 'Low' | 'Medium' | 'High';
+  summary: string;
+  recommendation: string;
+}
 
 @Component({
   selector: 'app-interactions',
   standalone: true,
-  imports: [CommonModule, FormsModule, EmailThreadTimelineComponent],
+  imports: [CommonModule, FormsModule, MatExpansionModule, EmailThreadTimelineComponent, InteractionThreadHeaderComponent],
   templateUrl: './interactions.component.html',
   styleUrls: ['./interactions.component.css']
 })
 export class InteractionsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private readonly timelineDensityStorageKey = 'more.interactions.timelineDensity';
   
   threads: InteractionThread[] = [];
   filteredThreads: InteractionThread[] = [];
   selectedThread: InteractionThread | null = null;
+  expandedThreadId: string | null = null;
   searchQuery: string = '';
   showInsightsPanel: boolean = true;
   isRefreshing: boolean = false;
+  syncInProgress: boolean = false;
+  syncFeedback: string | null = null;
+  interactionMode: 'admin' | 'candidate' = 'candidate';
+  timelineDensity: 'expanded' | 'compact' = 'expanded';
   
   // For new event
   showNewEventModal: boolean = false;
@@ -48,9 +78,13 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   EventType = EventType;
   InteractionStatus = InteractionStatus;
 
-  constructor(private interactionService: InteractionService) {}
+  constructor(
+    private interactionService: InteractionService,
+    private emailSyncService: EmailSyncService
+  ) {}
 
   ngOnInit(): void {
+    this.timelineDensity = this.getStoredTimelineDensity();
     // Clear cache on app refresh to always get fresh data
     this.interactionService.clearCache();
     this.loadThreads();
@@ -90,10 +124,273 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       });
   }
 
+  isCandidateMode(): boolean {
+    return this.interactionMode === 'candidate';
+  }
+
+  isAdminMode(): boolean {
+    return this.interactionMode === 'admin';
+  }
+
+  getCurrentCenterPanelMode(): 'timeline' | 'candidate-insights' {
+    return this.isCandidateMode() ? 'candidate-insights' : 'timeline';
+  }
+
+  setInteractionMode(mode: 'admin' | 'candidate'): void {
+    this.interactionMode = mode;
+  }
+
+  setAdminMode(): void {
+    this.setInteractionMode('admin');
+  }
+
+  setCandidateMode(): void {
+    this.setInteractionMode('candidate');
+  }
+
+  toggleTimelineDensity(): void {
+    this.timelineDensity = this.timelineDensity === 'expanded' ? 'compact' : 'expanded';
+    this.persistTimelineDensity(this.timelineDensity);
+  }
+
+  private getStoredTimelineDensity(): 'expanded' | 'compact' {
+    try {
+      const storedValue = sessionStorage.getItem(this.timelineDensityStorageKey);
+      return storedValue === 'compact' ? 'compact' : 'expanded';
+    } catch {
+      return 'expanded';
+    }
+  }
+
+  private persistTimelineDensity(density: 'expanded' | 'compact'): void {
+    try {
+      sessionStorage.setItem(this.timelineDensityStorageKey, density);
+    } catch {
+      // Ignore storage failures and keep the in-memory state as the source of truth.
+    }
+  }
+
+  getCandidateStageSteps(): CandidateStage[] {
+    return ['Contacted', 'Qualified', 'Interviewing', 'Decision'];
+  }
+
+  getOpportunityTitle(thread: InteractionThread | null): string {
+    if (!thread) {
+      return 'Recruiting for a role';
+    }
+
+    const role = this.normalizeOpportunityValue(thread.jobTitle);
+
+    // thread.companyName is the recruiter's company (agency), not the client being recruited for,
+    // so it is intentionally excluded until client company extraction is available.
+    return role ? `Recruiting for a ${role}` : 'Recruiting for a role';
+  }
+
+  getCompanyWebsiteUrl(thread: InteractionThread | null): string | null {
+    if (!thread?.companyName) {
+      return null;
+    }
+
+    const companyName = thread.companyName.trim();
+    const normalized = companyName.toLowerCase();
+    const knownCompanySites: Record<string, string> = {
+      aesglobal: 'https://www.aesglobal.io',
+      'aes global': 'https://www.aesglobal.io'
+    };
+
+    if (knownCompanySites[normalized]) {
+      return knownCompanySites[normalized];
+    }
+
+    return null;
+  }
+
+  private normalizeOpportunityValue(value: string | undefined): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const normalized = value.trim();
+    if (!normalized || normalized.toLowerCase() === 'missing' || normalized.toLowerCase() === '(missing)' || normalized.toLowerCase() === 'unknown') {
+      return undefined;
+    }
+
+    return normalized;
+  }
+
+  getDealBreakerCount(thread: InteractionThread | null): number {
+    if (!thread) {
+      return 0;
+    }
+
+    return this.getCandidateRiskItems(thread).length;
+  }
+
+  hasAnyEventType(thread: InteractionThread | null, eventTypes: EventType[]): boolean {
+    if (!thread) {
+      return false;
+    }
+
+    return thread.events.some(event => eventTypes.includes(event.eventType));
+  }
+
+  getRoleFitStatus(thread: InteractionThread | null): 'Ready' | 'Needs review' {
+    return this.hasAnyEventType(thread, [EventType.JOB_SPEC_REVIEWED, EventType.JOB_SPEC_ATTACHED]) ? 'Ready' : 'Needs review';
+  }
+
+  getLocationFitStatus(thread: InteractionThread | null): 'Aligned' | 'At risk' | 'Pending' {
+    if (this.hasAnyEventType(thread, [EventType.LOCATION_NEEDS_MET])) {
+      return 'Aligned';
+    }
+
+    if (this.hasAnyEventType(thread, [EventType.LOCATION_BOTTLENECK])) {
+      return 'At risk';
+    }
+
+    return 'Pending';
+  }
+
+  getCompensationFitStatus(thread: InteractionThread | null): 'Aligned' | 'At risk' | 'Pending' {
+    if (this.hasAnyEventType(thread, [EventType.COMPENSATION_NEEDS_MET])) {
+      return 'Aligned';
+    }
+
+    if (this.hasAnyEventType(thread, [EventType.COMPENSATION_BOTTLENECK])) {
+      return 'At risk';
+    }
+
+    return 'Pending';
+  }
+
+  getTimingFitStatus(thread: InteractionThread | null): 'Confirmed' | 'Pending' {
+    return this.hasAnyEventType(thread, [EventType.INTERVIEW_TIME_ACCEPTED, EventType.INTERVIEW_SCHEDULED]) ? 'Confirmed' : 'Pending';
+  }
+
+  getCandidateInsightSummary(thread: InteractionThread | null): CandidateInsightSummary | null {
+    if (!thread) {
+      return null;
+    }
+
+    const signals = this.getThreadSignalSet(thread);
+    const stage = this.resolveCandidateStage(signals);
+    const confidence = this.resolveCandidateConfidence(stage, signals);
+    const freshness = this.getCandidateFreshness(thread.lastEventDate);
+    const nextUnlock = this.getCandidateNextUnlock(stage, signals);
+    const actions = this.getCandidateActionPlan(thread, stage, signals);
+    const missingEvidence = this.getCandidateMissingEvidence(stage, signals);
+
+    const summary = this.buildCandidateSummary(thread, stage, freshness, signals);
+
+    return {
+      stage,
+      confidence,
+      freshness,
+      summary,
+      nextUnlock,
+      missingEvidence,
+      actions
+    };
+  }
+
+  getCandidateRiskItems(thread: InteractionThread | null): CandidateRiskItem[] {
+    if (!thread) {
+      return [];
+    }
+
+    const signals = this.getThreadSignalSet(thread);
+    const risks: CandidateRiskItem[] = [];
+    const daysSinceLastEvent = this.getDaysSinceLastEventForThread(thread);
+
+    if (signals.includes(EventType.LOCATION_BOTTLENECK)) {
+      risks.push({
+        label: 'Location risk',
+        severity: 'High',
+        summary: 'Location constraints are still blocking agreement.',
+        recommendation: 'Clarify if remote or hybrid flexibility is possible before the next step.'
+      });
+    }
+
+    if (signals.includes(EventType.COMPENSATION_BOTTLENECK)) {
+      risks.push({
+        label: 'Compensation risk',
+        severity: 'High',
+        summary: 'Compensation expectations are not aligned yet.',
+        recommendation: 'Confirm a realistic range and decide whether to continue or defer.'
+      });
+    }
+
+    if (signals.includes(EventType.SCREENING_ASSESSMENT_FAILED)) {
+      risks.push({
+        label: 'Screening risk',
+        severity: 'High',
+        summary: 'The screening assessment outcome may still be blocking progress.',
+        recommendation: 'Ask for feedback and decide whether a re-test or alternative path is viable.'
+      });
+    }
+
+    if (signals.includes(EventType.INTERVIEW_TIME_PROPOSED_REJECTED)) {
+      risks.push({
+        label: 'Interview timing friction',
+        severity: 'Medium',
+        summary: 'Interview timing has not been aligned yet.',
+        recommendation: 'Offer a few concrete alternatives and keep the scheduling path moving.'
+      });
+    }
+
+    if (daysSinceLastEvent > 7) {
+      risks.push({
+        label: 'Process delay',
+        severity: 'Medium',
+        summary: 'There has been no meaningful progression for more than a week.',
+        recommendation: 'Send a concise follow-up and re-confirm the next commitment point.'
+      });
+    }
+
+    return risks.slice(0, 3);
+  }
+
+  triggerEmailSync(): void {
+    if (this.syncInProgress) {
+      return;
+    }
+
+    this.syncInProgress = true;
+    this.syncFeedback = 'Syncing recruiter emails...';
+
+    this.emailSyncService.syncNow()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.syncInProgress = false;
+          this.syncFeedback = result.success && result.processed > 0
+            ? `${result.processed} new interaction${result.processed === 1 ? '' : 's'} imported`
+            : 'Email sync completed without new interactions';
+          this.refreshThreads();
+        },
+        error: () => {
+          this.syncInProgress = false;
+          this.syncFeedback = 'Email sync failed. Please try again.';
+        }
+      });
+  }
+
   selectThread(thread: InteractionThread): void {
     this.selectedThread = thread;
+    this.expandedThreadId = thread.id;
     if (thread.unreadCount > 0) {
       this.interactionService.markAsRead(thread.id).subscribe();
+    }
+  }
+
+  onThreadPanelOpened(thread: InteractionThread): void {
+    if (this.expandedThreadId !== thread.id || this.selectedThread?.id !== thread.id) {
+      this.selectThread(thread);
+    }
+  }
+
+  onThreadPanelClosed(thread: InteractionThread): void {
+    if (this.expandedThreadId === thread.id) {
+      this.expandedThreadId = null;
     }
   }
 
@@ -294,11 +591,15 @@ export class InteractionsComponent implements OnInit, OnDestroy {
         return fromUser ? 'You scheduled the screening assessment' : 'They scheduled the screening assessment';
       case EventType.SCREENING_ASSESSMENT_COMPLETED:
         return fromUser ? 'You completed the screening assessment' : 'They completed the screening assessment';
+      case EventType.SCREENING_ASSESSMENT_PASSED:
+        return fromUser ? 'You confirmed the screening was passed' : 'They confirmed you passed the screening';
       case EventType.SCREENING_ASSESSMENT_FAILED:
         return fromUser ? 'You flagged a failed screening assessment' : 'They flagged a failed screening assessment';
       case EventType.INTERVIEW_TIME_PROPOSED:
         return fromUser ? 'You proposed an interview time' : 'They proposed an interview time';
-      case EventType.INTERVIEW_ACCEPTED:
+      case EventType.INTERVIEW_TIME_PROPOSED_REJECTED:
+        return fromUser ? 'You declined the proposed interview time' : 'They declined your proposed interview time';
+      case EventType.INTERVIEW_TIME_ACCEPTED:
         return fromUser ? 'You accepted the interview time' : 'They accepted the interview time';
       case EventType.INTERVIEW_SCHEDULED:
         return fromUser ? 'You scheduled the interview' : 'They scheduled the interview';
@@ -306,22 +607,30 @@ export class InteractionsComponent implements OnInit, OnDestroy {
         return fromUser ? 'You proposed an interview time' : 'They invited you to interview';
       case EventType.JOB_SPEC_REQUEST:
         return fromUser ? 'You requested the job spec' : 'They requested the job spec';
-      case EventType.JOB_SPEC_SHARED:
-        return fromUser ? 'You shared the job spec' : 'They shared the job spec';
+      case EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT:
+        return fromUser ? 'You wrote the job spec details in the email' : 'They wrote the job spec details in the email';
       case EventType.JOB_SPEC_REVIEWED:
         return fromUser ? 'You reviewed the job spec' : 'They reviewed the job spec';
       case EventType.JOB_SPEC_TO_BE_SENT:
         return fromUser ? 'You will send role details if needed' : 'They will send the job spec if you need it';
       case EventType.JOB_SPEC_ATTACHED:
         return fromUser ? 'You sent role details' : 'They sent you the job spec';
+      case EventType.SKILLS_INQUIRY:
+        return fromUser ? 'You asked about required skills' : 'They asked about your skills';
+      case EventType.SKILLS_GAP:
+        return fromUser ? 'You shared a skills gap concern' : 'They flagged a skills gap concern';
       case EventType.COMPENSATION_INQUIRY:
         return fromUser ? 'You asked about compensation' : 'They asked about your compensation expectations';
       case EventType.COMPENSATION_BOTTLENECK:
         return fromUser ? 'You flagged a compensation bottleneck' : 'They flagged a compensation bottleneck';
+      case EventType.COMPENSATION_NEEDS_MET:
+        return fromUser ? 'You confirmed compensation expectations are met' : 'They confirmed compensation expectations are met';
       case EventType.LOCATION_INQUIRY:
         return fromUser ? 'You asked about location setup' : 'They asked about your location preference';
       case EventType.LOCATION_BOTTLENECK:
         return fromUser ? 'You flagged a location bottleneck' : 'They flagged a location bottleneck';
+      case EventType.LOCATION_NEEDS_MET:
+        return fromUser ? 'You confirmed location needs are met' : 'They confirmed your location needs are met';
       case EventType.RECRUITEMENT_PROCESS_UPDATE:
         return fromUser ? 'You shared a recruitment process update' : 'They shared a recruitment process update';
       case EventType.NOTICE_PERIOD_INQUIRY:
@@ -364,6 +673,7 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     const inquiryOrder: EventType[] = [
       EventType.LOCATION_INQUIRY,
       EventType.COMPENSATION_INQUIRY,
+      EventType.SKILLS_INQUIRY,
       EventType.NOTICE_PERIOD_INQUIRY,
       EventType.AVAILABILITY_INQUIRY,
       EventType.VISA_INQUIRY,
@@ -388,17 +698,23 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       [EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT]: 'screening assessment acknowledgement',
       [EventType.SCREENING_ASSESSMENT_SCHEDULED]: 'screening assessment',
       [EventType.SCREENING_ASSESSMENT_COMPLETED]: 'screening assessment',
+      [EventType.SCREENING_ASSESSMENT_PASSED]: 'screening assessment outcome',
       [EventType.SCREENING_ASSESSMENT_FAILED]: 'screening assessment outcome',
       [EventType.INTERVIEW_TIME_PROPOSED]: 'interview time',
-      [EventType.INTERVIEW_ACCEPTED]: 'interview time',
+      [EventType.INTERVIEW_TIME_PROPOSED_REJECTED]: 'interview time proposal',
+      [EventType.INTERVIEW_TIME_ACCEPTED]: 'interview time',
       [EventType.INTERVIEW_SCHEDULED]: 'interview schedule',
       [EventType.INTERVIEW_INVITE]: 'interview availability',
       [EventType.JOB_SPEC_REQUEST]: 'job spec',
-      [EventType.JOB_SPEC_SHARED]: 'job spec',
+      [EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT]: 'job spec',
       [EventType.JOB_SPEC_REVIEWED]: 'job spec review',
       [EventType.JOB_SPEC_TO_BE_SENT]: 'role details',
       [EventType.JOB_SPEC_ATTACHED]: 'role details',
       [EventType.INQUIRY]: 'screening details',
+      [EventType.SKILLS_INQUIRY]: 'skills',
+      [EventType.SKILLS_GAP]: 'skills gap',
+      [EventType.COMPENSATION_NEEDS_MET]: 'compensation alignment',
+      [EventType.LOCATION_NEEDS_MET]: 'location alignment',
       [EventType.INTERESTED]: 'interest confirmation',
       [EventType.INTEREST_CHECK]: 'interest confirmation',
       [EventType.ACKNOWLEDGEMENT]: 'acknowledgement',
@@ -457,77 +773,310 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     this.showInsightsPanel = !this.showInsightsPanel;
   }
 
-  getRecruiterResponseRate(): number {
-    if (!this.selectedThread) return 0;
-    const recruiterEvents = this.selectedThread.events.filter(e => e.senderId !== 'current-user');
-    const userEvents = this.selectedThread.events.filter(e => e.senderId === 'current-user');
+  getRecruiterResponseRate(thread: InteractionThread | null = this.selectedThread): number {
+    if (!thread) return 0;
+    const recruiterEvents = thread.events.filter(e => e.senderId !== 'current-user');
+    const userEvents = thread.events.filter(e => e.senderId === 'current-user');
     if (userEvents.length === 0) return 0;
     return Math.round((recruiterEvents.length / userEvents.length) * 100);
   }
 
-  getAverageResponseTime(): string {
-    if (!this.selectedThread || this.selectedThread.events.length < 2) return 'N/A';
-    
+  getAverageResponseTime(thread: InteractionThread | null = this.selectedThread): string {
+    if (!thread || thread.events.length < 2) return 'N/A';
+
     let totalHours = 0;
     let responseCount = 0;
-    
-    for (let i = 1; i < this.selectedThread.events.length; i++) {
-      const current = new Date(this.selectedThread.events[i].timestamp);
-      const previous = new Date(this.selectedThread.events[i - 1].timestamp);
+
+    for (let i = 1; i < thread.events.length; i++) {
+      const current = new Date(thread.events[i].timestamp);
+      const previous = new Date(thread.events[i - 1].timestamp);
       const diffHours = (current.getTime() - previous.getTime()) / (1000 * 60 * 60);
       totalHours += diffHours;
       responseCount++;
     }
-    
+
     const avgHours = totalHours / responseCount;
     if (avgHours < 1) return `${Math.round(avgHours * 60)} mins`;
     if (avgHours < 24) return `${Math.round(avgHours)} hours`;
     return `${Math.round(avgHours / 24)} days`;
   }
 
-  getInteractionAge(): number {
-    if (!this.selectedThread) return 0;
-    const ageMs = Date.now() - new Date(this.selectedThread.createdAt).getTime();
+  getInteractionAge(thread: InteractionThread | null = this.selectedThread): number {
+    if (!thread) return 0;
+    const ageMs = Date.now() - new Date(thread.createdAt).getTime();
     return Math.floor(ageMs / (1000 * 60 * 60 * 24));
   }
 
-  getDaysSinceLastEvent(): number {
-    if (!this.selectedThread) return 0;
-    const diffMs = Date.now() - new Date(this.selectedThread.lastEventDate).getTime();
+  getDaysSinceLastEvent(thread: InteractionThread | null = this.selectedThread): number {
+    if (!thread) return 0;
+    const diffMs = Date.now() - new Date(thread.lastEventDate).getTime();
     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
   }
 
-  getRecommendedActions(): string[] {
-    if (!this.selectedThread) return [];
-    
+  private getDaysSinceLastEventForThread(thread: InteractionThread): number {
+    const diffMs = Date.now() - new Date(thread.lastEventDate).getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  isThreadUpdateStale(thread: InteractionThread): boolean {
+    return this.getDaysSinceLastEventForThread(thread) > 7;
+  }
+
+  private getThreadSignalSet(thread: InteractionThread): EventType[] {
+    const orderedSignals: EventType[] = [];
+
+    thread.events.forEach(event => {
+      if (!orderedSignals.includes(event.eventType)) {
+        orderedSignals.push(event.eventType);
+      }
+
+      (event.additionalEventTypes ?? []).forEach((type: EventType) => {
+        if (!orderedSignals.includes(type)) {
+          orderedSignals.push(type);
+        }
+      });
+    });
+
+    return orderedSignals;
+  }
+
+  private resolveCandidateStage(signals: EventType[]): CandidateStage {
+    if (signals.some(type => [
+      EventType.NOT_INTERESTED,
+      EventType.REJECTION,
+      EventType.SCREENING_ASSESSMENT_FAILED
+    ].includes(type))) {
+      return 'Decision';
+    }
+
+    if (signals.some(type => [
+      EventType.INTERVIEW_SCHEDULED,
+      EventType.INTERVIEW_INVITE,
+      EventType.INTERVIEW_TIME_ACCEPTED,
+      EventType.INTERVIEW_TIME_PROPOSED,
+      EventType.INTERVIEW_TIME_PROPOSED_REJECTED
+    ].includes(type))) {
+      return 'Interviewing';
+    }
+
+    if (signals.some(type => [
+      EventType.CV_REQUEST,
+      EventType.CV_SUBMITTED,
+      EventType.JOB_SPEC_REQUEST,
+      EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT,
+      EventType.JOB_SPEC_ATTACHED,
+      EventType.JOB_SPEC_REVIEWED,
+      EventType.SCREENING_ASSESSMENT_REQUEST,
+      EventType.SCREENING_ASSESSMENT_SCHEDULED,
+      EventType.SCREENING_ASSESSMENT_COMPLETED,
+      EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT,
+      EventType.COMPENSATION_INQUIRY,
+      EventType.COMPENSATION_NEEDS_MET,
+      EventType.LOCATION_INQUIRY,
+      EventType.LOCATION_NEEDS_MET,
+      EventType.SKILLS_INQUIRY,
+      EventType.VISA_INQUIRY,
+      EventType.NOTICE_PERIOD_INQUIRY,
+      EventType.AVAILABILITY_INQUIRY,
+      EventType.BENEFITS_INQUIRY,
+      EventType.INTERESTED,
+      EventType.INTEREST_CHECK
+    ].includes(type))) {
+      return 'Qualified';
+    }
+
+    return 'Contacted';
+  }
+
+  private resolveCandidateConfidence(stage: CandidateStage, signals: EventType[]): CandidateConfidence {
+    const strongSignals = [
+      EventType.SCREENING_ASSESSMENT_PASSED,
+      EventType.INTERVIEW_TIME_ACCEPTED,
+      EventType.INTERVIEW_SCHEDULED,
+      EventType.JOB_SPEC_REVIEWED,
+      EventType.CV_SUBMITTED,
+      EventType.INTERESTED,
+      EventType.LOCATION_NEEDS_MET,
+      EventType.COMPENSATION_NEEDS_MET
+    ];
+
+    const weakSignals = [
+      EventType.OUTREACH,
+      EventType.REPLY,
+      EventType.FOLLOW_UP,
+      EventType.ACKNOWLEDGEMENT,
+      EventType.INTEREST_CHECK
+    ];
+
+    const score = signals.reduce((total, signal) => {
+      if (strongSignals.includes(signal)) {
+        return total + 2;
+      }
+      if (weakSignals.includes(signal)) {
+        return total + 1;
+      }
+      return total;
+    }, 0);
+
+    if (stage === 'Decision' || score >= 4) {
+      return 'High';
+    }
+    if (stage === 'Interviewing' || score >= 2) {
+      return 'Medium';
+    }
+    return 'Low';
+  }
+
+  private getCandidateFreshness(date: Date): CandidateFreshness {
+    const daysSince = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSince <= 3) {
+      return 'Fresh';
+    }
+    if (daysSince <= 7) {
+      return 'Watch';
+    }
+    return 'Stale';
+  }
+
+  private buildCandidateSummary(thread: InteractionThread, stage: CandidateStage, freshness: CandidateFreshness, signals: EventType[]): string {
+    const roleLabel = thread.jobTitle || 'this opportunity';
+    const companyLabel = thread.companyName || 'the company';
+
+    if (stage === 'Decision') {
+      return `You are currently in the decision phase for ${roleLabel} at ${companyLabel}. The latest signals indicate the process is closing or being re-evaluated, and the most important next move is to confirm whether you want to continue or step away.`;
+    }
+
+    if (stage === 'Interviewing') {
+      return `You are in the interview stage for ${roleLabel} at ${companyLabel}. The thread is ${freshness.toLowerCase()} and the latest flow points toward scheduling or follow-up, so clarity on timing and logistics matters most.`;
+    }
+
+    if (stage === 'Qualified') {
+      return `You are qualified for ${roleLabel} at ${companyLabel}. The thread has strong fit signals and ${freshness.toLowerCase()} momentum, so reinforcing the next step with a precise reply is the best move now.`;
+    }
+
+    if (signals.includes(EventType.OUTREACH) || signals.includes(EventType.REPLY)) {
+      return `You are in the early outreach phase for ${roleLabel} at ${companyLabel}. The conversation is still forming, and a clear response or role detail request will keep it moving.`;
+    }
+
+    return `You are in the early stages of ${roleLabel} at ${companyLabel}. The conversation is active, but the next step is to improve clarity around the role and your fit.`;
+  }
+
+  private getCandidateNextUnlock(stage: CandidateStage, signals: EventType[]): string {
+    if (stage === 'Contacted') {
+      return 'Ask for the role summary, confirm interest, and move toward a clearer fit conversation.';
+    }
+    if (stage === 'Qualified') {
+      if (signals.includes(EventType.JOB_SPEC_REQUEST) || signals.includes(EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT) || signals.includes(EventType.JOB_SPEC_ATTACHED)) {
+        return 'Confirm the role fit and resolve any remaining location, compensation, or skills questions.';
+      }
+      return 'Share a concise fit summary and request the next hiring step or screening detail.';
+    }
+    if (stage === 'Interviewing') {
+      return 'Confim early interview timing and prepare with a short talent summary and clear availability.';
+    }
+    return 'Close the loop on the decision and decide if the process should continue or pause.';
+  }
+
+  private getCandidateMissingEvidence(stage: CandidateStage, signals: EventType[]): string[] {
+    const missing: string[] = [];
+
+    if (stage === 'Contacted') {
+      if (!signals.includes(EventType.INTEREST_CHECK) && !signals.includes(EventType.INTERESTED)) {
+        missing.push('Clear intent confirmation');
+      }
+    }
+
+    if (stage === 'Qualified' || stage === 'Interviewing') {
+      if (!signals.some(type => [EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT, EventType.JOB_SPEC_ATTACHED, EventType.JOB_SPEC_REVIEWED].includes(type))) {
+        missing.push('Final role scope or job spec');
+      }
+      if (!signals.some(type => [EventType.LOCATION_INQUIRY, EventType.LOCATION_NEEDS_MET, EventType.LOCATION_BOTTLENECK].includes(type))) {
+        missing.push('Location fit clarity');
+      }
+      if (!signals.some(type => [EventType.COMPENSATION_INQUIRY, EventType.COMPENSATION_NEEDS_MET, EventType.COMPENSATION_BOTTLENECK].includes(type))) {
+        missing.push('Compensation alignment');
+      }
+    }
+
+    if (stage === 'Interviewing') {
+      if (!signals.some(type => [EventType.INTERVIEW_TIME_PROPOSED, EventType.INTERVIEW_TIME_ACCEPTED, EventType.INTERVIEW_SCHEDULED].includes(type))) {
+        missing.push('Confirmed interview timing');
+      }
+    }
+
+    return missing.slice(0, 3);
+  }
+
+  private getCandidateActionPlan(thread: InteractionThread, stage: CandidateStage, signals: EventType[]): string[] {
     const actions: string[] = [];
-    const daysSinceLastEvent = this.getDaysSinceLastEvent();
-    const responseRate = this.getRecruiterResponseRate();
-    
+
+    if (signals.includes(EventType.LOCATION_BOTTLENECK)) {
+      actions.push('Clarify remote or hybrid flexibility and confirm the practical location boundary.');
+    }
+
+    if (signals.includes(EventType.COMPENSATION_BOTTLENECK)) {
+      actions.push('Reconfirm your ideal compensation range and decide whether the role remains a fit.');
+    }
+
+    if (signals.includes(EventType.SCREENING_ASSESSMENT_FAILED)) {
+      actions.push('Ask for the assessment feedback and evaluate whether a second chance or alternative route makes sense.');
+    }
+
+    if (stage === 'Contacted') {
+      actions.push('Reply clearly and ask for the role context so the thread can keep moving.');
+    }
+
+    if (stage === 'Qualified') {
+      actions.push('Send a short, confident response that confirms interest and validates your fit.');
+    }
+
+    if (stage === 'Interviewing') {
+      actions.push('Confirm the interview slot quickly and prepare a 2-minute narrative on your strongest relevant experience.');
+    }
+
+    if (stage === 'Decision') {
+      actions.push('Close the loop intentionally and decide whether to continue, pause, or move on.');
+    }
+
+    if (!actions.length) {
+      actions.push('Follow up with a concise note and keep the thread active while the process is still open.');
+    }
+
+    return actions.slice(0, 3);
+  }
+
+  getRecommendedActions(thread: InteractionThread | null = this.selectedThread): string[] {
+    if (!thread) return [];
+
+    const actions: string[] = [];
+    const daysSinceLastEvent = this.getDaysSinceLastEvent(thread);
+    const responseRate = this.getRecruiterResponseRate(thread);
+
     // High-value recruiter
     if (responseRate > 80) {
       actions.push('🎯 High-value recruiter - prioritize this conversation');
     }
-    
+
     // Needs follow-up
-    if (daysSinceLastEvent > 3 && this.selectedThread.status === InteractionStatus.ACTIVE) {
+    if (daysSinceLastEvent > 3 && thread.status === InteractionStatus.ACTIVE) {
       actions.push(`⏰ ${daysSinceLastEvent} days since last activity - consider following up`);
     }
-    
+
     // Stale interaction
-    if (this.selectedThread.status === InteractionStatus.STALE) {
+    if (thread.status === InteractionStatus.STALE) {
       actions.push('⚠️ This interaction has gone stale - send a follow-up or close it');
     }
-    
+
     // Personalization tip
-    const lastEvent = this.selectedThread.events[this.selectedThread.events.length - 1];
-    if (lastEvent.senderId !== 'current-user') {
+    const lastEvent = thread.events[thread.events.length - 1];
+    if (lastEvent && lastEvent.senderId !== 'current-user') {
       actions.push('📝 Personalize your reply - increases success rate by 3x');
     }
-    
+
     // CV requested
-    const hasCvRequest = this.selectedThread.events.some(e => e.eventType === EventType.CV_REQUEST);
-    const hasCvSubmission = this.selectedThread.events.some(e =>
+    const hasCvRequest = thread.events.some(e => e.eventType === EventType.CV_REQUEST);
+    const hasCvSubmission = thread.events.some(e =>
       e.eventType === EventType.CV_SUBMITTED ||
       (e.eventType as unknown as string) === 'CV_SUBMITED' ||
       (e.eventType as unknown as string) === 'CV_SUBMISSION'
@@ -537,7 +1086,7 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     }
     
     // Interview invite without CV submission
-    const hasInterviewInvite = this.selectedThread.events.some(e => e.eventType === EventType.INTERVIEW_INVITE);
+    const hasInterviewInvite = thread.events.some(e => e.eventType === EventType.INTERVIEW_INVITE);
     if (hasInterviewInvite && !hasCvSubmission) {
       actions.push('📄 Interview scheduled - submit your CV if you haven\'t already');
     }

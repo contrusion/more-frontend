@@ -1,4 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-production-api-url.com'
+  apiUrl: 'https://your-production-api-url.com',
+  features: {
+    interactionsEventsEnabled: false
+  }
 };

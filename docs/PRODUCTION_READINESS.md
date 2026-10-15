@@ -16,6 +16,68 @@
 
 ## Authentication & User Management
 
+## Feature Access Controls
+
+### Interactions and Events Availability
+- [ ] **Prefer user-friendly navigation labels for candidate-facing opportunity flows**
+  - Current: The feature is internally described as "Interactions", and the page-level label "Events" is too generic and can be confused with admin-only operational workflows
+  - Required: Use a customer-friendly label such as "Job Leads" or "Recruiter Leads" for the main candidate-facing flow, while keeping "Interactions" or "Interaction Events" as internal/admin technical terminology only where needed
+  - UX rationale:
+    - "Job Leads" is clearer in a recruitment product because it communicates value and intent immediately
+    - "Recruiter Leads" is more explicit when the experience is centered on outreach and external recruiter contact
+    - "Events" alone is too vague for a customer-facing product and should not be used as the primary top-level label
+    - "Interaction Events" is acceptable as a technical or secondary label when describing the underlying activity stream, but it should not be the main navigation name seen by candidates
+  - Recommended naming split:
+    - Candidate-facing navigation: "Recruiter Leads" as the main lead-tracking experience
+    - Secondary or workflow-specific classification: "Recruiter Outreach" when describing active outbound/inbound recruiter contact streams
+    - Technical/internal detail: "Interaction Events"
+    - Avoid: generic "Events" as a top-level user-facing label
+  - Naming distinction:
+    - "Recruiter Leads" = the collection of opportunities or recruiter conversations the user is managing
+    - "Recruiter Outreach" = the communication activity or outreach stream itself
+    - "Interaction Events" = the lower-level technical event log behind either view
+  - Validation:
+    - Confirm the main candidate-facing navigation and page headings read as job opportunities rather than generic interaction tooling
+    - Confirm admin-only technical terminology is hidden from end-user flows unless explicitly required by internal administration tasks
+
+- [ ] **Feature-toggle Interactions and Events off for admin in INT/Production**
+  - Current: Interactions pages are directly accessible via routes such as `/interactions/events`
+  - Required: Interactions and Events pages must remain available to candidates and recruiters, but be disabled for admin users outside local development
+  - Environment and role rule:
+    - Local: enabled for admin, candidates, and recruiters
+    - INT: disabled for admin, enabled for candidates/recruiters
+    - Production: disabled for admin, enabled for candidates/recruiters
+  - Implementation guidance:
+    - Add an environment-driven feature flag (example: `features.interactionsEventsEnabled`)
+    - Apply an admin-only access guard on interactions routes using role checks
+    - Keep route availability for candidate/recruiter roles
+    - Hide admin navigation links for interactions when the feature is disabled
+    - If a disabled admin route is hit directly, redirect to an allowed page (for example `/home`) with a non-blocking message
+  - Validation:
+    - Confirm admin nav drawer does not expose Interactions/Events in INT/Production
+    - Confirm admin deep links to `/interactions/events` are blocked in INT/Production
+    - Confirm candidate and recruiter access remains available in INT/Production
+    - Confirm local environment retains full access for testing
+
+- [ ] **Extract and surface opportunity metadata from recruiter emails**
+  - Current: Opportunity context is inconsistent because the UI may rely on recruiter-company metadata or raw preview text rather than the actual client-company and role facts
+  - Required: The model should extract and expose email-level opportunity facts that inform candidate guidance and decision making
+  - Required fields:
+    - company recruiting for
+    - position title
+    - required skills
+    - work location
+    - hybrid/remote/office requirement
+    - proposed salary
+    - visa constraints
+    - notice period
+    - interview date
+    - deal-breaker count and priority blockers
+  - Validation:
+    - Prefer structured email metadata over raw preview text when both exist
+    - Ensure the accordion header uses actual client company when available and falls back to role-only display when not
+    - Ensure candidate guidance can read these facts without exposing raw message taxonomy labels
+
 ### User Registration
 - [ ] **Enable email verification on registration**
   - Current: User profiles may be active immediately after registration
