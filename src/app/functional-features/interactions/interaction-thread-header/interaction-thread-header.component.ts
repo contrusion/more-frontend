@@ -22,6 +22,6 @@ export class InteractionThreadHeaderComponent {
   @Input({ required: true }) dealBreakerCount = 0;
   @Input() updateStale = false;
   @Input({ required: true }) updatedLabel = '';
-  @Input({ required: true }) statusLabel = '';
-  @Input({ required: true }) statusBadgeClass = '';
+  @Input({ required: true }) stageLabel = '';
+  @Input({ required: true }) stageClass = '';
 }

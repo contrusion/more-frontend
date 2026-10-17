@@ -1,0 +1,192 @@
+:host {
+  --stage-dot-size: clamp(0.85rem, 0.8rem + 0.25vw, 1.05rem);
+  --stage-line-height: 0.125rem;
+  --stage-motion-duration: 200ms;
+  --stage-motion-ease: ease;
+  display: block;
+}
+
+.stage-timeline-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.stage-timeline {
+  min-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(var(--stage-count, 4), minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-item {
+  --tone-color: var(--color-neutral-text);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding-top: 1.1rem;
+  min-width: 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.stage-item.tone-success { --tone-color: var(--color-success-text); }
+.stage-item.tone-info    { --tone-color: var(--color-info-text); }
+.stage-item.tone-neutral { --tone-color: var(--color-neutral-text); }
+.stage-item.tone-warning { --tone-color: var(--color-warning-text); }
+.stage-item.tone-danger  { --tone-color: var(--color-danger-text); }
+
+/* Connector from the previous step's marker to this one. */
+.stage-item:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: calc((var(--stage-dot-size) - var(--stage-line-height)) / 2);
+  right: 50%;
+  width: 100%;
+  height: var(--stage-line-height);
+  background: var(--color-border-strong);
+  z-index: 0;
+}
+
+.stage-marker {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  width: var(--stage-dot-size);
+  height: var(--stage-dot-size);
+  border-radius: 50%;
+  border: 0.14rem solid var(--tone-color);
+  background: var(--color-surface);
+  transition: box-shadow var(--stage-motion-duration) var(--stage-motion-ease);
+}
+
+.stage-item.current .stage-marker {
+  background: var(--tone-color);
+  border-color: var(--tone-color);
+  box-shadow: 0 0 0 0.18rem var(--color-surface), 0 0 0 0.32rem color-mix(in srgb, var(--tone-color) 30%, transparent);
+}
+
+.stage-item.state-past .stage-marker {
+  background: color-mix(in srgb, var(--tone-color) 12%, var(--color-surface));
+}
+
+.stage-item.state-past .stage-marker::after {
+  content: '\2713';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--tone-color);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stage-item.state-upcoming .stage-marker {
+  border-style: dashed;
+  opacity: 0.78;
+}
+
+.stage-complete,
+.stage-upcoming {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.16rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stage-complete {
+  background: color-mix(in srgb, var(--tone-color) 14%, var(--color-surface));
+  color: var(--tone-color);
+  border: 1px solid color-mix(in srgb, var(--tone-color) 28%, var(--color-border-strong));
+}
+
+.stage-upcoming {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border-strong);
+}
+
+.stage-current {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone-color) 16%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--tone-color) 35%, var(--color-border-strong));
+  color: var(--tone-color);
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.stage-label {
+  max-width: 100%;
+  font-size: clamp(0.72rem, 0.68rem + 0.15vw, 0.82rem);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.stage-item.current .stage-label {
+  color: var(--tone-color);
+  font-weight: 700;
+}
+
+.stage-item.current .stage-date {
+  color: var(--tone-color);
+  font-weight: 600;
+}
+
+.stage-date {
+  font-size: clamp(0.66rem, 0.62rem + 0.12vw, 0.74rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+}
+
+.stage-date-placeholder {
+  opacity: 0.72;
+}
+
+.stage-count {
+  margin-left: 0.2rem;
+  font-weight: 600;
+}
+
+.stage-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-marker {
+    transition: none;
+  }
+}

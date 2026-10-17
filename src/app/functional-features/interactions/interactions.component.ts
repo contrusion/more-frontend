@@ -2,21 +2,25 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatButtonModule } from '@angular/material/button';
 import { Subject, takeUntil } from 'rxjs';
 import { InteractionService } from './services/interaction.service';
 import { EmailSyncService } from './services/email-sync.service';
-import { InteractionThread, InteractionEvent, ChannelType, EventType, InteractionStatus } from './models/interaction.model';
+import { InteractionThread, InteractionEvent, ThreadOpportunity, OpportunityFacts, ChannelType, EventType, InteractionStatus } from './models/interaction.model';
 import { EmailThreadTimelineComponent } from './email-thread-timeline/email-thread-timeline.component';
 import { InteractionThreadHeaderComponent } from './interaction-thread-header/interaction-thread-header.component';
+import { ActivityTimelineStep, StageTimelineComponent } from './stage-timeline/stage-timeline.component';
+import { ActivityGroup, resolveActivityGroup } from './utils/activity-group.util';
+import { buildCandidateNotes, CandidateNote } from './utils/candidate-notes.util';
+import { ScrollTopComponent } from '../../shared/components/scroll-top/scroll-top.component';
 
 export type CandidateStage = 'Contacted' | 'Qualified' | 'Interviewing' | 'Decision';
 export type CandidateConfidence = 'Low' | 'Medium' | 'High';
-export type CandidateFreshness = 'Fresh' | 'Watch' | 'Stale';
 
 export interface CandidateInsightSummary {
   stage: CandidateStage;
   confidence: CandidateConfidence;
-  freshness: CandidateFreshness;
+  activity: ActivityGroup;
   summary: string;
   nextUnlock: string;
   missingEvidence: string[];
@@ -30,16 +34,44 @@ export interface CandidateRiskItem {
   recommendation: string;
 }
 
+export interface CandidateFitRow {
+  label: string;
+  status: string;
+  tone: 'success' | 'danger' | 'neutral';
+  /** What the recruiter stated for this dimension, when known. */
+  detail?: string;
+}
+
+type TimelineStageId = 'outreach' | 'screening' | 'interview' | 'offer' | 'unsuccessful' | 'closed';
+
+interface TimelineStageDefinition {
+  id: TimelineStageId;
+  label: string;
+  tone: ActivityGroup['tone'];
+}
+
+const BASE_TIMELINE_STAGES: readonly TimelineStageDefinition[] = [
+  { id: 'outreach', label: 'Outreach', tone: 'neutral' },
+  { id: 'screening', label: 'Screening', tone: 'info' },
+  { id: 'interview', label: 'Interviews & Assessments', tone: 'success' },
+  { id: 'closed', label: 'Closed', tone: 'neutral' }
+];
+
+const TIMELINE_OFFER_STAGE: TimelineStageDefinition = { id: 'offer', label: 'Offer stage', tone: 'info' };
+const TIMELINE_UNSUCCESSFUL_STAGE: TimelineStageDefinition = { id: 'unsuccessful', label: 'Unsuccessful', tone: 'danger' };
+
 @Component({
   selector: 'app-interactions',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatExpansionModule, EmailThreadTimelineComponent, InteractionThreadHeaderComponent],
+  imports: [CommonModule, FormsModule, MatExpansionModule, MatButtonModule, EmailThreadTimelineComponent, InteractionThreadHeaderComponent, StageTimelineComponent, ScrollTopComponent],
   templateUrl: './interactions.component.html',
   styleUrls: ['./interactions.component.css']
 })
 export class InteractionsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly timelineDensityStorageKey = 'more.interactions.timelineDensity';
+  private readonly activityTimelineLimit = 6;
+  private readonly activityTimelineCache = new WeakMap<InteractionThread, { key: string; value: { steps: ActivityTimelineStep[] } }>();
   
   threads: InteractionThread[] = [];
   filteredThreads: InteractionThread[] = [];
@@ -174,35 +206,278 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     return ['Contacted', 'Qualified', 'Interviewing', 'Decision'];
   }
 
+  /**
+   * Activity timeline: the thread's events are reduced into a stage pipeline.
+   * The rail shows the current stage in the middle of the journey, with the next realistic steps ahead.
+   * The result is cached per thread because the template binds it and a fresh array each check would
+   * trip Angular's expression-changed check.
+   */
+  getActivityTimeline(thread: InteractionThread | null): { steps: ActivityTimelineStep[] } {
+    if (!thread || thread.events.length === 0) {
+      return { steps: [] };
+    }
+
+    const lastEvent = thread.events[thread.events.length - 1];
+    const key = `${thread.events.length}|${lastEvent.id}|${new Date(lastEvent.timestamp).getTime()}`;
+    const cached = this.activityTimelineCache.get(thread);
+    if (cached?.key === key) {
+      return cached.value;
+    }
+
+    const chronological = [...thread.events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const signals = this.getThreadSignalSet(thread);
+    const currentStage = this.resolveTimelineStage(signals);
+    const stagesToShow = this.getTimelineStages(currentStage, signals);
+
+    const counts = new Map<TimelineStageId, number>();
+    const firstSeen = new Map<TimelineStageId, Date>();
+    for (const event of chronological) {
+      const stageId = this.mapEventToTimelineStage(event.eventType, event.additionalEventTypes ?? []);
+      counts.set(stageId, (counts.get(stageId) ?? 0) + 1);
+      if (!firstSeen.has(stageId)) {
+        firstSeen.set(stageId, new Date(event.timestamp));
+      }
+    }
+
+    const currentIndex = stagesToShow.findIndex(stage => stage.id === currentStage);
+    const resolvedCurrentIndex = currentIndex === -1 ? stagesToShow.length - 1 : currentIndex;
+
+    const value = {
+      steps: stagesToShow.map((stage, index) => ({
+        label: stage.label,
+        tone: stage.tone,
+        reachedAt: index <= resolvedCurrentIndex
+          ? firstSeen.get(stage.id) ?? (stage.id === 'closed' ? firstSeen.get('unsuccessful') : undefined)
+          : undefined,
+        count: counts.get(stage.id) ?? 0,
+        state: (index < resolvedCurrentIndex ? 'past' : index === resolvedCurrentIndex ? 'current' : 'upcoming') as
+          'past' | 'current' | 'upcoming',
+        current: index === resolvedCurrentIndex
+      }))
+    };
+    this.activityTimelineCache.set(thread, { key, value });
+    return value;
+  }
+
+  private getTimelineStages(currentStage: TimelineStageId, signals: EventType[]): TimelineStageDefinition[] {
+    const hasInterviewSignals = signals.some(type => [
+      EventType.INTERVIEW_SCHEDULED,
+      EventType.INTERVIEW_INVITE,
+      EventType.INTERVIEW_TIME_ACCEPTED,
+      EventType.INTERVIEW_TIME_PROPOSED,
+      EventType.INTERVIEW_TIME_PROPOSED_REJECTED
+    ].includes(type));
+
+    const stages: TimelineStageDefinition[] = [...BASE_TIMELINE_STAGES.slice(0, 3)];
+
+    if (hasInterviewSignals) {
+      stages.push(TIMELINE_OFFER_STAGE);
+    }
+
+    if (currentStage === 'closed' && this.isUnsuccessfulDecision(signals)) {
+      stages.push(TIMELINE_UNSUCCESSFUL_STAGE);
+    }
+
+    stages.push(BASE_TIMELINE_STAGES[3]);
+    return stages;
+  }
+
+  private resolveTimelineStage(signals: EventType[]): TimelineStageId {
+    const stage = this.resolveCandidateStage(signals);
+    if (stage === 'Decision') {
+      return 'closed';
+    }
+
+    if (stage === 'Interviewing') {
+      return 'interview';
+    }
+
+    if (stage === 'Qualified') {
+      return 'screening';
+    }
+
+    return 'outreach';
+  }
+
+  private mapEventToTimelineStage(eventType: EventType, additionalEventTypes: EventType[]): TimelineStageId {
+    const signals = [eventType, ...additionalEventTypes];
+    if (signals.some(type => [EventType.NOT_INTERESTED, EventType.REJECTION, EventType.SCREENING_ASSESSMENT_FAILED].includes(type))) {
+      return 'unsuccessful';
+    }
+
+    if (signals.some(type => [
+      EventType.INTERVIEW_SCHEDULED,
+      EventType.INTERVIEW_INVITE,
+      EventType.INTERVIEW_TIME_ACCEPTED,
+      EventType.INTERVIEW_TIME_PROPOSED,
+      EventType.INTERVIEW_TIME_PROPOSED_REJECTED
+    ].includes(type))) {
+      return 'interview';
+    }
+
+    if (signals.some(type => [
+      EventType.CV_REQUEST,
+      EventType.CV_SUBMITTED,
+      EventType.JOB_SPEC_REQUEST,
+      EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT,
+      EventType.JOB_SPEC_ATTACHED,
+      EventType.JOB_SPEC_REVIEWED,
+      EventType.SCREENING_ASSESSMENT_REQUEST,
+      EventType.SCREENING_ASSESSMENT_SCHEDULED,
+      EventType.SCREENING_ASSESSMENT_COMPLETED,
+      EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT,
+      EventType.COMPENSATION_INQUIRY,
+      EventType.COMPENSATION_NEEDS_MET,
+      EventType.LOCATION_INQUIRY,
+      EventType.LOCATION_NEEDS_MET,
+      EventType.SKILLS_INQUIRY,
+      EventType.VISA_INQUIRY,
+      EventType.NOTICE_PERIOD_INQUIRY,
+      EventType.AVAILABILITY_INQUIRY,
+      EventType.BENEFITS_INQUIRY,
+      EventType.INTERESTED,
+      EventType.INTEREST_CHECK
+    ].includes(type))) {
+      return 'screening';
+    }
+
+    return 'outreach';
+  }
+
   getOpportunityTitle(thread: InteractionThread | null): string {
     if (!thread) {
       return 'Recruiting for a role';
     }
 
-    const role = this.normalizeOpportunityValue(thread.jobTitle);
+    const opportunities = this.getDisplayOpportunities(thread);
+    if (opportunities.length > 0) {
+      const extra = opportunities.length - 1;
+      const headline = this.formatOpportunityHeadline(opportunities[0]);
+      return extra > 0 ? `${headline} +${extra} more` : headline;
+    }
 
-    // thread.companyName is the recruiter's company (agency), not the client being recruited for,
-    // so it is intentionally excluded until client company extraction is available.
+    const role = this.normalizeOpportunityValue(thread.jobTitle);
     return role ? `Recruiting for a ${role}` : 'Recruiting for a role';
   }
 
+  getAdditionalOpportunityLabels(thread: InteractionThread | null): string[] {
+    if (!thread) {
+      return [];
+    }
+
+    return this.getDisplayOpportunities(thread)
+      .slice(1)
+      .map(opportunity => this.formatOpportunity(opportunity));
+  }
+
+  /** Heading for the expanded overview: the most recently mentioned client opportunity. */
+  getOpportunityHeading(thread: InteractionThread | null): string {
+    const primary = thread ? this.getDisplayOpportunities(thread)[0] : undefined;
+    const company = this.normalizeOpportunityValue(primary?.companyName) ?? 'Opportunity';
+    const role = this.normalizeOpportunityValue(primary?.title ?? thread?.jobTitle) ?? 'Role conversation';
+    return `${company} · ${role}`;
+  }
+
+  private formatOpportunityHeadline(opportunity: ThreadOpportunity): string {
+    const company = this.normalizeOpportunityValue(opportunity.companyName);
+    const role = this.normalizeOpportunityValue(opportunity.title);
+
+    if (company && role) {
+      return `Recruiting for ${role} at ${company}`;
+    }
+
+    if (company) {
+      return `Recruiting at ${company}`;
+    }
+
+    return role ? `Recruiting for ${role}` : 'Recruiting for a role';
+  }
+
+  private formatOpportunity(opportunity: ThreadOpportunity): string {
+    const role = this.normalizeOpportunityValue(opportunity.title);
+    const company = this.normalizeOpportunityValue(opportunity.companyName);
+
+    if (company) {
+      return `${role ?? 'Role'} at ${company}`;
+    }
+
+    return role ?? 'Recruiting for a role';
+  }
+
+  /** Website of the client the candidate would be placed at; never the recruiter's own company. */
   getCompanyWebsiteUrl(thread: InteractionThread | null): string | null {
-    if (!thread?.companyName) {
-      return null;
+    const website = thread ? this.getDisplayOpportunities(thread)[0]?.companyWebsite : undefined;
+    return website?.trim() || null;
+  }
+
+  private getDisplayOpportunities(thread: InteractionThread): ThreadOpportunity[] {
+    const recruiterCompany = this.normalizedCompanyKey(thread.companyName);
+    const seen = new Set<string>();
+    const opportunities = (thread.opportunities ?? [])
+      .filter(opportunity => this.hasOpportunityContext(opportunity))
+      .filter(opportunity => {
+        const company = this.normalizedCompanyKey(opportunity.companyName);
+        return !company || company !== recruiterCompany;
+      })
+      .filter(opportunity => {
+        const key = this.opportunityIdentity(opportunity);
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+
+    // Collapse only untitled duplicates per company; preserve distinct titled roles.
+    const collapsed: ThreadOpportunity[] = [];
+
+    for (const opportunity of opportunities) {
+      const companyKey = this.normalizedCompanyKey(opportunity.companyName);
+      const role = this.normalizeOpportunityValue(opportunity.title);
+
+      if (!companyKey) {
+        collapsed.push(opportunity);
+        continue;
+      }
+
+      const sameCompanyIndices = collapsed
+        .map((existing, index) => ({ existing, index }))
+        .filter(item => this.normalizedCompanyKey(item.existing.companyName) === companyKey);
+
+      if (role) {
+        const untitled = sameCompanyIndices.find(item => !this.normalizeOpportunityValue(item.existing.title));
+        if (untitled) {
+          collapsed[untitled.index] = opportunity;
+          continue;
+        }
+
+        collapsed.push(opportunity);
+        continue;
+      }
+
+      const hasAnySameCompany = sameCompanyIndices.length > 0;
+      if (!hasAnySameCompany) {
+        collapsed.push(opportunity);
+      }
     }
 
-    const companyName = thread.companyName.trim();
-    const normalized = companyName.toLowerCase();
-    const knownCompanySites: Record<string, string> = {
-      aesglobal: 'https://www.aesglobal.io',
-      'aes global': 'https://www.aesglobal.io'
-    };
+    return collapsed.sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime());
+  }
 
-    if (knownCompanySites[normalized]) {
-      return knownCompanySites[normalized];
-    }
+  private opportunityIdentity(opportunity: ThreadOpportunity): string {
+    return `${this.normalizedCompanyKey(opportunity.companyName)}|${this.normalizedTitleKey(opportunity.title)}`;
+  }
 
-    return null;
+  private hasOpportunityContext(opportunity: ThreadOpportunity): boolean {
+    return !!this.normalizeOpportunityValue(opportunity.title) || !!this.normalizeOpportunityValue(opportunity.companyName);
+  }
+
+  private normalizedCompanyKey(value: string | undefined): string {
+    return this.normalizeOpportunityValue(value)?.toLowerCase() ?? '';
+  }
+
+  private normalizedTitleKey(value: string | undefined): string {
+    return this.normalizeOpportunityValue(value)?.toLowerCase() ?? '';
   }
 
   private normalizeOpportunityValue(value: string | undefined): string | undefined {
@@ -266,6 +541,40 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     return this.hasAnyEventType(thread, [EventType.INTERVIEW_TIME_ACCEPTED, EventType.INTERVIEW_SCHEDULED]) ? 'Confirmed' : 'Pending';
   }
 
+  /** Fit status per dimension, paired with what the recruiter stated, for the opportunity overview. */
+  getFitRows(thread: InteractionThread | null): CandidateFitRow[] {
+    if (!thread) {
+      return [];
+    }
+
+    const facts = (thread.opportunities ?? []).map(opportunity => opportunity.facts);
+    const stated = (pick: (fact: OpportunityFacts) => string | undefined) =>
+      facts.map(pick).map(value => value?.trim()).find((value): value is string => !!value);
+
+    const skills = [...new Set(facts.flatMap(fact => fact.skills.map(skill => skill.trim()).filter(Boolean)))];
+    const skillsDetail = skills.length > 4 ? `${skills.slice(0, 4).join(', ')} +${skills.length - 4}` : skills.join(', ');
+    const mode = stated(fact => fact.workMode);
+    const location = stated(fact => fact.location);
+    const roleFit = this.getRoleFitStatus(thread);
+    const locationFit = this.getLocationFitStatus(thread);
+    const compensationFit = this.getCompensationFitStatus(thread);
+    const timingFit = this.getTimingFitStatus(thread);
+    const fitTone = (status: string): CandidateFitRow['tone'] =>
+      ['Ready', 'Aligned', 'Confirmed'].includes(status) ? 'success' : status === 'At risk' ? 'danger' : 'neutral';
+
+    return [
+      { label: 'Role', status: roleFit, tone: fitTone(roleFit), detail: skillsDetail || undefined },
+      { label: 'Location', status: locationFit, tone: fitTone(locationFit), detail: [mode, location].filter(Boolean).join(', ') || undefined },
+      { label: 'Compensation', status: compensationFit, tone: fitTone(compensationFit), detail: stated(fact => fact.salary) },
+      { label: 'Timing', status: timingFit, tone: fitTone(timingFit), detail: stated(fact => fact.interviewDate) }
+    ];
+  }
+
+  /** Deal breakers stated in the emails, deduplicated across the thread's opportunities. */
+  getDealBreakerLabels(thread: InteractionThread | null): string[] {
+    return thread ? this.getOpportunityDealBreakerRisks(thread).map(risk => risk.summary) : [];
+  }
+
   getCandidateInsightSummary(thread: InteractionThread | null): CandidateInsightSummary | null {
     if (!thread) {
       return null;
@@ -274,22 +583,39 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     const signals = this.getThreadSignalSet(thread);
     const stage = this.resolveCandidateStage(signals);
     const confidence = this.resolveCandidateConfidence(stage, signals);
-    const freshness = this.getCandidateFreshness(thread.lastEventDate);
+    const activity = this.getThreadActivityGroup(thread);
     const nextUnlock = this.getCandidateNextUnlock(stage, signals);
     const actions = this.getCandidateActionPlan(thread, stage, signals);
     const missingEvidence = this.getCandidateMissingEvidence(stage, signals);
 
-    const summary = this.buildCandidateSummary(thread, stage, freshness, signals);
+    const summary = this.buildCandidateSummary(thread, stage, signals);
 
     return {
       stage,
       confidence,
-      freshness,
+      activity,
       summary,
       nextUnlock,
       missingEvidence,
       actions
     };
+  }
+
+  /** Items worth noting for the current stage and for stages still to come. */
+  getCandidateNotes(thread: InteractionThread | null): CandidateNote[] {
+    if (!thread) {
+      return [];
+    }
+
+    const signals = this.getThreadSignalSet(thread);
+    return buildCandidateNotes({
+      stage: this.resolveCandidateStage(signals),
+      signals,
+      facts: (thread.opportunities ?? []).map(opportunity => opportunity.facts),
+      daysSinceLastEvent: this.getDaysSinceLastEventForThread(thread),
+      now: new Date(),
+      unsuccessful: this.isUnsuccessfulDecision(signals)
+    });
   }
 
   getCandidateRiskItems(thread: InteractionThread | null): CandidateRiskItem[] {
@@ -346,7 +672,31 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       });
     }
 
-    return risks.slice(0, 3);
+    return [...this.getOpportunityDealBreakerRisks(thread), ...risks.slice(0, 3)];
+  }
+
+  /** Deal breakers stated in the emails, deduplicated across the thread's opportunities. */
+  private getOpportunityDealBreakerRisks(thread: InteractionThread): CandidateRiskItem[] {
+    const seen = new Set<string>();
+    const risks: CandidateRiskItem[] = [];
+
+    for (const opportunity of thread.opportunities ?? []) {
+      for (const dealBreaker of opportunity.facts.dealBreakers) {
+        const key = dealBreaker.trim().toLowerCase();
+        if (!key || seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        risks.push({
+          label: 'Deal breaker',
+          severity: 'High',
+          summary: dealBreaker.trim(),
+          recommendation: 'Confirm this works for you before investing more time in this role.'
+        });
+      }
+    }
+
+    return risks;
   }
 
   triggerEmailSync(): void {
@@ -822,6 +1172,26 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     return this.getDaysSinceLastEventForThread(thread) > 7;
   }
 
+  /** Status group of the newest event (primary plus additional signals), regardless of age. */
+  getThreadActivityGroup(thread: InteractionThread): ActivityGroup {
+    const lastEvent = thread.events[thread.events.length - 1];
+    return resolveActivityGroup([lastEvent?.eventType, ...(lastEvent?.additionalEventTypes ?? [])]);
+  }
+
+  getThreadStageLabel(thread: InteractionThread): string {
+    const currentStep = this.getActivityTimeline(thread).steps.find(step => step.current);
+    return currentStep?.label ?? 'Outreach';
+  }
+
+  getThreadStageClass(thread: InteractionThread): string {
+    const currentStep = this.getActivityTimeline(thread).steps.find(step => step.current);
+    return `activity-${currentStep?.tone ?? 'neutral'}`;
+  }
+
+  private isUnsuccessfulDecision(signals: EventType[]): boolean {
+    return signals.some(type => [EventType.NOT_INTERESTED, EventType.REJECTION, EventType.SCREENING_ASSESSMENT_FAILED].includes(type));
+  }
+
   private getThreadSignalSet(thread: InteractionThread): EventType[] {
     const orderedSignals: EventType[] = [];
 
@@ -927,19 +1297,7 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     return 'Low';
   }
 
-  private getCandidateFreshness(date: Date): CandidateFreshness {
-    const daysSince = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysSince <= 3) {
-      return 'Fresh';
-    }
-    if (daysSince <= 7) {
-      return 'Watch';
-    }
-    return 'Stale';
-  }
-
-  private buildCandidateSummary(thread: InteractionThread, stage: CandidateStage, freshness: CandidateFreshness, signals: EventType[]): string {
+  private buildCandidateSummary(thread: InteractionThread, stage: CandidateStage, signals: EventType[]): string {
     const roleLabel = thread.jobTitle || 'this opportunity';
     const companyLabel = thread.companyName || 'the company';
 
@@ -948,11 +1306,11 @@ export class InteractionsComponent implements OnInit, OnDestroy {
     }
 
     if (stage === 'Interviewing') {
-      return `You are in the interview stage for ${roleLabel} at ${companyLabel}. The thread is ${freshness.toLowerCase()} and the latest flow points toward scheduling or follow-up, so clarity on timing and logistics matters most.`;
+      return `You are in the interview stage for ${roleLabel} at ${companyLabel}. The latest flow points toward scheduling or follow-up, so clarity on timing and logistics matters most.`;
     }
 
     if (stage === 'Qualified') {
-      return `You are qualified for ${roleLabel} at ${companyLabel}. The thread has strong fit signals and ${freshness.toLowerCase()} momentum, so reinforcing the next step with a precise reply is the best move now.`;
+      return `You are qualified for ${roleLabel} at ${companyLabel}. The thread has strong fit signals, so reinforcing the next step with a precise reply is the best move now.`;
     }
 
     if (signals.includes(EventType.OUTREACH) || signals.includes(EventType.REPLY)) {

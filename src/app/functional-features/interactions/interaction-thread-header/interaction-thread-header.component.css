@@ -102,42 +102,43 @@
   flex: 0 0 9.5rem;
 }
 
-.status-badge {
-  flex: 0 0 7rem;
+.thread-panel-activity {
+  flex: 0 0 11rem;
+  margin-left: auto;
   text-align: center;
   white-space: nowrap;
   font-size: 0.6875rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
   font-weight: 600;
   text-transform: uppercase;
+  border: 1px solid transparent;
 }
 
-.badge-success {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+.activity-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
-.badge-warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+.activity-info {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
 }
 
-.badge-info {
-  background: rgba(14, 165, 233, 0.1);
-  color: #0ea5e9;
+.activity-neutral {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
 }
 
-.badge-gray {
-  background: rgba(107, 114, 128, 0.1);
-  color: #6b7280;
+.activity-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
 }
 
-.thread-panel-time {
-  flex: 0 0 4.5rem;
-  margin-left: auto;
-  text-align: right;
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
+.activity-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border);
 }

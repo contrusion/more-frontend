@@ -18,8 +18,8 @@ describe('InteractionThreadHeaderComponent', () => {
     fixture.componentRef.setInput('statusSummary', 'You followed up for an update');
     fixture.componentRef.setInput('dealBreakerCount', 0);
     fixture.componentRef.setInput('updatedLabel', '2d ago');
-    fixture.componentRef.setInput('statusLabel', 'ACTIVE');
-    fixture.componentRef.setInput('statusBadgeClass', 'badge-success');
+    fixture.componentRef.setInput('stageLabel', 'Contacted');
+    fixture.componentRef.setInput('stageClass', 'activity-neutral');
   });
 
   it('renders recruiter, opportunity and the provided status summary', () => {

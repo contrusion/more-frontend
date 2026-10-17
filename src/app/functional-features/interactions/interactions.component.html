@@ -79,7 +79,7 @@
     </div>
 
     <ng-template #candidateAccordionList>
-      <div class="threads-list accordion-list">
+      <app-scroll-top class="threads-list accordion-list" ariaLabel="Scroll to the top of the conversations">
         <mat-accordion class="thread-accordion">
           <mat-expansion-panel
             *ngFor="let thread of filteredThreads"
@@ -98,171 +98,109 @@
                 [dealBreakerCount]="getDealBreakerCount(thread)"
                 [updateStale]="isThreadUpdateStale(thread)"
                 [updatedLabel]="formatTime(thread.lastEventDate)"
-                [statusLabel]="thread.status.replace('_', ' ')"
-                [statusBadgeClass]="getStatusBadgeClass(thread.status)"
+                [stageLabel]="getThreadStageLabel(thread)"
+                [stageClass]="getThreadStageClass(thread)"
               ></app-interaction-thread-header>
             </mat-expansion-panel-header>
 
             <ng-template matExpansionPanelContent>
             <div class="candidate-insights accordion-expanded-view" *ngIf="thread as currentThread">
               <div class="insight-header">
-                <div>
-                  <span class="eyebrow">Opportunity overview</span>
-                  <h4>{{ currentThread.companyName || 'Opportunity' }} · {{ currentThread.jobTitle || 'Role conversation' }}</h4>
-                  <a
-                    *ngIf="getCompanyWebsiteUrl(currentThread) as companyWebsite"
-                    class="company-link"
-                    [href]="companyWebsite"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Visit company website
-                  </a>
-                </div>
-              </div>
-
-              <div class="insight-hero">
-                <div class="hero-meta-row">
-                  <div class="meta-card">
-                    <span class="meta-label">Current stage</span>
-                    <strong>{{ getCandidateInsightSummary(currentThread)?.stage }}</strong>
-                  </div>
-                  <div class="meta-card">
-                    <span class="meta-label">Confidence</span>
-                    <strong>{{ getCandidateInsightSummary(currentThread)?.confidence }}</strong>
-                  </div>
-                  <div class="meta-card">
-                    <span class="meta-label">Freshness</span>
-                    <strong>{{ getCandidateInsightSummary(currentThread)?.freshness }}</strong>
-                  </div>
-                </div>
-                <p class="hero-summary">{{ getCandidateInsightSummary(currentThread)?.summary }}</p>
-              </div>
-
-              <section class="insight-section integrated-insights-panel">
-                <div class="section-head">
-                  <span class="section-kicker">Conversation insights</span>
-                  <h5>About {{ currentThread.participantName }}</h5>
-                </div>
-
-                <div class="integrated-stats-grid">
-                  <div class="stat-card compact-stat">
-                    <div class="stat-label">Response Rate</div>
-                    <div class="stat-value" [class.success]="getRecruiterResponseRate(currentThread) > 70">
-                      {{ getRecruiterResponseRate(currentThread) }}%
+                <div class="insight-header-stage">
+                  @let activityTimeline = getActivityTimeline(currentThread);
+                  <app-stage-timeline [steps]="activityTimeline.steps"></app-stage-timeline>
+                  @let candidateNotes = getCandidateNotes(currentThread);
+                  <div class="stage-guidance" [class.has-notes]="candidateNotes.length > 0">
+                    <div class="stage-next-block">
+                      <p class="stage-next">
+                        <span class="meta-label">
+                          Next unlock
+                          <span class="stage-confidence">{{ getCandidateInsightSummary(currentThread)?.confidence }} confidence</span>
+                        </span>
+                        <span>{{ getCandidateInsightSummary(currentThread)?.nextUnlock }}</span>
+                      </p>
+                      <ul class="evidence-list" *ngIf="(getCandidateInsightSummary(currentThread)?.missingEvidence?.length ?? 0) > 0">
+                        <li *ngFor="let item of getCandidateInsightSummary(currentThread)?.missingEvidence">
+                          {{ item }}
+                        </li>
+                      </ul>
                     </div>
-                  </div>
-                  <div class="stat-card compact-stat">
-                    <div class="stat-label">Avg Response Time</div>
-                    <div class="stat-value info">{{ getAverageResponseTime(currentThread) }}</div>
-                  </div>
-                  <div class="stat-card compact-stat">
-                    <div class="stat-label">Interaction Age</div>
-                    <div class="stat-value">{{ getInteractionAge(currentThread) }} days</div>
-                  </div>
-                  <div class="stat-card compact-stat">
-                    <div class="stat-label">Last Activity</div>
-                    <div class="stat-value" [class.warning]="getDaysSinceLastEvent(currentThread) > 7">
-                      {{ getDaysSinceLastEvent(currentThread) }} days ago
-                    </div>
-                  </div>
-                </div>
 
-                <div class="recommended-actions-block" *ngIf="getRecommendedActions(currentThread).length > 0">
-                  <h6>Recommended actions</h6>
-                  <ul>
-                    <li *ngFor="let action of getRecommendedActions(currentThread)">{{ action }}</li>
-                  </ul>
-                </div>
-              </section>
-
-              <div class="insight-grid">
-                <section class="insight-section stage-section">
-                  <div class="section-head">
-                    <span class="section-kicker">Stage tracker</span>
-                    <h5>Recruitment progression</h5>
+                    @if (candidateNotes.length > 0) {
+                      <section class="take-note" aria-label="Take note">
+                        <span class="meta-label">Take note</span>
+                        <ul class="take-note-list">
+                          @for (note of candidateNotes; track note.title) {
+                            <li class="take-note-item" [ngClass]="'tone-' + note.tone">
+                              <div class="take-note-body">
+                                <span class="take-note-title">
+                                  {{ note.title }}
+                                  @if (note.horizon === 'ahead') {
+                                    <span class="take-note-horizon">Coming up</span>
+                                  }
+                                </span>
+                                <span class="take-note-detail">{{ note.detail }}</span>
+                              </div>
+                              @if (note.action; as noteAction) {
+                                <button
+                                  mat-stroked-button
+                                  type="button"
+                                  class="take-note-action"
+                                  [attr.data-action]="noteAction.id"
+                                  [attr.aria-label]="noteAction.label + ': ' + note.title"
+                                >
+                                  {{ noteAction.label }}
+                                </button>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      </section>
+                    }
                   </div>
 
-                  <div class="stage-track">
-                    <div
-                      class="stage-step"
-                      *ngFor="let step of getCandidateStageSteps(); let i = index"
-                      [class.active]="step === getCandidateInsightSummary(currentThread)?.stage"
-                      [class.complete]="getCandidateStageSteps().indexOf(step) < getCandidateStageSteps().indexOf(getCandidateInsightSummary(currentThread)?.stage || 'Contacted')"
+                  <div class="insight-header-main">
+                    <span class="eyebrow">Opportunity overview</span>
+                    <h4>{{ getOpportunityHeading(currentThread) }}</h4>
+                    <a
+                      *ngIf="getCompanyWebsiteUrl(currentThread) as companyWebsite"
+                      class="company-link"
+                      [href]="companyWebsite"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <span class="step-dot"></span>
-                      <span class="step-label">{{ step }}</span>
-                    </div>
-                  </div>
+                      Visit company website
+                    </a>
+                    <ul class="related-opportunities" *ngIf="getAdditionalOpportunityLabels(currentThread).length > 0">
+                      <li *ngFor="let opportunityLabel of getAdditionalOpportunityLabels(currentThread)">
+                        {{ opportunityLabel }}
+                      </li>
+                    </ul>
 
-                  <div class="next-unlock-box">
-                    <span class="meta-label">Next unlock</span>
-                    <strong>{{ getCandidateInsightSummary(currentThread)?.nextUnlock }}</strong>
-                  </div>
+                    <dl class="fit-check" aria-label="Fit check">
+                      @for (row of getFitRows(currentThread); track row.label) {
+                        <div class="fit-check-row">
+                          <dt>{{ row.label }}</dt>
+                          <dd class="fit-check-detail">{{ row.detail ?? 'Not stated yet' }}</dd>
+                          <dd class="fit-check-status" [ngClass]="'tone-' + row.tone">{{ row.status }}</dd>
+                        </div>
+                      }
+                    </dl>
 
-                  <ul class="evidence-list" *ngIf="(getCandidateInsightSummary(currentThread)?.missingEvidence?.length ?? 0) > 0">
-                    <li *ngFor="let item of getCandidateInsightSummary(currentThread)?.missingEvidence">
-                      {{ item }}
-                    </li>
-                  </ul>
-                </section>
-
-                <section class="insight-section fit-section">
-                  <div class="section-head">
-                    <span class="section-kicker">Fit check</span>
-                    <h5>Role alignment</h5>
-                  </div>
-
-                  <div class="fit-list">
-                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.JOB_SPEC_REVIEWED, EventType.JOB_SPEC_ATTACHED])">
-                      <span>Role fit</span>
-                      <strong>{{ getRoleFitStatus(currentThread) }}</strong>
-                    </div>
-                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.LOCATION_NEEDS_MET, EventType.LOCATION_BOTTLENECK])">
-                      <span>Location fit</span>
-                      <strong>{{ getLocationFitStatus(currentThread) }}</strong>
-                    </div>
-                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.COMPENSATION_NEEDS_MET, EventType.COMPENSATION_BOTTLENECK])">
-                      <span>Compensation fit</span>
-                      <strong>{{ getCompensationFitStatus(currentThread) }}</strong>
-                    </div>
-                    <div class="fit-row" [class.ready]="hasAnyEventType(currentThread, [EventType.INTERVIEW_TIME_ACCEPTED, EventType.INTERVIEW_SCHEDULED])">
-                      <span>Timing fit</span>
-                      <strong>{{ getTimingFitStatus(currentThread) }}</strong>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="insight-section actions-section">
-                  <div class="section-head">
-                    <span class="section-kicker">Action plan</span>
-                    <h5>Next steps</h5>
-                  </div>
-
-                  <ul class="action-list">
-                    <li *ngFor="let action of getCandidateInsightSummary(currentThread)?.actions">
-                      {{ action }}
-                    </li>
-                  </ul>
-                </section>
-
-                <section class="insight-section risk-section">
-                  <div class="section-head">
-                    <span class="section-kicker">Risk & bottlenecks</span>
-                    <h5>Watch-outs</h5>
-                  </div>
-
-                  <ul class="risk-list">
-                    <li *ngFor="let risk of getCandidateRiskItems(currentThread)">
-                      <div class="risk-header">
-                        <span class="risk-label">{{ risk.label }}</span>
-                        <span class="risk-severity" [ngClass]="'severity-' + risk.severity.toLowerCase()">{{ risk.severity }}</span>
+                    @let dealBreakers = getDealBreakerLabels(currentThread);
+                    @if (dealBreakers.length > 0) {
+                      <div class="deal-breakers">
+                        <span class="meta-label">Deal breakers ({{ dealBreakers.length }})</span>
+                        <ul class="deal-breaker-list">
+                          @for (dealBreaker of dealBreakers; track dealBreaker) {
+                            <li>{{ dealBreaker }}</li>
+                          }
+                        </ul>
                       </div>
-                      <p>{{ risk.summary }}</p>
-                      <small>{{ risk.recommendation }}</small>
-                    </li>
-                  </ul>
-                </section>
+                    }
+                    <p class="us12-foundation-note">US-I12 foundation: this block expands with attachment-driven job spec fit intelligence.</p>
+                  </div>
+                </div>
               </div>
             </div>
             </ng-template>
@@ -272,7 +210,7 @@
         <div *ngIf="filteredThreads.length === 0" class="empty-state">
           <p>No interactions found</p>
         </div>
-      </div>
+      </app-scroll-top>
     </ng-template>
   </div>
 
@@ -346,7 +284,7 @@
           <div class="insight-header">
             <div>
               <span class="eyebrow">Opportunity overview</span>
-              <h4>{{ thread.companyName || 'Opportunity' }} · {{ thread.jobTitle || 'Role conversation' }}</h4>
+              <h4>{{ getOpportunityHeading(thread) }}</h4>
               <a
                 *ngIf="getCompanyWebsiteUrl(thread) as companyWebsite"
                 class="company-link"
@@ -370,8 +308,8 @@
                 <strong>{{ getCandidateInsightSummary(thread)?.confidence }}</strong>
               </div>
               <div class="meta-card">
-                <span class="meta-label">Freshness</span>
-                <strong>{{ getCandidateInsightSummary(thread)?.freshness }}</strong>
+                <span class="meta-label">Latest activity</span>
+                <strong>{{ getCandidateInsightSummary(thread)?.activity?.label }}</strong>
               </div>
             </div>
             <p class="hero-summary">{{ getCandidateInsightSummary(thread)?.summary }}</p>

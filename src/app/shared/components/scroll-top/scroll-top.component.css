@@ -1,0 +1,36 @@
+/*
+ * With target="parent" the host is the scroll container (PrimeNG observes the parent element of its own
+ * element, which is this host) and the button sticks to its bottom corner. The consumer bounds the height
+ * (for example flex: 1 in a flex column).
+ * PrimeNG renders the ScrollTop as a p-button, so its appearance comes from the p-button design tokens,
+ * mapped here to the app's accent tokens (same look as the "start conversation" button).
+ */
+:host {
+  display: block;
+  min-height: 0;
+  --p-button-primary-background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+  --p-button-primary-hover-background: linear-gradient(135deg, var(--color-accent-hover), var(--color-accent-hover));
+  --p-button-primary-active-background: linear-gradient(135deg, var(--color-accent-hover), var(--color-accent-hover));
+  --p-button-primary-border-color: transparent;
+  --p-button-primary-hover-border-color: transparent;
+  --p-button-primary-active-border-color: transparent;
+  --p-button-primary-color: var(--color-text-on-dark);
+  --p-button-primary-hover-color: var(--color-text-on-dark);
+  --p-button-primary-active-color: var(--color-text-on-dark);
+  --p-button-primary-focus-ring-color: var(--color-focus-ring);
+  --p-button-transition-duration: 180ms;
+}
+
+:host ::ng-deep p-scrolltop {
+  display: contents;
+}
+
+:host(.scroll-container) {
+  overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --p-button-transition-duration: 0ms;
+  }
+}

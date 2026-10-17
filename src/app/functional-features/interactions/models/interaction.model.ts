@@ -61,6 +61,34 @@ export enum InteractionStatus {
   CLOSED = 'CLOSED'    // Interaction has reached a conclusion
 }
 
+/** Decision-relevant facts about one opportunity, as stated in one email. Every scalar is optional. */
+export interface OpportunityFacts {
+  skills: string[];
+  location?: string;
+  workMode?: string;
+  salary?: string;
+  visaConstraints?: string;
+  noticePeriod?: string;
+  interviewDate?: string;
+  dealBreakers: string[];
+}
+
+/** A client opportunity extracted from a recruiter email (never the recruiter's own company). */
+export interface EventOpportunity {
+  companyId?: string;
+  companyName?: string;
+  /** Only present when the website was stated in the email and verified server-side. */
+  companyWebsite?: string;
+  title?: string;
+  facts: OpportunityFacts;
+}
+
+/** One distinct opportunity in a thread, merged across the thread's emails. */
+export interface ThreadOpportunity extends EventOpportunity {
+  /** Time of the newest email that mentioned this opportunity. */
+  lastSeen: Date;
+}
+
 export interface InteractionEvent {
   id: string;
   interactionThreadId: string;
@@ -73,6 +101,7 @@ export interface InteractionEvent {
   senderName: string;
   threadId?: string;
   subject?: string;
+  opportunities?: EventOpportunity[];
   metadata?: {
     personalizationLevel?: number;
     sourceType?: string;
@@ -103,6 +132,8 @@ export interface InteractionThread {
   companyName?: string;
   jobAdvertId?: string; // Optional - may be exploratory
   jobTitle?: string;
+  /** Client opportunities extracted from the thread's emails, most recently mentioned first. */
+  opportunities?: ThreadOpportunity[];
   status: InteractionStatus;
   lastEventDate: Date;
   lastEventPreview: string;

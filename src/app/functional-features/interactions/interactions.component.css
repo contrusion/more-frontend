@@ -239,6 +239,305 @@
   padding: 0.2rem 0.1rem 0.4rem;
 }
 
+/* Timeline-first layout: full-width rail with overview moved below next unlock. */
+.accordion-expanded-view .insight-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1rem, 2vw, 2rem);
+}
+
+.insight-header-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.insight-header-stage app-stage-timeline {
+  display: block;
+  width: 100%;
+}
+
+.stage-next {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border-subtle));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  font-size: clamp(0.78rem, 0.74rem + 0.15vw, 0.86rem);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.insight-header-stage .evidence-list {
+  margin: 0;
+  font-size: clamp(0.76rem, 0.72rem + 0.15vw, 0.84rem);
+}
+
+/* Next unlock on the left, Take note on the right; single column when there is nothing to note. */
+.stage-guidance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.stage-guidance.has-notes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.stage-next-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.take-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+}
+
+.take-note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.take-note-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 0.6rem;
+  padding: 0.3rem 0.5rem;
+  border-left: 0.2rem solid var(--color-border-subtle);
+  border-radius: 0.25rem;
+  font-size: clamp(0.76rem, 0.72rem + 0.15vw, 0.84rem);
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+  transition: background-color 180ms ease;
+}
+
+.take-note-body {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.take-note-action {
+  --mat-button-outlined-container-height: 1.75rem;
+  --mat-button-outlined-label-text-size: 0.75rem;
+  flex: 0 0 auto;
+  color: inherit;
+  border-color: currentColor;
+}
+
+.take-note-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.take-note-horizon {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.take-note-detail {
+  color: var(--color-text-secondary);
+}
+
+.take-note-item.tone-success {
+  border-left-color: var(--color-success-text);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.take-note-item.tone-warning {
+  border-left-color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.take-note-item.tone-danger {
+  border-left-color: var(--color-danger-text);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.take-note-item.tone-info {
+  border-left-color: var(--color-info-text);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.take-note-item.tone-success .take-note-detail,
+.take-note-item.tone-warning .take-note-detail,
+.take-note-item.tone-danger .take-note-detail,
+.take-note-item.tone-info .take-note-detail {
+  color: inherit;
+}
+
+@media (max-width: 56rem) {
+  .stage-guidance.has-notes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .take-note-item {
+    transition: none;
+  }
+}
+
+.insight-header-main {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, var(--color-border-subtle));
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  padding: 0.75rem 0.8rem;
+}
+
+.us12-foundation-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.stage-confidence {
+  margin-left: 0.4rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+
+/* Fit check: one compact row per dimension (label, what was stated, status). */
+.fit-check {
+  display: flex;
+  flex-direction: column;
+  margin: 0.7rem 0 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.fit-check-row {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: clamp(0.76rem, 0.72rem + 0.15vw, 0.84rem);
+  line-height: 1.35;
+}
+
+.fit-check-row dt {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.fit-check-row dd {
+  margin: 0;
+}
+
+.fit-check-detail {
+  min-width: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.fit-check-status {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.fit-check-status.tone-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.fit-check-status.tone-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.fit-check-status.tone-neutral {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+.deal-breakers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+}
+
+.deal-breaker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deal-breaker-list li {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+@media (max-width: 40rem) {
+  .fit-check-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .fit-check-detail {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fit-check-status {
+    transition: none;
+  }
+}
+
+@media (max-width: 56rem) {
+  .accordion-expanded-view .insight-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 56rem) {
   :host ::ng-deep .thread-panel .mat-expansion-panel-header-description {
     display: none;
@@ -448,6 +747,15 @@
 
 .company-link:hover {
   color: #0284c7;
+}
+
+.related-opportunities {
+  margin: 0.65rem 0 0;
+  padding-left: 1rem;
+  color: #334155;
+  font-size: 0.82rem;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .insight-hero {

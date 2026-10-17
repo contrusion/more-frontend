@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
-import { InteractionThread, InteractionEvent, EmailThreadMessage, CreateEventRequest, ChannelType, EventType, InteractionStatus } from '../models/interaction.model';
+import { InteractionThread, InteractionEvent, EventOpportunity, EmailThreadMessage, CreateEventRequest, ChannelType, EventType, InteractionStatus } from '../models/interaction.model';
+import { mergeOpportunities } from '../utils/opportunity-merge.util';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
@@ -99,6 +100,7 @@ export class InteractionService {
           senderName: isUserSent ? 'You' : (dto.externalRecruiterName || dto.recruiter?.name || 'Recruiter'),
           threadId: e.threadId || undefined,
           subject: e.subject || undefined,
+          opportunities: this.mapEventOpportunities(e.opportunities),
           metadata: {
             personalizationLevel: e.personalized ? 80 : 20,
             containsUrgencyCue: e.containsUrgencyCue
@@ -117,6 +119,7 @@ export class InteractionService {
       participantRole: 'RECRUITER',
       companyName: dto.externalCompanyName || dto.recruiter?.companyName || undefined,
       jobTitle: this.resolveThreadJobTitle(dto, events),
+      opportunities: mergeOpportunities(events),
       status: this.mapStatus(dto.status),
       lastEventDate: lastEvent?.timestamp || new Date(dto.initiatedAt),
       lastEventPreview: lastEvent?.content || 'No messages yet',
@@ -125,6 +128,38 @@ export class InteractionService {
       updatedAt: new Date(dto.initiatedAt),
       events: events
     };
+  }
+
+  /** Backend sends nulls for unknown values; the UI model uses undefined. */
+  private mapEventOpportunities(raw: unknown): EventOpportunity[] {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    const text = (value: unknown): string | undefined =>
+      typeof value === 'string' && value.trim() ? value.trim() : undefined;
+    const list = (value: unknown): string[] =>
+      Array.isArray(value) ? value.map(text).filter((item): item is string => !!item) : [];
+
+    return raw.map(item => {
+      const facts = item?.facts ?? {};
+      return {
+        companyId: text(item?.companyId),
+        companyName: text(item?.companyName),
+        companyWebsite: text(item?.companyWebsite),
+        title: text(item?.title),
+        facts: {
+          skills: list(facts.skills),
+          location: text(facts.location),
+          workMode: text(facts.workMode),
+          salary: text(facts.salary),
+          visaConstraints: text(facts.visaConstraints),
+          noticePeriod: text(facts.noticePeriod),
+          interviewDate: text(facts.interviewDate),
+          dealBreakers: list(facts.dealBreakers)
+        }
+      };
+    });
   }
 
   /**

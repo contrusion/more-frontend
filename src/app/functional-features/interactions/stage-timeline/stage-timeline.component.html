@@ -1,0 +1,35 @@
+<div class="stage-timeline-scroll">
+<ol class="stage-timeline" [attr.aria-label]="ariaLabel()" [style.--stage-count]="steps().length">
+  @for (step of steps(); track $index) {
+    <li
+      class="stage-item"
+      [class]="'stage-item tone-' + step.tone + ' state-' + step.state"
+      [class.current]="step.current"
+      [attr.aria-current]="step.current ? 'step' : null"
+    >
+      @if (step.state === 'past') {
+        <span class="stage-complete" aria-hidden="true">✓</span>
+      }
+      @if (step.current) {
+        <span class="stage-current" aria-hidden="true">Current</span>
+      }
+      @if (step.state === 'upcoming' && $index === 0) {
+        <span class="stage-upcoming" aria-hidden="true">Up next</span>
+      }
+      <span class="stage-marker" aria-hidden="true"></span>
+      <span class="stage-label">{{ step.label }}</span>
+      @if (step.reachedAt) {
+        <span class="stage-date">
+          {{ step.reachedAt | date: 'd MMM' }}
+          @if (step.count > 1) {
+            <span class="stage-count" aria-hidden="true">&times;{{ step.count }}</span>
+          }
+        </span>
+      } @else {
+        <span class="stage-date stage-date-placeholder">Not reached</span>
+      }
+      <span class="stage-sr">{{ step.state === 'past' ? 'completed' : step.current ? 'current' : 'upcoming' }}@if (step.count > 1) {, {{ step.count }} events}</span>
+    </li>
+  }
+</ol>
+</div>

@@ -53,6 +53,13 @@ Section order (top to bottom):
 4. Candidate Action Plan
 5. Risk and Bottleneck Panel
 
+Layout as implemented in the candidate accordion (the five sections above are consolidated so the same guidance is not repeated in several places):
+1. Stage timeline (Opportunity Snapshot stage and Stage Tracker)
+2. Next unlock (with confidence) beside Take note (Candidate Action Plan and Risk and Bottleneck Panel)
+3. Opportunity overview, including the fit check and stated deal breakers (Job Spec Intelligence)
+
+The separate Current stage / Confidence / Latest activity cards, the summary paragraph and the "Conversation insights" container (recruiter stats and general recommended actions) were removed because the stage is already shown by the timeline and the header chip, and the recommendations repeated Take note. Confidence is shown as small text beside "Next unlock". The admin right-hand Conversation Insights panel is unchanged.
+
 ### 4.1 Opportunity Snapshot
 Purpose:
 - Answer: Where do I stand right now?
@@ -76,6 +83,17 @@ Tracker output:
 - Next unlock condition.
 - Missing evidence list when confidence is low.
 
+Placement and presentation (accordion view):
+- The tracker sits at the top of the expanded panel, to the right of the opportunity heading, rather than as a card in the section grid.
+- It renders as a horizontally scrollable rail (`app-stage-timeline`, presentational) in the style of the Living CV career journey, but the nodes follow the stage pipeline rather than the raw activity taxonomy: Outreach, Screening, Interviews & Assessments, optional Offer stage, explicit decision outcome (`Unsuccessful` when a negative terminal signal exists), and Closed. The pipeline stage also appears in the accordion header chip so the header and rail use the same stage vocabulary, while the newest event group remains in the "Latest activity" card.
+- The current stage is highlighted in the middle of the rail when applicable, earlier stages show as completed ticks, and the next realistic stage(s) remain visible as upcoming nodes. The Offer stage only appears once the process has reached interviews. `Closed` is rendered as a neutral completion state, and negative terminal outcomes are shown in the preceding `Unsuccessful` node.
+- Each node shows the first time that stage appeared in the thread and a count for repeated events that contributed to it. Completed nodes use a tick marker instead of a solid filled dot.
+- The rail scrolls instead of collapsing older nodes behind a "+N earlier" label, so the current position and the next stage remain visible without losing context.
+- Next unlock and missing evidence are shown directly beneath the timeline, with confidence as small text beside the "Next unlock" label and a "Take note" panel to the right (stacked below 56rem). The Opportunity overview follows below and now holds the fit check and stated deal breakers (see 4.3). The separate stage cards, summary paragraph, "Action plan" and "Risk & bottlenecks" sections were removed from the accordion because they repeated Next unlock and Take note (see 4.4 and 4.5).
+- "Take note" lists up to 6 items, most severe first (danger, warning, success, info, neutral; ties keep the order below), generated deterministically by `utils/candidate-notes.util.ts`. When more than 6 notes apply, the least severe (informational and "Coming up") are dropped first so blockers are never pushed out. It covers the current stage (interview date, pending CV, pending assessment, rejected interview time, stale thread, stated salary/notice/location terms), blockers (location or compensation not aligned, screening not passed, deal breakers stated) and a "Coming up" heads-up for the next stage (screening, interviews, offer readiness, or feedback/re-engagement after a decision). A location, compensation or screening blocker note disappears once the matching needs-met or passed signal arrives. Interview dates come from `facts.interviewDate`: green when in the future, red when past, neutral raw text when the date cannot be parsed. The panel is hidden when there is nothing to note. Notes that call for the candidate to do something carry a compact action button (for example "Send CV", "Suggest times", "Clarify location", "Clarify range", "Add to calendar", "Request feedback", "Prepare answers"). The buttons are presentational for now; their behaviour is defined in US-I13 to US-I15, and informational notes (stated terms, "Door still open", "Interviews likely next") have no button.
+- Stacks to a single column below 56rem; transitions are short and disabled under `prefers-reduced-motion`.
+- The conversation list ends with the shared `app-scroll-top` button (`shared/components/scroll-top`, a PrimeNG ScrollTop with app theme tokens and reduced-motion handling) so long lists of expanded threads can be left quickly.
+
 ### 4.3 Job Spec Intelligence
 Purpose:
 - Answer: How well does this opportunity align with me?
@@ -92,6 +110,10 @@ Checklist dimensions:
 - Compensation fit.
 - Timing fit.
 
+Placement (accordion view):
+- The fit check lives inside the Opportunity overview as compact rows (dimension, what the recruiter stated, status chip), for example "Location: Hybrid, Cape Town: Aligned". The status comes from the fused signals and the stated fact from the extracted `OpportunityFacts`; a dimension with no stated fact shows "Not stated yet".
+- Deal breakers stated in the emails are listed as chips under the fit rows with their count.
+
 ### 4.4 Candidate Action Plan
 Purpose:
 - Answer: What should I do now?
@@ -100,6 +122,9 @@ Output rules:
 - Maximum 3 prioritized actions.
 - Each action includes reason and urgency.
 - Wording is coaching-focused, never taxonomy-focused.
+
+Status (accordion view):
+- The standalone section is removed. Its stage-based advice repeated "Next unlock", and its bottleneck-specific advice (clarify location, reconfirm compensation, ask for assessment feedback) now lives in Take note as blocker notes with action buttons.
 
 ### 4.5 Risk and Bottleneck Panel
 Purpose:
@@ -115,6 +140,10 @@ For each risk:
 - Evidence summary.
 - Suggested strategy.
 - Fallback choice (defer/close) when required.
+
+Status (accordion view):
+- The standalone panel is removed. Location, compensation and screening blockers, interview timing friction and process delay ("No movement") are Take note items; deal breakers appear in both Take note (as an action to confirm them) and the Opportunity overview (the stated facts). The accordion header still shows the "Deal breakers (N)" count.
+- The legacy non-accordion candidate panel (unreachable in the current role-mode split) still contains the old sections.
 
 ## 5. Stage Tracker Intelligence Model
 
@@ -147,10 +176,22 @@ Fusion rules:
 3. Preserve contradictory signals as risk context (for example INTERVIEW_TIME_PROPOSED plus INTERVIEW_TIME_PROPOSED_REJECTED).
 4. Drive guidance from the newest dominant signal, but include unresolved secondary blockers in the action plan.
 
-## 5.5 Freshness Heuristics
-- Fresh: last key event <= 3 days.
-- Watch: 4-7 days.
-- Stale: > 7 days.
+## 5.5 Activity Group Indicator (replaces time-based freshness)
+The "Latest activity" card shows the status group of the newest event (primary plus additional types), not an age bucket. Age is already shown by the "Updated" chip. The accordion header chip now shows the inferred current stage so it stays aligned with the stage rail.
+
+Groups are defined in `interactions/utils/activity-group.util.ts`. When several signals are present the first group in this table wins:
+
+| Group | Tone | Event types |
+|---|---|---|
+| Closed | danger | REJECTION, NOT_INTERESTED |
+| Needs attention | warning | COMPENSATION_BOTTLENECK, LOCATION_BOTTLENECK, SKILLS_GAP, SCREENING_ASSESSMENT_FAILED, INTERVIEW_TIME_PROPOSED_REJECTED |
+| Interviews & Assessments | success | INTERVIEW_INVITE, INTERVIEW_TIME_PROPOSED, INTERVIEW_TIME_ACCEPTED, INTERVIEW_SCHEDULED, SCREENING_ASSESSMENT_REQUEST / SCHEDULED / COMPLETED / COMPLETION_ACKNOWLEDGEMENT |
+| On track | success | COMPENSATION_NEEDS_MET, LOCATION_NEEDS_MET, SCREENING_ASSESSMENT_PASSED, INTERESTED |
+| Screening | info | INQUIRY, SKILLS / COMPENSATION / LOCATION / VISA / NOTICE_PERIOD / AVAILABILITY / BENEFITS inquiries, CV_REQUEST, CV_SUBMITTED, JOB_SPEC_* |
+| Process update | neutral | RECRUITEMENT_PROCESS_UPDATE |
+| Outreach | neutral | OUTREACH, INTEREST_CHECK, REPLY, FOLLOW_UP, ACKNOWLEDGEMENT, PENDING_CLASSIFICATION |
+
+Tone maps to the semantic tokens in `styles.css` and expresses how positive the status is for the candidate.
 
 ## 6. EventType Intelligence Guide Catalog
 This catalog defines how each EventType contributes to:
@@ -736,6 +777,129 @@ Side note (storage):
 Phase: Backlog, needs design discussion before scheduling  
 Dependencies: US-I10 (extracted opportunities on interaction events)
 
+#### US-I12: Candidate Gets Job Spec Attachment Intelligence and Profile Fit
+As a candidate  
+I want the job spec a recruiter attaches to be read and compared with my profile  
+So that I see my skill coverage, gaps, interview tips and an evidence-backed fit verdict before I respond
+
+Acceptance Criteria:
+- Job spec attachments (PDF, DOCX, TXT) on recruiter emails are fetched and converted to text; unsupported, oversized or unreadable files (for example scanned PDFs) show a clear "couldn't read this spec" state instead of failing silently.
+- A structured job spec is extracted: required and nice-to-have skills, seniority, responsibilities, tech stack, and salary/location when stated.
+- Each required skill is mapped against the candidate's profile as strong, partial or missing, using deterministic matching (including a synonym map such as "Spring Boot" vs "Spring"), not model judgement.
+- The candidate sees gaps with a suggested action for each, interview preparation tips tied to the spec, and a fit verdict (for example Strong, Partial, Weak) with the evidence behind it (for example "requires 5y Java, your profile shows 3y").
+- Narrative output (gap explanations, interview tips, fit summary) is generated by the model from the structured match result, never from raw attachment text.
+- The section replaces the signal-only skills and role fit rows from US-I3 when a spec has been analysed; without a spec it falls back to the US-I3 behaviour.
+- Attachment text is treated as untrusted data: it cannot alter model instructions, and model output is validated against a schema before it is stored or shown.
+- Document text is not logged, and only derived data is stored.
+
+Design decisions (proposed, to be confirmed):
+- Gmail access: the existing `gmail.readonly` scope already allows downloading attachments, so no new consent is needed. `GmailInboundEmailSourceAdapter` currently reads only text parts, so it must also collect parts with a filename and `body.attachmentId` and fetch them through the Gmail attachments API, with a MIME allow-list and a size cap.
+- Text extraction happens server-side (for example Apache Tika, or PDFBox and POI). The model never receives raw files. OCR is out of scope for v1.
+- Spec extraction is a separate event-driven step with its own prompt and model configuration, following the US-I10 pattern: after-commit dispatch on a bounded executor, PENDING/DONE/FAILED status, attempts counter and a retry sweeper, so email sync is never blocked or failed. It may extend the opportunity extraction rather than add a second pipeline.
+- The extracted spec is stored as `JSONB` on the interaction event (derived data only, no attachment bytes unless a retention need is agreed). Check existing migrations first; no new table is expected.
+- Matching is deterministic and testable; the model is used only for narrative. This keeps results stable and auditable and works with a small local Llama.
+- Long specs are truncated or chunked to fit the model context; the request timeout and executor limits follow the `more.ml.*` configuration.
+- Privacy: job specs and CV data are personal data. Keep processing on the local model, avoid logging document content, and apply a retention rule to extracted content.
+- A spec belongs to a specific opportunity, so this story depends on how US-I11 scopes opportunities within a thread. Until US-I11 is decided, attach the spec to the primary opportunity.
+
+Open questions (not yet decided):
+- Which candidate data is the source of truth for skills and years of experience (Living CV, profile, or an uploaded CV)?
+- Is a fit verdict acceptable for candidates, or should the section show coverage and gaps only?
+- Which file types and size cap are supported in v1, and what is the retention period for extracted spec data?
+- Should specs pasted into the email body (`JOB_SPEC_WRITTEN_IN_MAIL_TEXT`) go through the same extraction path?
+- Is the local Llama good enough for interview tips, or does that part wait for the in-house model (see `ML_Phase_2.md`)?
+
+Backend + frontend changes required:
+- Gmail adapter: collect and download supported attachments, extend `InboundEmailMessage` (or a sibling DTO) with attachment text, and enforce MIME and size limits.
+- Text extraction service with a clear failure state for unreadable files.
+- Spec extraction service interface and implementation with its own prompt, schema validation and configuration (`more.ml.*`); event, dispatcher, processor and sweeper reusing the US-I10 mechanics.
+- Flyway migration adding the spec `JSONB` column and extraction status/attempts columns on `interaction_events`, versioned per project convention.
+- Expose the extracted spec through the existing interaction event DTOs, and map it in the frontend interaction service.
+- Deterministic skill matching utility with synonym map and unit tests; narrative generation step fed with the structured match.
+- Frontend: a spec-driven fit section in the accordion (skill coverage, gaps with actions, interview tips, fit verdict with evidence) following the UX instructions, plus loading, error and unreadable-spec states.
+- Unit tests for attachment filtering, text extraction failures, spec parsing and schema validation, prompt-injection handling, idempotent replay, skill matching and the frontend section states.
+
+Phase: Backlog, needs design discussion before scheduling  
+Dependencies: US-I3, US-I10; US-I11 for per-opportunity scoping; candidate profile data source (open question)
+
+#### US-I13: Candidate Replies From a Take Note Action
+As a candidate  
+I want the action button on a note to prepare the right reply to the recruiter  
+So that I can act on "CV requested", "No movement" or "Interview time rejected" without writing the email from scratch
+
+Acceptance Criteria:
+- Each reply action opens a pre-filled draft addressed to the recruiter on the same thread, for these actions: `send-cv` (draft with the candidate's CV attached), `send-follow-up` (job spec promised, no movement, assessment result), `suggest-interview-times` (draft offering the candidate's availability), `confirm-deal-breakers` (draft asking about each stated deal breaker), `clarify-location` (draft asking whether remote or hybrid flexibility is possible), `clarify-compensation` (draft confirming the candidate's range), `request-feedback` (rejection, failed screening, passed interview date).
+- The candidate always reviews and edits the draft before it is sent; nothing is sent automatically.
+- The draft is a template filled from known facts (recruiter name, role, client company, stated deal breakers); it does not require the model.
+- After an action is completed the note is re-evaluated from the next synced events, so it disappears when the recruiter's reply or the candidate's response is classified.
+- If sending is not possible (no consent, provider error) the candidate sees a clear inline message and can copy the draft.
+
+Design decisions (proposed, to be confirmed):
+- The Gmail integration currently uses the `gmail.readonly` scope, which cannot create drafts or send mail. Options: (a) request an additional `gmail.compose` scope and create a draft in the candidate's Gmail, (b) request `gmail.send` and send from the platform, (c) open a `mailto:` link with the template and send nothing from the platform. Option (c) needs no new consent; (a) and (b) need a consent change and a security review.
+- Action handling is a single dispatcher keyed by `CandidateNoteActionId` so new actions do not change the template or the note builder.
+- The candidate CV for `send-cv` depends on the profile data source decision in US-I12.
+
+Open questions (not yet decided):
+- Which of the three sending options is acceptable (consent and privacy)?
+- Should the candidate be able to edit the templates?
+- Does the platform record that an action was taken so the note can show "Sent" until the recruiter replies?
+
+Backend + frontend changes required:
+- Frontend action dispatcher, draft templates, and a review dialog (Angular Material dialog, single task, focus trap).
+- Backend draft or send endpoint only if option (a) or (b) is chosen, with consent and scope handling.
+- Unit tests for template filling, dispatcher routing, and note re-evaluation after sync.
+
+Phase: Backlog, needs design discussion before scheduling  
+Dependencies: Take note panel, US-I10 (facts for templates), Gmail scope decision, US-I12 (CV data source)
+
+#### US-I14: Candidate Adds Interview and Assessment Times to Their Calendar
+As a candidate  
+I want the action on an interview or assessment note to put the date in my calendar  
+So that I do not miss it
+
+Acceptance Criteria:
+- `add-to-calendar` creates a calendar entry for the extracted interview date with role, client company and recruiter as context, offered as a downloadable `.ics` file (and optionally a calendar deep link).
+- `confirm-interview-date` opens a reply draft (see US-I13) asking the recruiter to confirm the date and time when none was captured.
+- `plan-assessment` lets the candidate pick a time block to complete the assessment and adds it to their calendar.
+- Unparseable interview dates do not offer `add-to-calendar`; the candidate is offered `confirm-interview-date` instead.
+- Time zones are explicit in the entry; no calendar data is stored by the platform.
+
+Open questions (not yet decided):
+- Is an `.ics` download enough for v1, or is direct calendar integration (and its consent) wanted?
+- Does the extraction capture time and time zone, or only a date? The current `interviewDate` is a free-text string.
+
+Backend + frontend changes required:
+- Frontend `.ics` generation utility and date parsing with time zone handling.
+- Possibly extend the extraction to return a structured date and time (see US-I10 extraction contract).
+- Unit tests for `.ics` output, unparseable dates and time zones.
+
+Phase: Backlog, needs design discussion before scheduling  
+Dependencies: Take note panel, US-I10 (interview date), US-I13 (confirm-date draft)
+
+#### US-I15: Candidate Prepares for the Next Stage From a Take Note Action
+As a candidate  
+I want the "Coming up" notes to help me get ready for screening, interviews and a possible offer  
+So that I answer quickly and consistently when the next stage arrives
+
+Acceptance Criteria:
+- `prepare-screening-answers` lets the candidate record their salary range, notice period, location and work-mode preference once and reuse them across threads.
+- The "Interviews likely next" note has no action: an interview has not been proposed yet, so there is nothing to reply to. Saved availability is used by `suggest-interview-times` once a time is proposed and rejected.
+- `prepare-offer-targets` lets the candidate record target compensation and earliest start date, reused when an offer or compensation question arrives.
+- Saved preferences are compared with the stated terms and deal breakers of each opportunity so mismatches are flagged before the screening call.
+- Preferences are editable at any time and are never shared with a recruiter automatically.
+
+Open questions (not yet decided):
+- Where do these preferences live (Living CV, candidate profile, or a new preferences area)? This overlaps the US-I12 profile data source question.
+- Are preferences per candidate or per opportunity?
+
+Backend + frontend changes required:
+- Candidate preferences model and storage (check existing profile and Living CV tables before adding any), plus API and form (reactive form with inline validation).
+- Comparison of preferences with `OpportunityFacts` using deterministic rules.
+- Unit tests for preference mismatch rules and form validation.
+
+Phase: Backlog, needs design discussion before scheduling  
+Dependencies: Take note panel, US-I10 (facts), US-I12 (profile data source), US-I13 (availability draft)
+
 ## 11.3 Completion Matrix Tracker
 | Story | Focus | Sprint | Dependencies | Estimated Effort | Status |
 |---|---|---|---|---|---|
@@ -748,12 +912,26 @@ Dependencies: US-I10 (extracted opportunities on interaction events)
 | US-I7 | Admin Timeline Non-Regression | 4 | Existing role mode split | 0.5 sprint | Completed |
 | US-I8 | Admin Compact Timeline Toggle (Optional) | 4 | US-I7 | 0.5 sprint | Completed |
 | US-I9 | Deterministic Test Coverage | 4 | US-I2-US-I8 | 1 sprint | Completed |
-| US-I10 | Client opportunity metadata extraction from recruiter email | Follow-up | US-I1, US-I6 | 1 sprint | Planned |
+| US-I10 | Client opportunity metadata extraction from recruiter email | Follow-up | US-I1, US-I6 | 1 sprint | Completed (pending commit) |
 | US-I11 | Multi-opportunity display and per-opportunity intelligence | Unscheduled | US-I10 | TBD | Backlog |
+| US-I12 | Job spec attachment intelligence and candidate profile fit | Unscheduled | US-I3, US-I10, US-I11 | TBD | Backlog |
+| US-I13 | Take Note reply actions (send CV, follow-up, suggest times, feedback) | Unscheduled | Take note panel, US-I10, Gmail scope decision | TBD | Backlog |
+| US-I14 | Take Note calendar actions (add interview, plan assessment) | Unscheduled | Take note panel, US-I10, US-I13 | TBD | Backlog |
+| US-I15 | Take Note preparation actions (screening answers, availability, offer targets) | Unscheduled | Take note panel, US-I12, US-I13 | TBD | Backlog |
 
 ## 11.4 Story Delivery Notes
 - Recommended implementation path for Phase 1 completion: US-I1 -> US-I2 -> US-I6 -> US-I3 -> US-I4 -> US-I5 -> US-I7 -> US-I8 -> US-I9.
 - US-I10 is the explicit follow-on story for actual client-company and opportunity metadata extraction from recruiter email content. It includes backend extraction, persistence, and company linking, not only frontend mapping.
+- US-I10 implementation notes:
+  - Backend: Flyway `V20261015_120000__add_opportunity_extraction_to_interaction_events` adds `extracted_opportunities` (JSONB), `opportunity_extraction_status` and `opportunity_extraction_attempts` to `interaction_events`. `EmailProcessorTransactional` marks recruiter-sent events PENDING and publishes `OpportunityExtractionRequested`; `OpportunityExtractionDispatcher` runs the `OpportunityExtractionProcessor` after commit on its own bounded executor; `OpportunityExtractionSweeper` retries PENDING/FAILED events. `LocalLlamaOpportunityExtractionService` uses its own prompt (`ml/local-llama-opportunity-extraction-prompt.txt`); `ClientCompanyResolver` find-or-creates the client company (placeholder website unless the email stated a website that passes `ClientWebsitePolicy`).
+  - Configuration: `more.ml.extraction.*` (enabled, model name, base URL, timeout, threads, queue capacity, max attempts, retry-after minutes, sweep batch size). Model name, base URL and timeout fall back to the `more.ml.*` values when unset.
+  - Extraction uses the newest message of the event only (no thread context yet). An extracted company equal to the recruiter's own company is dropped and only the role is kept.
+  - Frontend: `mergeOpportunities` (`interactions/utils/opportunity-merge.util.ts`) merges per-event opportunities by company and normalised title; the accordion header shows "Role at Company" (plus "+N more"), the overview heading and website link use the client opportunity, and extracted deal breakers appear as risk items and feed the "Deal breakers (N)" count.
+  - The interim "+N more" header rule is implemented as designed but still unconfirmed (see the US-I11 open question).
+  - "Visit company website" only ever uses the primary client opportunity's verified website. There is no fallback to the recruiter company (the former hard-coded Aesglobal lookup was removed); when the client site is unknown the link is hidden.
+  - Merge rule for unknown clients: when a mention names no company (or the existing opportunity names none) it joins an existing opportunity only if exactly one has a compatible title (equal or missing); ambiguity keeps them apart. This stops a role stated in one email and its client named in the next from being counted as two opportunities ("+1 more").
 - US-I11 is a backlog idea raised while designing US-I10 (threads that pitch several roles or companies). It is not scheduled and needs design discussion first.
+- US-I12 is a backlog idea for reading job spec attachments from Gmail and mapping them to the candidate profile. Today the Gmail adapter reads only text parts, so attachments are ignored and `JOB_SPEC_ATTACHED` is inferred from the email text. It is not scheduled and needs design discussion first (profile data source, fit verdict policy, retention).
+- US-I13 to US-I15 define the behaviour behind the Take note action buttons. The buttons and their stable ids (`CandidateNoteActionId` in `utils/candidate-notes.util.ts`) already exist in the UI, but clicking them does nothing yet. US-I13 first needs a decision on Gmail scope (the current `gmail.readonly` scope cannot create drafts or send mail).
 - US-I8 remains optional and should be enabled only if admin testing volume justifies compact density mode.
 - Keep role-scoped gating and centralized feature-flag conventions unchanged while implementing these stories.
