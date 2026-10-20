@@ -19,26 +19,7 @@
 ## Feature Access Controls
 
 ### Interactions and Events Availability
-- [ ] **Prefer user-friendly navigation labels for candidate-facing opportunity flows**
-  - Current: The feature is internally described as "Interactions", and the page-level label "Events" is too generic and can be confused with admin-only operational workflows
-  - Required: Use a customer-friendly label such as "Job Leads" or "Recruiter Leads" for the main candidate-facing flow, while keeping "Interactions" or "Interaction Events" as internal/admin technical terminology only where needed
-  - UX rationale:
-    - "Job Leads" is clearer in a recruitment product because it communicates value and intent immediately
-    - "Recruiter Leads" is more explicit when the experience is centered on outreach and external recruiter contact
-    - "Events" alone is too vague for a customer-facing product and should not be used as the primary top-level label
-    - "Interaction Events" is acceptable as a technical or secondary label when describing the underlying activity stream, but it should not be the main navigation name seen by candidates
-  - Recommended naming split:
-    - Candidate-facing navigation: "Recruiter Leads" as the main lead-tracking experience
-    - Secondary or workflow-specific classification: "Recruiter Outreach" when describing active outbound/inbound recruiter contact streams
-    - Technical/internal detail: "Interaction Events"
-    - Avoid: generic "Events" as a top-level user-facing label
-  - Naming distinction:
-    - "Recruiter Leads" = the collection of opportunities or recruiter conversations the user is managing
-    - "Recruiter Outreach" = the communication activity or outreach stream itself
-    - "Interaction Events" = the lower-level technical event log behind either view
-  - Validation:
-    - Confirm the main candidate-facing navigation and page headings read as job opportunities rather than generic interaction tooling
-    - Confirm admin-only technical terminology is hidden from end-user flows unless explicitly required by internal administration tasks
+> The candidate-facing naming item ("Events" and "Interactions" labels) moved to user story US-I18 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` so it can be tested during normal development.
 
 - [ ] **Feature-toggle Interactions and Events off for admin in INT/Production**
   - Current: Interactions pages are directly accessible via routes such as `/interactions/events`

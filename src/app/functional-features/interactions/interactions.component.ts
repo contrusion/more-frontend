@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonModule } from '@angular/material/button';
+import { RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { InteractionService } from './services/interaction.service';
 import { EmailSyncService } from './services/email-sync.service';
@@ -12,9 +13,10 @@ import { InteractionThreadHeaderComponent } from './interaction-thread-header/in
 import { ActivityTimelineStep, StageTimelineComponent } from './stage-timeline/stage-timeline.component';
 import { ActivityGroup, resolveActivityGroup } from './utils/activity-group.util';
 import { buildCandidateNotes, CandidateNote } from './utils/candidate-notes.util';
+import { CandidateStage, getThreadSignalSet, isUnsuccessfulDecision, resolveCandidateStage } from './utils/thread-stage.util';
 import { ScrollTopComponent } from '../../shared/components/scroll-top/scroll-top.component';
 
-export type CandidateStage = 'Contacted' | 'Qualified' | 'Interviewing' | 'Decision';
+export type { CandidateStage };
 export type CandidateConfidence = 'Low' | 'Medium' | 'High';
 
 export interface CandidateInsightSummary {
@@ -63,7 +65,7 @@ const TIMELINE_UNSUCCESSFUL_STAGE: TimelineStageDefinition = { id: 'unsuccessful
 @Component({
   selector: 'app-interactions',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatExpansionModule, MatButtonModule, EmailThreadTimelineComponent, InteractionThreadHeaderComponent, StageTimelineComponent, ScrollTopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, MatExpansionModule, MatButtonModule, EmailThreadTimelineComponent, InteractionThreadHeaderComponent, StageTimelineComponent, ScrollTopComponent],
   templateUrl: './interactions.component.html',
   styleUrls: ['./interactions.component.css']
 })
@@ -137,8 +139,8 @@ export class InteractionsComponent implements OnInit, OnDestroy {
         );
         this.filteredThreads = [...this.threads];
         
-        // Auto-select first thread if none selected
-        if (!this.selectedThread && this.threads.length > 0) {
+        // Admin master-detail needs a selection; candidate accordion starts fully collapsed
+        if (!this.selectedThread && this.threads.length > 0 && !this.isCandidateMode()) {
           this.selectThread(this.threads[0]);
         }
       });
@@ -162,6 +164,10 @@ export class InteractionsComponent implements OnInit, OnDestroy {
 
   isAdminMode(): boolean {
     return this.interactionMode === 'admin';
+  }
+
+  getPageHeaderTitle(): string {
+    return this.isCandidateMode() ? 'Recruiter Leads' : 'Interaction Events';
   }
 
   getCurrentCenterPanelMode(): 'timeline' | 'candidate-insights' {
@@ -1189,73 +1195,15 @@ export class InteractionsComponent implements OnInit, OnDestroy {
   }
 
   private isUnsuccessfulDecision(signals: EventType[]): boolean {
-    return signals.some(type => [EventType.NOT_INTERESTED, EventType.REJECTION, EventType.SCREENING_ASSESSMENT_FAILED].includes(type));
+    return isUnsuccessfulDecision(signals);
   }
 
   private getThreadSignalSet(thread: InteractionThread): EventType[] {
-    const orderedSignals: EventType[] = [];
-
-    thread.events.forEach(event => {
-      if (!orderedSignals.includes(event.eventType)) {
-        orderedSignals.push(event.eventType);
-      }
-
-      (event.additionalEventTypes ?? []).forEach((type: EventType) => {
-        if (!orderedSignals.includes(type)) {
-          orderedSignals.push(type);
-        }
-      });
-    });
-
-    return orderedSignals;
+    return getThreadSignalSet(thread);
   }
 
   private resolveCandidateStage(signals: EventType[]): CandidateStage {
-    if (signals.some(type => [
-      EventType.NOT_INTERESTED,
-      EventType.REJECTION,
-      EventType.SCREENING_ASSESSMENT_FAILED
-    ].includes(type))) {
-      return 'Decision';
-    }
-
-    if (signals.some(type => [
-      EventType.INTERVIEW_SCHEDULED,
-      EventType.INTERVIEW_INVITE,
-      EventType.INTERVIEW_TIME_ACCEPTED,
-      EventType.INTERVIEW_TIME_PROPOSED,
-      EventType.INTERVIEW_TIME_PROPOSED_REJECTED
-    ].includes(type))) {
-      return 'Interviewing';
-    }
-
-    if (signals.some(type => [
-      EventType.CV_REQUEST,
-      EventType.CV_SUBMITTED,
-      EventType.JOB_SPEC_REQUEST,
-      EventType.JOB_SPEC_WRITTEN_IN_MAIL_TEXT,
-      EventType.JOB_SPEC_ATTACHED,
-      EventType.JOB_SPEC_REVIEWED,
-      EventType.SCREENING_ASSESSMENT_REQUEST,
-      EventType.SCREENING_ASSESSMENT_SCHEDULED,
-      EventType.SCREENING_ASSESSMENT_COMPLETED,
-      EventType.SCREENING_ASSESSMENT_COMPLETION_ACKNOWLEDGEMENT,
-      EventType.COMPENSATION_INQUIRY,
-      EventType.COMPENSATION_NEEDS_MET,
-      EventType.LOCATION_INQUIRY,
-      EventType.LOCATION_NEEDS_MET,
-      EventType.SKILLS_INQUIRY,
-      EventType.VISA_INQUIRY,
-      EventType.NOTICE_PERIOD_INQUIRY,
-      EventType.AVAILABILITY_INQUIRY,
-      EventType.BENEFITS_INQUIRY,
-      EventType.INTERESTED,
-      EventType.INTEREST_CHECK
-    ].includes(type))) {
-      return 'Qualified';
-    }
-
-    return 'Contacted';
+    return resolveCandidateStage(signals);
   }
 
   private resolveCandidateConfidence(stage: CandidateStage, signals: EventType[]): CandidateConfidence {

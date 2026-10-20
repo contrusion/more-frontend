@@ -60,6 +60,14 @@ describe('EmailSyncComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('renders the themed page header outside the card', () => {
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.email-sync-header h1')?.textContent).toContain('Discover Leads');
+    expect(el.querySelector('.email-sync-card .email-sync-header')).toBeNull();
+  });
+
   it('should check Gmail status on init', () => {
     emailSyncService.getGmailStatus.and.returnValue(of({ connected: false }));
     

@@ -87,7 +87,8 @@ Placement and presentation (accordion view):
 - The tracker sits at the top of the expanded panel, to the right of the opportunity heading, rather than as a card in the section grid.
 - It renders as a horizontally scrollable rail (`app-stage-timeline`, presentational) in the style of the Living CV career journey, but the nodes follow the stage pipeline rather than the raw activity taxonomy: Outreach, Screening, Interviews & Assessments, optional Offer stage, explicit decision outcome (`Unsuccessful` when a negative terminal signal exists), and Closed. The pipeline stage also appears in the accordion header chip so the header and rail use the same stage vocabulary, while the newest event group remains in the "Latest activity" card.
 - The current stage is highlighted in the middle of the rail when applicable, earlier stages show as completed ticks, and the next realistic stage(s) remain visible as upcoming nodes. The Offer stage only appears once the process has reached interviews. `Closed` is rendered as a neutral completion state, and negative terminal outcomes are shown in the preceding `Unsuccessful` node.
-- Each node shows the first time that stage appeared in the thread and a count for repeated events that contributed to it. Completed nodes use a tick marker instead of a solid filled dot.
+- Each node shows the first time that stage appeared in the thread and a count for repeated events that contributed to it. Passed stages use a solid dot with a "✓" chip; a passed stage with no classified events shows an inferred date window (italic, with tooltip) or "Completed".
+- On landing in candidate mode every thread is collapsed and none is selected or marked read; a thread opens only when the user expands it. Admin mode still auto-selects the newest thread because its detail panel needs a selection.
 - The rail scrolls instead of collapsing older nodes behind a "+N earlier" label, so the current position and the next stage remain visible without losing context.
 - Next unlock and missing evidence are shown directly beneath the timeline, with confidence as small text beside the "Next unlock" label and a "Take note" panel to the right (stacked below 56rem). The Opportunity overview follows below and now holds the fit check and stated deal breakers (see 4.3). The separate stage cards, summary paragraph, "Action plan" and "Risk & bottlenecks" sections were removed from the accordion because they repeated Next unlock and Take note (see 4.4 and 4.5).
 - "Take note" lists up to 6 items, most severe first (danger, warning, success, info, neutral; ties keep the order below), generated deterministically by `utils/candidate-notes.util.ts`. When more than 6 notes apply, the least severe (informational and "Coming up") are dropped first so blockers are never pushed out. It covers the current stage (interview date, pending CV, pending assessment, rejected interview time, stale thread, stated salary/notice/location terms), blockers (location or compensation not aligned, screening not passed, deal breakers stated) and a "Coming up" heads-up for the next stage (screening, interviews, offer readiness, or feedback/re-engagement after a decision). A location, compensation or screening blocker note disappears once the matching needs-met or passed signal arrives. Interview dates come from `facts.interviewDate`: green when in the future, red when past, neutral raw text when the date cannot be parsed. The panel is hidden when there is nothing to note. Notes that call for the candidate to do something carry a compact action button (for example "Send CV", "Suggest times", "Clarify location", "Clarify range", "Add to calendar", "Request feedback", "Prepare answers"). The buttons are presentational for now; their behaviour is defined in US-I13 to US-I15, and informational notes (stated terms, "Door still open", "Interviews likely next") have no button.
@@ -192,6 +193,14 @@ Groups are defined in `interactions/utils/activity-group.util.ts`. When several 
 | Outreach | neutral | OUTREACH, INTEREST_CHECK, REPLY, FOLLOW_UP, ACKNOWLEDGEMENT, PENDING_CLASSIFICATION |
 
 Tone maps to the semantic tokens in `styles.css` and expresses how positive the status is for the candidate.
+
+## 5.6 Home Totals and Navigation
+Home totals use the inferred stage (`interactions/utils/thread-stage.util.ts`), not the backend `status`, which stays NEW for synced threads until explicitly closed (`interactions/utils/interaction-summary.util.ts`):
+- Active Interactions: status is not CLOSED and the stage is not Decision.
+- New Opportunities: active threads still at Contacted. A thread leaves this count when any Qualified, Interviewing or Decision signal appears (see 5.2); it then stays in Active until a Decision signal or an explicit close.
+- Recruiters: distinct `participantId` values across all threads.
+
+Navigation: applicants and recruiters get an "Interactions" section in the nav drawer, and a matching list under Interactions in the home sidebar, with Analytics, Leads, My Recruiters / My Candidates and Reconnect (`shared/navigation/interactions-nav.ts`, same order as the Interactions side rail). The mailbox page (`/interactions/email-sync`, titled "Discover Leads") is no longer a nav entry; it is opened from the "Discover Leads" button in the Leads page header. The route name is kept because the Gmail OAuth return and deep links use it. The `interactionsEventsEnabled` flag only hides these links for admins, mirroring `InteractionsAccessGuard`.
 
 ## 6. EventType Intelligence Guide Catalog
 This catalog defines how each EventType contributes to:
@@ -527,6 +536,8 @@ User stories and the completion matrix for Phase 1 are defined below.
 
 ## 11. Phase 1 User Stories and Completion Matrix
 
+> **Note: status in `RECRUITMENT_PHASE1_PLAN_FOUNDATION.md`.** Completed markers in the Recruitment Phase 1 plan (for example US 1.1 to 1.3, US 1.3a, US 1.4) describe only the scope of those stories as originally written. They do not mean that the Interactions work that touches the same features (for example the Living CV section in US-I12, or interest and application events in US-I16 and US-I17) is done or unnecessary. Status for every Interactions story is tracked only in the matrix below. Before implementing a story that depends on a Recruitment story, check the actual code and migrations rather than relying on the completed marker.
+
 ## 11.1 Implementation Order
 | Sprint | Stories | Rationale |
 |---|---|---|
@@ -777,10 +788,55 @@ Side note (storage):
 Phase: Backlog, needs design discussion before scheduling  
 Dependencies: US-I10 (extracted opportunities on interaction events)
 
-#### US-I12: Candidate Gets Job Spec Attachment Intelligence and Profile Fit
+#### US-I12: Candidate Gets Job Spec Intelligence and Profile Fit
 As a candidate  
-I want the job spec a recruiter attaches to be read and compared with my profile  
-So that I see my skill coverage, gaps, interview tips and an evidence-backed fit verdict before I respond
+I want a job spec, whether I upload it myself or a recruiter attaches it, to be read and compared with my profile, and the skill gaps and deal breakers that keep recurring across my opportunities to be gathered for me  
+So that I see my skill coverage, gaps, interview tips and an evidence-backed fit verdict before I respond, and so that my Living CV shows me which weaknesses to work on and where to focus
+
+This story has two parts. They share the same text extraction, spec extraction, deterministic matching, narrative step and fit section, and differ only in how the job spec text arrives. In neither part is the document stored: it is read in memory and only derived data is kept.
+
+##### Part 1: Manual job spec upload
+The candidate uploads a job spec document themselves, for specs that did not arrive as an email attachment (for example a link, a LinkedIn message, a shared drive file, or an interaction that started on the platform, see US-I16).
+
+Acceptance Criteria:
+- On an expanded opportunity the candidate can upload a job spec (PDF, DOCX, TXT) with a file upload control.
+- The file is read in memory and converted to text. The document itself is never saved (no file store, no database blob, no temporary file left behind) and its text is not logged. Only the derived structured spec is stored, exactly as in Part 2.
+- The structured extraction, deterministic skill matching, narrative generation, fit verdict and fit section are the same as in Part 2, so the result looks the same however the spec arrived. The same untrusted-text and schema validation rules apply.
+- Unsupported types, oversized files and unreadable files (for example scanned PDFs) show a clear inline message with a retry option, never a silent failure.
+- Upload is send and forget: the candidate does not wait for the analysis. As soon as the upload is accepted the section shows an inline "Job Spec being analyzed" message and the candidate can keep using the page.
+- The frontend polls for completion every 1 minute while the analysis is PENDING. Polling stops as soon as the status is DONE or FAILED, and also when the candidate leaves the page or the opportunity is no longer shown. Polling never runs when nothing is pending.
+- When the analysis completes the fit section updates in place with a short inline success state. A FAILED result shows the inline error with a retry option (retry uploads again).
+- If the page is reloaded or reopened while an analysis is still PENDING, the "being analyzed" message is shown again and polling resumes, because the status comes from the server and not from browser state.
+- Polling is capped (for example 30 minutes). After the cap the section shows "Analysis is taking longer than expected" with a manual refresh action instead of polling forever.
+- The upload belongs to a specific opportunity (the primary opportunity until US-I11 is decided). A newer upload replaces the derived spec for that opportunity.
+- The candidate can remove the derived spec data for an opportunity.
+- Only the owning candidate can upload to, read or remove the data of their own interactions.
+- A spec from either part feeds the "Weaknesses and focus areas" aggregation in Part 2 in the same way.
+
+Design decisions (proposed, to be confirmed):
+- A candidate-scoped multipart upload endpoint. The stream is processed in memory with a size cap, a MIME allow-list checked on file content and not only the extension, and page and archive-entry limits to guard against oversized or decompression-bomb files. Uploads are rate limited.
+- It reuses the text extraction service, spec extraction service, schema validation and PENDING/DONE/FAILED status mechanics from Part 2. The request returns `202 Accepted` with the PENDING status once the upload is accepted and the extraction runs on the same bounded executor, so a slow local model call does not hold the HTTP request open. The file bytes are held in memory only until the text is extracted, and only the extracted text (not the file) is passed to the background step, so a retry by the sweeper is not possible from the file and the candidate retries by uploading again.
+- Completion is read by polling a lightweight, candidate-scoped status read (opportunity spec status: PENDING, DONE, FAILED, plus the derived spec when DONE) every 1 minute, rather than reloading all threads. A push channel (SSE or WebSocket) was considered and rejected for now because a 1-minute poll is enough for a send-and-forget flow.
+- The derived spec uses the same `JSONB` structure as Part 2. A manual upload has no recruiter email behind it, so it is proposed to be recorded as a candidate-added event on the thread (no stage signal by itself) rather than a new table. Check existing migrations first.
+- Part 1 needs no Gmail scope or adapter changes, so it can ship before Part 2 and also works for platform-originated interactions.
+- Frontend: PrimeNG file upload (the UI guidance reserves PrimeNG for file upload), with the upload sent through a service, plus analyzing, error and retry states. The polling lives in the service (an RxJS timer every 60 seconds, switched to the status read, completed with `takeWhile` on the PENDING status and torn down with `takeUntilDestroyed()`), and the component only reads a signal. Only one poll runs per opportunity, and a new upload replaces the running poll.
+- Because the extracted text is held only in the in-flight background task, a server restart while PENDING loses the task. The sweeper marks such stale PENDING items FAILED after a timeout so the candidate sees the retry state instead of waiting indefinitely.
+
+Open questions (not yet decided):
+- Where is the derived spec stored for a manual upload (a candidate-added event, or a column tied to the opportunity), and does it count as a stage signal such as `JOB_SPEC_ATTACHED`?
+- If an uploaded spec differs from a spec that arrived by email for the same opportunity, does the latest win, or are both kept?
+- Can a candidate upload a spec for a role that has no interaction yet (for example a role found elsewhere)?
+- Is a 1-minute poll acceptable for a typical analysis time on the local model, or should the first check come sooner (for example after 15 seconds) and then settle at 1 minute?
+
+Backend + frontend changes required:
+- Backend: multipart upload endpoint (DTO records, validation, ownership checks), in-memory handling with no persistence of the file, and reuse of the Part 2 extraction pipeline. Flyway only if a column is needed, versioned per project convention.
+- Backend: `202 Accepted` upload response, a candidate-scoped spec status read for polling, and stale PENDING handling in the sweeper.
+- Frontend: upload control and the spec-driven fit section states (analyzing, unreadable, error, retry, replace, remove, taking longer than expected), plus the 1-minute completion poll in the service.
+- Unit tests for MIME and size validation, no file persistence, unreadable files, replace and remove, ownership and role checks, and the frontend upload states.
+- Unit tests for polling: it starts after an accepted upload, repeats every 60 seconds (fake timer), stops on DONE and on FAILED, stops on component destroy, resumes for an already PENDING spec on load, does not start when nothing is pending, is replaced by a new upload, and stops at the cap.
+
+##### Part 2: Gmail attachments, profile fit and Living CV weaknesses
+The job spec a recruiter attaches to an email is read automatically, and recurring skill gaps and deal breakers are aggregated for the Living CV.
 
 Acceptance Criteria:
 - Job spec attachments (PDF, DOCX, TXT) on recruiter emails are fetched and converted to text; unsupported, oversized or unreadable files (for example scanned PDFs) show a clear "couldn't read this spec" state instead of failing silently.
@@ -792,6 +848,17 @@ Acceptance Criteria:
 - Attachment text is treated as untrusted data: it cannot alter model instructions, and model output is validated against a schema before it is stored or shown.
 - Document text is not logged, and only derived data is stored.
 
+Acceptance Criteria (weaknesses and focus areas for the Living CV):
+- The candidate-side skill gaps and deal breakers of all of the candidate's interaction opportunities are gathered into one aggregated list per candidate. Sources: `SKILLS_GAP` and `SKILLS_INQUIRY` signals, required skills from the extracted opportunity facts and job spec that the candidate's profile does not cover (strong/partial/missing from the matching above), and extracted deal breakers the candidate cannot currently meet (including those behind `LOCATION_BOTTLENECK`, `COMPENSATION_BOTTLENECK`, visa and notice period constraints).
+- "Candidate side" means items about what the candidate lacks or cannot meet. Recruiter or company-side deal breakers that are not about the candidate (for example a stated role requirement the candidate already satisfies) are excluded.
+- Entries are deduplicated by a normalised skill or deal-breaker key (reusing the synonym map) and carry evidence: the number of opportunities that raised it, the most recent occurrence, the severity (blocked a process, raised as a concern, listed only) and the opportunity titles for the candidate's own reference.
+- Entries are ranked by impact: items that blocked or ended a process first, then by how many opportunities raised them, then by recency. Closed threads still count as evidence, but a gap the candidate has since closed (skill added to the Living CV or a verified milestone) is shown as resolved instead of being dropped silently.
+- The Living CV gets a "Weaknesses and focus areas" section with two groups: skill gaps and deal breakers. Each entry shows the name, how often it came up, and a suggested focus action that links to an existing Living CV or career-development flow (add a skill, start a goal, take a challenge or assessment, add a certification, or update location, salary or notice period preferences).
+- The section is private to the candidate. It never appears in recruiter views, the public Living CV, the candidate pool or exports, and recruiter, company and email text are not shown in it.
+- With no interaction data the section shows a guided empty state (what feeds it and how to get started) instead of staying blank, and shows inline loading and retry states.
+- The candidate can dismiss an entry or mark it as not relevant, and the choice persists and is not re-added by later syncs unless the evidence changes.
+- Aggregation is deterministic and testable; the model is not used to decide what counts as a gap or a deal breaker.
+
 Design decisions (proposed, to be confirmed):
 - Gmail access: the existing `gmail.readonly` scope already allows downloading attachments, so no new consent is needed. `GmailInboundEmailSourceAdapter` currently reads only text parts, so it must also collect parts with a filename and `body.attachmentId` and fetch them through the Gmail attachments API, with a MIME allow-list and a size cap.
 - Text extraction happens server-side (for example Apache Tika, or PDFBox and POI). The model never receives raw files. OCR is out of scope for v1.
@@ -801,9 +868,18 @@ Design decisions (proposed, to be confirmed):
 - Long specs are truncated or chunked to fit the model context; the request timeout and executor limits follow the `more.ml.*` configuration.
 - Privacy: job specs and CV data are personal data. Keep processing on the local model, avoid logging document content, and apply a retention rule to extracted content.
 - A spec belongs to a specific opportunity, so this story depends on how US-I11 scopes opportunities within a thread. Until US-I11 is decided, attach the spec to the primary opportunity.
+- Weaknesses and focus areas: the Living CV page does not load interaction threads, and only the candidate's own threads are visible to them, so the aggregation should be a backend read model rather than a frontend merge of full threads. Proposed endpoint: a candidate-scoped read (for example `GET /api/candidates/me/interaction-insights`) returning `{ skillGaps[], dealBreakers[] }` with key, label, occurrences, last seen, severity and resolved flag. It is derived from the per-event `JSONB` extractions (US-I10 and the spec extraction here), so no new extraction pipeline is needed. Check existing migrations first; a table is only needed for the dismissed or not-relevant choices, and for the aggregate itself if read cost requires caching.
+- The aggregation, normalisation and ranking rules live in one deterministic utility or service shared with the skill matching, so the Interactions fit rows and the Living CV section never disagree about what a gap is.
+- Gap resolution is evaluated against the same candidate profile source as the skill matching, so a skill that is added to the Living CV moves to resolved on the next read.
+- Privacy: this is personal development data. It is exposed only to the owning candidate (role and ownership checks on the endpoint), is excluded from every recruiter-facing Living CV, candidate search and export path, and follows the same retention rule as the extracted spec data.
+- Frontend: follows the Living CV UX patterns (progressive disclosure, guided empty state, inline feedback and recovery, semantic status tokens, differentiated container for a ranked focus list rather than repeating card shells). Sibling to the Market Readiness diagnostic pattern: current status first, what drives it, then the highest-impact next action.
 
 Open questions (not yet decided):
-- Which candidate data is the source of truth for skills and years of experience (Living CV, profile, or an uploaded CV)?
+- Which candidate data is the source of truth for skills and years of experience (Living CV, profile, or an uploaded CV)? This also decides how gaps are marked as resolved.
+- Should the focus areas also feed Market Readiness scoring (for example as suggested next steps) or the career pathway, or stay informational on the Living CV only?
+- Should a gap be counted once per opportunity or once per recruiter or company, so one recruiter pitching five similar roles does not inflate the ranking?
+- How long does evidence stay relevant (for example only the last 6 or 12 months), and should stale items fade out?
+- Which deal breakers are candidate-side, and which are preferences the candidate chooses to keep (for example a location the candidate will not move to)? Those may belong in preferences (US-I15) rather than as weaknesses.
 - Is a fit verdict acceptable for candidates, or should the section show coverage and gaps only?
 - Which file types and size cap are supported in v1, and what is the retention period for extracted spec data?
 - Should specs pasted into the email body (`JOB_SPEC_WRITTEN_IN_MAIL_TEXT`) go through the same extraction path?
@@ -817,10 +893,14 @@ Backend + frontend changes required:
 - Expose the extracted spec through the existing interaction event DTOs, and map it in the frontend interaction service.
 - Deterministic skill matching utility with synonym map and unit tests; narrative generation step fed with the structured match.
 - Frontend: a spec-driven fit section in the accordion (skill coverage, gaps with actions, interview tips, fit verdict with evidence) following the UX instructions, plus loading, error and unreadable-spec states.
+- Backend: interaction insights aggregation service and candidate-scoped endpoint (DTO records, mapper, ownership checks) that gathers skill gaps and candidate-side deal breakers across the candidate's interaction events, with dismissal persistence if a table is required (Flyway, versioned per project convention).
+- Frontend: interaction insights service, models matching the DTOs, and a "Weaknesses and focus areas" section in the Living CV (`living-cv` feature) with focus-action links, empty, loading, error and retry states, and no exposure in recruiter-facing views.
 - Unit tests for attachment filtering, text extraction failures, spec parsing and schema validation, prompt-injection handling, idempotent replay, skill matching and the frontend section states.
+- Unit tests for aggregation: deduplication through the synonym map, candidate-side filtering, ranking, resolved-gap handling, dismissal persistence, ownership and role checks on the endpoint, and the Living CV section states and privacy (not rendered in recruiter views).
 
 Phase: Backlog, needs design discussion before scheduling  
-Dependencies: US-I3, US-I10; US-I11 for per-opportunity scoping; candidate profile data source (open question)
+Dependencies: US-I3, US-I10; US-I11 for per-opportunity scoping; candidate profile data source (open question); Living CV skills and goals (US 1.1 to 1.3) for the focus actions; Part 1 has no dependency on the Gmail adapter changes in Part 2  
+Note: US 1.1 to 1.3 are marked completed in `RECRUITMENT_PHASE1_PLAN_FOUNDATION.md`. That is only a dependency here: the "Weaknesses and focus areas" section is new work owned by this story, added to the existing Living CV page, and the Living CV is not being reopened or reimplemented.
 
 #### US-I13: Candidate Replies From a Take Note Action
 As a candidate  
@@ -838,6 +918,7 @@ Design decisions (proposed, to be confirmed):
 - The Gmail integration currently uses the `gmail.readonly` scope, which cannot create drafts or send mail. Options: (a) request an additional `gmail.compose` scope and create a draft in the candidate's Gmail, (b) request `gmail.send` and send from the platform, (c) open a `mailto:` link with the template and send nothing from the platform. Option (c) needs no new consent; (a) and (b) need a consent change and a security review.
 - Action handling is a single dispatcher keyed by `CandidateNoteActionId` so new actions do not change the template or the note builder.
 - The candidate CV for `send-cv` depends on the profile data source decision in US-I12.
+- On platform-originated interactions (US-I16, US-I17) the same actions can be handled natively inside the platform, which needs no Gmail scope.
 
 Open questions (not yet decided):
 - Which of the three sending options is acceptable (consent and privacy)?
@@ -900,6 +981,144 @@ Backend + frontend changes required:
 Phase: Backlog, needs design discussion before scheduling  
 Dependencies: Take note panel, US-I10 (facts), US-I12 (profile data source), US-I13 (availability draft)
 
+### Epic: Platform-Originated Interactions
+
+The stories above all start from a recruiter email. These two cover interactions that start on the platform: a recruiter posts a job ad (already supported), a candidate shows interest or applies, and that action is itself an interaction. The conversation may stay on the platform or move to email.
+
+> **Note: blocker questions.** US-I16 and US-I17 must not be implemented until the questions marked **Blocker** under each story are answered. The stories below record the intent and the proposed design only.
+
+#### US-I16: Platform-Originated Interaction From Job Interest or Application
+As a candidate  
+I want showing interest in, or applying to, a job ad on the platform to appear as an interaction with that recruiter  
+So that every opportunity, whether it started by email or on the platform, is tracked in one place with the same stage, guidance and totals
+
+Acceptance Criteria:
+- When a candidate shows interest in or applies to a recruiter's job ad, an interaction is created for that candidate and recruiter, or the event is attached to an existing one (see the merge rule under the open questions). The first event is on the `MO_NATIVE` channel.
+- The opportunity facts (role title, client company, location, work mode, salary, required skills) come from the job ad. No model extraction or classification is used for platform-originated events.
+- Application status changes (for example applied, shortlisted, on hold, rejected) are recorded as events on the same interaction and mapped to the existing stage signals by a fixed, documented mapping (for example applied maps to `INTERESTED` and `CV_SUBMITTED`, rejected maps to `REJECTION`). The mapping is deterministic and unit tested.
+- The interaction appears in the candidate's Interactions view, the stage rail, Take note and the home totals exactly like an email-originated one, with a channel indicator.
+- The interaction links to the job ad and the application instead of copying their data. Changing the application status does not require a second update on the interaction.
+- Recruiter-facing views keep respecting the candidate's public alias until identity is revealed under the existing rules.
+- Interactions that only exist because of email are unaffected.
+
+Design decisions (proposed, to be confirmed):
+- `JobApplication` already holds the status, hold reason, recruiter notes and applied/status-change timestamps, so it stays the source of truth for the application state. The interaction derives its platform events from it (read-time derivation or events written from the existing status-change path) rather than keeping a second copy that can drift.
+- `RecruiterInteraction` already allows a nullable recruiter and has external email fields, and each event carries its own channel, so one thread can hold platform and email events. The existing model is reused. A new table is not expected; check existing migrations first.
+- The opportunity shown for a platform interaction is built from the job ad and fed to the same `OpportunityContext` contract as US-I10, so the accordion header, overview and fit rows need no separate path.
+- A job interest is a lighter signal than an application. The proposed default is to create the interaction on interest or application and record the application as an event inside it.
+
+Open questions:
+- **Blocker:** does an expressed interest alone create an interaction, or only a full application?
+- **Blocker:** if the candidate already has an email thread with the same recruiter, do we merge the platform events into it, keep a separate interaction, or merge only when it is about the same job? What is the matching rule (recruiter, candidate, job ad, role title)?
+- **Blocker:** is the recruiter side in scope (a recruiter Interactions view of platform interactions), or is this candidate-side only for now?
+- **Blocker:** what does the recruiter see before the candidate reveals their identity, and how does that apply to an interaction record and its events?
+- Which application statuses map to which stage signals, and what happens to statuses with no matching signal (for example on hold)?
+- Is an existing application backfilled into interactions, or only new ones from release (the US-I10 approach was no backfill)?
+- Which interaction `status` does an application withdrawal or a job ad closure produce?
+
+Backend + frontend changes required:
+- Backend: creation or attachment of an interaction from the interest and application flows, status-change to event mapping, and exposure through the existing interaction DTOs with the channel (Flyway only if a link column is needed, versioned per project convention).
+- Backend: opportunity facts from the job ad mapped into the existing extracted opportunity contract.
+- Frontend: channel indicator on the thread and events, and no change to the stage, notes or totals logic beyond consuming the new events.
+- Unit tests for the status-to-signal mapping, creation versus attachment, alias handling, and the home totals with a platform-originated interaction.
+
+Phase: Backlog, needs design discussion before scheduling  
+Dependencies: Existing job ads, interest and application flows, US-I10 (opportunity contract), US-I6 (signal fusion)  
+Note: in `RECRUITMENT_PHASE1_PLAN_FOUNDATION.md`, job ad creation (US-R1) and `JobApplication` exist, but US-R2 (matching) and US-C1 (interest under alias, interest tracking endpoints) are still pending. Do not assume an interest flow exists. Confirm in code what exists before starting, and agree the interest-status source of truth with US-C1 so this story does not build a second one. Interactions status for this story is tracked only in the matrix in section 11.
+
+#### US-I17: Candidate and Recruiter Continue the Conversation on the Platform
+As a candidate or recruiter  
+I want to keep talking inside the platform after an interest or application, and have the conversation stay linked when it later moves to email  
+So that I do not have to leave the platform to progress an opportunity, and nothing is lost if either side switches channel
+
+Acceptance Criteria:
+- A candidate and a recruiter can exchange messages on a platform-originated interaction. Each message is an event on the `MO_NATIVE` channel.
+- Platform messages carry explicit, structured actions where possible (request CV, send CV, propose interview times, accept a time, ask a screening question, send feedback). Each action maps to a stage signal by a fixed mapping, so no classification model is needed for platform events.
+- The Take note actions from US-I13 to US-I15 (send CV, suggest interview times, clarify location or compensation, request feedback) work natively on a platform interaction without any Gmail scope, and add events to the thread.
+- When either party moves to email, later emails from that recruiter about the same opportunity attach to the same interaction instead of starting a second one, using the agreed matching rule from US-I16.
+- The channel of each event is visible in the thread so the history reads as one conversation.
+- Notifications tell the other party about a new platform message, and respect existing notification preferences.
+- Candidate identity rules (public alias until revealed) apply to messages.
+- Messages are not exposed to anyone other than the two parties and administrators with the existing access rules.
+
+Design decisions (proposed, to be confirmed):
+- Prefer explicit actions over free text for the first release. Actions give deterministic signals, avoid model cost and make the next-unlock logic exact. Free-text messages can be added next to them and shown as neutral `REPLY` events.
+- Messages are stored as interaction events, not in a separate messaging model, so stage, notes, totals and the admin timeline keep working unchanged.
+- Native actions remove the Gmail compose or send scope question for platform interactions, so US-I13 can ship native actions first and revisit email sending separately.
+- Abuse and safety controls (rate limits, content limits, blocking, reporting) and a retention rule are part of this story, not an afterthought.
+
+Open questions:
+- **Blocker:** structured actions only, free text only, or both for the first release? Free text needs a decision on whether platform messages go through the classifier.
+- **Blocker:** does the recruiter get an inbox and Interactions view in this story, or does it only update the candidate side? Messaging needs both parties.
+- **Blocker:** when a candidate or recruiter moves to email, how is the matching to the existing interaction done reliably (reply-to address, subject token, recruiter and job ad), and what happens when it cannot be matched?
+- **Blocker:** what notification channels are used (in-app, email), and does a notification email count as an interaction event?
+- Are attachments (CV, job spec) allowed in platform messages, and are they scanned and size limited? How does this relate to US-I12?
+- What is the retention and deletion rule for platform messages?
+- Can a recruiter message a candidate first on a platform interaction, or only reply to an interest or application?
+- Are read receipts or typing indicators wanted, or out of scope?
+
+Backend + frontend changes required:
+- Backend: send and read message endpoints on an interaction, action-to-signal mapping, ownership and role checks, notification dispatch, rate limiting and retention (Flyway only if new columns are needed, versioned per project convention).
+- Backend: email-to-interaction matching for later emails from a recruiter with an existing platform interaction.
+- Frontend: conversation composer with structured actions (Angular Material dialog or panel, accessible), channel indicators, native handling of the Take note action buttons, and recruiter-side view if confirmed in scope.
+- Unit tests for the action mapping, access control, rate limits, email-to-interaction matching and the native Take note actions.
+
+Phase: Backlog, needs design discussion before scheduling  
+Dependencies: US-I16, US-I13 to US-I15 (native actions), US-I10 (opportunity contract), notification infrastructure
+
+### Epic: Naming and Navigation
+
+#### US-I18: Candidate-Facing Names for Interactions, Aligned With Jobs
+As a candidate  
+I want the recruiter conversations I am tracking to have a clear, customer-friendly name that does not clash with the Jobs section  
+So that I understand at a glance what is in each section, without seeing internal terms such as "Interactions" and "Events"
+
+Current state (verified in code):
+- `/jobs` (applicants only) holds `Opportunities` (`/jobs/opportunities`, the feed of job ads posted on the platform) and `My Applications` (`/jobs/applications`).
+- `/interactions` (applicants and recruiters) holds `Analytics`, `Events`, `Reconnect` and `Email Sync`, from `shared/navigation/interactions-nav.ts`. (Superseded: `Email Sync` has since been removed from the nav and is reached through the "Discover Leads" button on the Leads page.) The nav drawer section and the home card are both called "Interactions". The admin drawer lists "Interaction Events" under Platform Operations.
+- The home totals are "Active Interactions" and "New Opportunities". "New Opportunities" counts email threads still at Contacted, so the same word means a posted job on `/jobs/opportunities` and a recruiter email thread on the home page.
+- "Events" is the name of the page that lists the conversations, but each item in it is a conversation (a thread), and "events" are the individual messages inside it.
+
+Problem:
+- "Interactions" and "Events" are internal terms and say nothing about the value to a candidate.
+- "Opportunities" cannot simply be used for the Interactions section while it is also the name of the job feed under Jobs.
+- US-I16 and US-I17 will bring platform applications and messages into the same view, so the name must still fit when a conversation did not start with a recruiter email.
+
+Acceptance Criteria:
+- Candidate-facing navigation (nav drawer, home sidebar list and home card), page headings and the home totals use the agreed name instead of "Interactions", "Events", "Active Interactions" and the clashing "New Opportunities".
+- No candidate-facing label uses the same word as another section for a different thing (the word chosen for the Jobs feed is not reused for conversations).
+- The relationship between the two areas is clear from the wording: Jobs is what is posted on the platform and what the candidate applied to; the conversations area is every recruiter contact the candidate is tracking, whichever channel it came from.
+- Admin keeps the technical terms ("Interaction Events" under Platform Operations) and the admin guard behaviour is unchanged.
+- Routes stay `/interactions/*` in this story so existing links, guards and the feature flag are untouched. A rename of the route path is a separate decision (it would need redirects).
+- Order and grouping of the nav drawer are reviewed so the two sections read as a pair (for example the conversations section next to Jobs).
+- No behaviour change: only labels, headings, helper text and empty-state copy.
+
+Design decisions (proposed, to be confirmed):
+- D1, the name. Options, with a recommendation:
+  - Option A (recommended): "Recruiter Leads" for the section, "Leads" for the page that was "Events", home totals "Active Leads" and "New Leads". It keeps `Jobs > Opportunities` as is, so no clash and no change to the job feed. Weakness: a platform-originated item from US-I16 is not strictly a recruiter lead, and recruiters also see this section.
+  - Option B: use "Opportunities" for the conversations and rename the job feed (for example "Browse Jobs"). It matches the vocabulary already in the code (`OpportunityContext`, "Role at Company" header, "New Opportunities") and the MO brand (More Opportunities), but it renames an established page, its route and sibling UX pattern, and touches the Jobs documentation.
+  - Option C: fold the conversations into Jobs as a third tab. Rejected for now because Jobs is applicant-only and Interactions is also used by recruiters.
+- D2, recruiter view. The Interactions section is shared by applicants and recruiters. "Recruiter Leads" is wrong for a recruiter, so either the label is role-aware (candidate sees the lead name, recruiter keeps a neutral name such as "Conversations"), or one neutral name is used for both. Proposed: role-aware label from one shared constant so the drawer, the home sidebar and the page heading cannot drift.
+- D3, "Events". Proposed: the page that lists conversations is renamed with the section name; "event" stays only for the individual messages inside a conversation and for the admin technical view.
+- Keep all labels in one place (the `interactions-nav.ts` constants and a small label helper) instead of repeating strings in components, so a later rename is one change. Route paths and the `interactionsEventsEnabled` flag are not renamed.
+- US-I16 and US-I17: the chosen name must read correctly for a conversation that started on the platform. Applications in `My Applications` stay the source of truth for application status; the conversations area links to them (see US-I16) rather than replacing that page.
+
+Open questions (not yet decided):
+- Which option (A, B or C) and the final wording. This blocks implementation. Per the UX instructions the trade-off is surfaced here rather than applied silently.
+- Is the recruiter label separate from the candidate label (D2)?
+- Do the Interactions Phase 2 docs, the ML docs and the `more-about.md` brand copy need the same wording?
+
+Frontend changes required:
+- Replace the user-facing strings in `interactions-nav.ts`, the nav drawer sections, the home card and totals (`home.component`), the page headings and empty-state copy in the interactions pages, using the shared label constants.
+- Update the specs that assert the old labels (for example the home sidebar list that expects `Analytics, Events, Reconnect, Email Sync`) and add specs for the role-aware label and for the admin technical label being unchanged.
+- Update this document, `PRODUCTION_READINESS.md` (already moved here) and the user-facing wording in the other Interactions docs once the name is chosen.
+
+Backend changes required:
+- None. DTO, API and route names are unchanged.
+
+Phase: Current workstream, ready once D1 and D2 are confirmed  
+Dependencies: none to start; must stay compatible with US-I16 and US-I17
+
 ## 11.3 Completion Matrix Tracker
 | Story | Focus | Sprint | Dependencies | Estimated Effort | Status |
 |---|---|---|---|---|---|
@@ -914,10 +1133,13 @@ Dependencies: Take note panel, US-I10 (facts), US-I12 (profile data source), US-
 | US-I9 | Deterministic Test Coverage | 4 | US-I2-US-I8 | 1 sprint | Completed |
 | US-I10 | Client opportunity metadata extraction from recruiter email | Follow-up | US-I1, US-I6 | 1 sprint | Completed (pending commit) |
 | US-I11 | Multi-opportunity display and per-opportunity intelligence | Unscheduled | US-I10 | TBD | Backlog |
-| US-I12 | Job spec attachment intelligence and candidate profile fit | Unscheduled | US-I3, US-I10, US-I11 | TBD | Backlog |
+| US-I12 | Job spec intelligence (Part 1: manual upload; Part 2: Gmail attachments), candidate profile fit, and Living CV weaknesses and focus areas | Unscheduled | US-I3, US-I10, US-I11, Living CV | TBD | Backlog |
 | US-I13 | Take Note reply actions (send CV, follow-up, suggest times, feedback) | Unscheduled | Take note panel, US-I10, Gmail scope decision | TBD | Backlog |
 | US-I14 | Take Note calendar actions (add interview, plan assessment) | Unscheduled | Take note panel, US-I10, US-I13 | TBD | Backlog |
 | US-I15 | Take Note preparation actions (screening answers, availability, offer targets) | Unscheduled | Take note panel, US-I12, US-I13 | TBD | Backlog |
+| US-I16 | Platform-originated interaction from job interest or application | Unscheduled | Job ads, interest and applications, US-I10, US-I6 | TBD | Backlog (blocker questions open) |
+| US-I17 | Conversation on the platform and handoff to email | Unscheduled | US-I16, US-I13 to US-I15, notification infrastructure | TBD | Backlog (blocker questions open) |
+| US-I18 | Candidate-facing names for Interactions and Events, aligned with Jobs | Current | None (compatible with US-I16, US-I17) | 0.5 sprint | Ready, naming decision (D1, D2) pending |
 
 ## 11.4 Story Delivery Notes
 - Recommended implementation path for Phase 1 completion: US-I1 -> US-I2 -> US-I6 -> US-I3 -> US-I4 -> US-I5 -> US-I7 -> US-I8 -> US-I9.
@@ -931,7 +1153,9 @@ Dependencies: Take note panel, US-I10 (facts), US-I12 (profile data source), US-
   - "Visit company website" only ever uses the primary client opportunity's verified website. There is no fallback to the recruiter company (the former hard-coded Aesglobal lookup was removed); when the client site is unknown the link is hidden.
   - Merge rule for unknown clients: when a mention names no company (or the existing opportunity names none) it joins an existing opportunity only if exactly one has a compatible title (equal or missing); ambiguity keeps them apart. This stops a role stated in one email and its client named in the next from being counted as two opportunities ("+1 more").
 - US-I11 is a backlog idea raised while designing US-I10 (threads that pitch several roles or companies). It is not scheduled and needs design discussion first.
-- US-I12 is a backlog idea for reading job spec attachments from Gmail and mapping them to the candidate profile. Today the Gmail adapter reads only text parts, so attachments are ignored and `JOB_SPEC_ATTACHED` is inferred from the email text. It is not scheduled and needs design discussion first (profile data source, fit verdict policy, retention).
+- US-I12 is a backlog idea with two parts: (1) the candidate manually uploads a job spec document, which is read and not stored, and (2) reading job spec attachments from Gmail and mapping them to the candidate profile. Today the Gmail adapter reads only text parts, so attachments are ignored and `JOB_SPEC_ATTACHED` is inferred from the email text. It also gathers the candidate-side skill gaps and deal breakers across all of the candidate's opportunities and feeds a private "Weaknesses and focus areas" section in the Living CV so the candidate knows what to improve. It is not scheduled and needs design discussion first (profile data source, fit verdict policy, retention, how repeated gaps are counted, and whether focus areas feed Market Readiness).
 - US-I13 to US-I15 define the behaviour behind the Take note action buttons. The buttons and their stable ids (`CandidateNoteActionId` in `utils/candidate-notes.util.ts`) already exist in the UI, but clicking them does nothing yet. US-I13 first needs a decision on Gmail scope (the current `gmail.readonly` scope cannot create drafts or send mail).
+- US-I16 and US-I17 cover interactions that start on the platform (a candidate shows interest in or applies to a posted job) and the conversation that follows, including the move to email. `ChannelType.MO_NATIVE` already exists in the frontend model, and `RecruiterInteraction` already allows a nullable recruiter, so the model is largely in place. **Blocker questions are open on both stories and must be answered before implementation** (interest versus application, merging with an existing email thread, recruiter-side scope, candidate alias handling, structured actions versus free text, and email-to-interaction matching). Until then the stories are documentation only.
+- US-I18 replaces the former production-readiness item about candidate-facing navigation labels. It is label-only (routes, guards and the feature flag are unchanged) and is blocked only on the naming decision. The name "Opportunities" is already used by `/jobs/opportunities`, so using it for conversations would also mean renaming the job feed.
 - US-I8 remains optional and should be enabled only if admin testing volume justifies compact density mode.
 - Keep role-scoped gating and centralized feature-flag conventions unchanged while implementing these stories.

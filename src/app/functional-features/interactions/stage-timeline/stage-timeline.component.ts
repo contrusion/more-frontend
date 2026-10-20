@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, LOCALE_ID, computed, inject, input } from '@angular/core';
+import { DatePipe, formatDate } from '@angular/common';
 import { ActivityTone } from '../utils/activity-group.util';
 
 export interface ActivityTimelineStep {
@@ -28,6 +28,36 @@ export interface ActivityTimelineStep {
   styleUrls: ['./stage-timeline.component.css']
 })
 export class StageTimelineComponent {
+  private readonly locale = inject(LOCALE_ID);
+
   readonly steps = input.required<ActivityTimelineStep[]>();
   readonly ariaLabel = input('Recent activity');
+
+  /**
+   * Steps ready for display. A passed step that no message was classified into has no date of its own,
+   * so it gets the window between the nearest dated step before it and after it (for example "3 - 9 Oct").
+   */
+  readonly displaySteps = computed(() => {
+    const steps = this.steps();
+    return steps.map((step, index) => ({
+      ...step,
+      inferredRange: step.state === 'past' && !step.reachedAt ? this.inferRange(steps, index) : null
+    }));
+  });
+
+  private inferRange(steps: ActivityTimelineStep[], index: number): string | null {
+    const from = [...steps.slice(0, index)].reverse().find(step => step.reachedAt)?.reachedAt;
+    const to = steps.slice(index + 1).find(step => step.reachedAt)?.reachedAt;
+    if (!from || !to) {
+      return null;
+    }
+
+    const format = (date: Date, pattern: string) => formatDate(date, pattern, this.locale);
+    if (format(from, 'yMd') === format(to, 'yMd')) {
+      return format(to, 'd MMM');
+    }
+
+    const sameMonth = format(from, 'yM') === format(to, 'yM');
+    return `${format(from, sameMonth ? 'd' : 'd MMM')} \u2013 ${format(to, 'd MMM')}`;
+  }
 }

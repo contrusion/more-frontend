@@ -290,6 +290,30 @@ Status: In progress
 - Automation that depends on intent labels runs only on persisted sync classifications, not provisional live labels
 - Once sync persists the message classification, the provisional label is replaced by the persisted `eventType` and `additionalEventTypes`; unresolved provisional cases in the thread view are shown as "Not Classified"
 
+#### US-ML11: Canonical Event Taxonomy Is Managed As Master Data
+
+Status: Proposed
+
+**As a** product owner or admin  
+**I want to** define the allowed ML event labels in application settings and store them as master data  
+**So that** the prompt, validation rules, and downstream parsing logic all derive from the same source of truth and do not drift as labels evolve
+
+**Notes:**
+- The canonical labels must be owned by the application, not copied into multiple hard-coded `Set.of(...)` lists or scattered `if/else` compatibility blocks.
+- Admin-defined labels should include the canonical event name, optional legacy aliases, and any UI-facing display text needed for settings and debugging.
+- The runtime should load the master taxonomy once at startup into an application-scoped catalog, then share it with the prompt builder, the parser, and any validation or normalization logic.
+- The prompt must be assembled from the current master data rather than a separate hand-maintained prompt copy.
+- This design is intended to eliminate silent drift when a label is renamed, retired, or replaced by a new canonical value.
+
+**Acceptance Criteria:**
+- An admin can view and edit the allowed event labels from the settings UI
+- The label catalog is persisted in the database and loaded into the application at startup
+- The application exposes a single, shared taxonomy registry for canonical labels and alias mappings
+- Prompt generation, model validation, and runtime parsing all read from that registry instead of private hard-coded lists
+- New or retired labels can be added or removed without changing multiple code paths in unrelated classes
+- Unknown labels are rejected explicitly and surfaced for admin review rather than silently accepted into the pipeline
+- System behavior remains stable even when the prompt or classification schema changes over time
+
 ### Story Breakdown Summary: ML Phase 1 Foundation & Follow-On Roadmap
 
 > This summary covers the ML stream from the initial package separation and local Llama validation through the structured-extraction boundary and the confidence/review gating work.
@@ -306,7 +330,10 @@ Status: In progress
 | **US-ML5** | Confidence scoring | Phase 1 | US-ML2, US-ML3, US-ML4 | 🔄 In progress |
 | **US-ML6** | Low-confidence review gating | Phase 1 | US-ML5 | ✅ Completed |
 | **US-ML7** | Logging and evaluation | Phase 1 | US-ML5, US-ML6 | ✅ Completed |
+| **US-ML8** | Label-based mailbox scanning | Phase 1 | US-ML1, US-ML7 | ⏳ Pending |
+| **US-ML9** | Sender-targeted mailbox scanning | Phase 1 | US-ML1, US-ML7 | ⏳ Pending |
 | **US-ML10** | Live pending until sync classification | Phase 1 | US-ML3, US-ML5, US-ML6 | ✅ Completed |
+| **US-ML11** | Canonical event taxonomy as master data | Phase 1 | US-ML3, US-ML5, US-ML7 | 📌 Proposed |
 
 ## Operating Principles
 

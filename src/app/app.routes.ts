@@ -41,6 +41,14 @@ export const routes: Routes = [
         loadComponent: () => import('./functional-features/interactions/analytics/interactions-analytics.component').then(m => m.InteractionsAnalyticsComponent)
       },
       {
+        path: 'my-recruiters',
+        loadComponent: () => import('./functional-features/interactions/relationship-list/relationship-list.component').then(m => m.RelationshipListComponent)
+      },
+      {
+        path: 'my-candidates',
+        loadComponent: () => import('./functional-features/interactions/relationship-list/relationship-list.component').then(m => m.RelationshipListComponent)
+      },
+      {
         path: 'reconnection',
         loadComponent: () => import('./functional-features/interactions/reconnection/reconnection.component').then(m => m.ReconnectionComponent)
       },

@@ -34,7 +34,7 @@
 }
 
 .stage-item.tone-success { --tone-color: var(--color-success-text); }
-.stage-item.tone-info    { --tone-color: var(--color-info-text); }
+.stage-item.tone-info    { --tone-color: var(--color-accent-hover); }
 .stage-item.tone-neutral { --tone-color: var(--color-neutral-text); }
 .stage-item.tone-warning { --tone-color: var(--color-warning-text); }
 .stage-item.tone-danger  { --tone-color: var(--color-danger-text); }
@@ -69,19 +69,9 @@
   box-shadow: 0 0 0 0.18rem var(--color-surface), 0 0 0 0.32rem color-mix(in srgb, var(--tone-color) 30%, transparent);
 }
 
+/* Completed steps are already flagged by the "✓" chip above, so the node is a plain solid dot. */
 .stage-item.state-past .stage-marker {
-  background: color-mix(in srgb, var(--tone-color) 12%, var(--color-surface));
-}
-
-.stage-item.state-past .stage-marker::after {
-  content: '\2713';
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--tone-color);
-  font-size: 0.72rem;
-  font-weight: 700;
+  background: var(--tone-color);
 }
 
 .stage-item.state-upcoming .stage-marker {
@@ -138,6 +128,16 @@
   text-transform: uppercase;
 }
 
+.stage-item.tone-info .stage-current {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+  border-color: transparent;
+  color: var(--color-text-on-dark);
+}
+
+.stage-item.tone-info.current .stage-marker {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+}
+
 .stage-label {
   max-width: 100%;
   font-size: clamp(0.72rem, 0.68rem + 0.15vw, 0.82rem);
@@ -166,6 +166,12 @@
 
 .stage-date-placeholder {
   opacity: 0.72;
+}
+
+/* Window between the neighbouring stages: visually lighter than a recorded date. */
+.stage-date-inferred {
+  font-style: italic;
+  opacity: 0.8;
 }
 
 .stage-count {

@@ -1,4 +1,7 @@
 import { of } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { InteractionsComponent } from './interactions.component';
 import { InteractionService } from './services/interaction.service';
 import { EmailSyncService } from './services/email-sync.service';
@@ -10,6 +13,7 @@ describe('InteractionsComponent', () => {
   let emailSyncService: jasmine.SpyObj<EmailSyncService>;
 
   beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
     interactionService = jasmine.createSpyObj('InteractionService', ['getThreads', 'refreshThreads', 'clearCache', 'markAsRead', 'createEvent']);
     emailSyncService = jasmine.createSpyObj('EmailSyncService', ['syncNow']);
 
@@ -507,6 +511,168 @@ describe('InteractionsComponent', () => {
       const thread = threadWithLastEvent(EventType.REPLY, [EventType.LOCATION_INQUIRY]);
 
       expect(component.getThreadStageLabel(thread as any)).toBe('Screening');
+    });
+  });
+
+  describe('initial selection', () => {
+    const buildThreads = () => ['a', 'b'].map((id, index) => ({
+      id: `thread-${id}`,
+      participantId: `recruiter-${id}`,
+      participantName: `Recruiter ${id}`,
+      participantRole: 'RECRUITER' as const,
+      status: InteractionStatus.ACTIVE,
+      lastEventDate: new Date(2026, 9, 20 - index),
+      lastEventPreview: '',
+      unreadCount: 1,
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 20),
+      events: []
+    }));
+
+    function create(mode: 'admin' | 'candidate') {
+      const serviceStub = Object.assign(interactionService, { threads$: of(buildThreads()) });
+      TestBed.configureTestingModule({
+        imports: [InteractionsComponent, NoopAnimationsModule],
+        providers: [
+          { provide: InteractionService, useValue: serviceStub },
+          { provide: EmailSyncService, useValue: emailSyncService }
+        ]
+      });
+      const fixture = TestBed.createComponent(InteractionsComponent);
+      fixture.componentInstance.interactionMode = mode;
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('keeps every thread collapsed and unselected on load in candidate mode', () => {
+      const fixture = create('candidate');
+
+      expect(fixture.componentInstance.selectedThread).toBeNull();
+      expect(fixture.componentInstance.expandedThreadId).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).querySelector('mat-expansion-panel.mat-expanded')).toBeNull();
+    });
+
+    it('does not render the "Select a conversation" empty state in candidate mode', () => {
+      const fixture = create('candidate');
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(el.querySelector('.conversation-panel.empty')).toBeNull();
+      expect(el.textContent).not.toContain('Select a conversation');
+    });
+
+    it('auto-selects the newest thread on load in admin mode', () => {
+      const fixture = create('admin');
+
+      expect(fixture.componentInstance.selectedThread?.id).toBe('thread-a');
+    });
+  });
+
+  describe('page header', () => {
+    function render(mode: 'admin' | 'candidate'): HTMLElement {
+      const serviceStub = Object.assign(interactionService, { threads$: of([]) });
+      TestBed.configureTestingModule({
+        imports: [InteractionsComponent, NoopAnimationsModule],
+        providers: [
+          { provide: InteractionService, useValue: serviceStub },
+          { provide: EmailSyncService, useValue: emailSyncService }
+        ]
+      });
+      const fixture = TestBed.createComponent(InteractionsComponent);
+      fixture.componentInstance.interactionMode = mode;
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('renders the themed gradient header in candidate mode without a duplicate panel title', () => {
+      const el = render('candidate');
+
+      expect(el.querySelector('.events-header h1')?.textContent).toContain('Recruiter Leads');
+      expect(el.querySelector('.panel-header h2')).toBeNull();
+    });
+
+    it('renders the themed gradient header and the panel title in admin mode', () => {
+      const el = render('admin');
+
+      expect(el.querySelector('.events-header h1')?.textContent).toContain('Interaction Events');
+      expect(el.querySelector('.panel-header h2')?.textContent).toContain('Interactions');
+    });
+
+    it('shows a Discover Leads button in the header that links to the email sync page', () => {
+      const el = render('candidate');
+      const button = el.querySelector('.events-header a.btn-discover-leads');
+
+      expect(button?.textContent).toContain('Discover Leads');
+      expect(button?.getAttribute('href')).toBe('/interactions/email-sync');
+    });
+
+    it('renders the stage timeline inside its own container in an expanded thread', () => {
+      const thread = {
+        id: 'thread-panel',
+        participantId: 'recruiter-panel',
+        participantName: 'Sam Reid',
+        participantRole: 'RECRUITER' as const,
+        status: InteractionStatus.ACTIVE,
+        lastEventDate: new Date(2026, 9, 20),
+        lastEventPreview: '',
+        unreadCount: 0,
+        createdAt: new Date(2026, 9, 1),
+        updatedAt: new Date(2026, 9, 20),
+        events: [
+          { id: 'e1', interactionThreadId: 'thread-panel', eventType: EventType.OUTREACH, channel: ChannelType.EMAIL, content: '', timestamp: new Date(2026, 9, 1), senderId: 'recruiter-panel', senderName: 'Sam Reid' }
+        ]
+      };
+      const serviceStub = Object.assign(interactionService, { threads$: of([thread]) });
+      TestBed.configureTestingModule({
+        imports: [InteractionsComponent, NoopAnimationsModule],
+        providers: [
+          { provide: InteractionService, useValue: serviceStub },
+          { provide: EmailSyncService, useValue: emailSyncService }
+        ]
+      });
+      const fixture = TestBed.createComponent(InteractionsComponent);
+      fixture.componentInstance.interactionMode = 'candidate';
+      fixture.componentInstance.selectThread(thread as any);
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('.stage-timeline-panel app-stage-timeline')).not.toBeNull();
+    });
+
+    it('places the opportunity overview directly below the timeline, before next unlock', () => {
+      const thread = {
+        id: 'thread-order',
+        participantId: 'recruiter-order',
+        participantName: 'Sam Reid',
+        participantRole: 'RECRUITER' as const,
+        status: InteractionStatus.ACTIVE,
+        lastEventDate: new Date(2026, 9, 20),
+        lastEventPreview: '',
+        unreadCount: 0,
+        createdAt: new Date(2026, 9, 1),
+        updatedAt: new Date(2026, 9, 20),
+        events: [
+          { id: 'e1', interactionThreadId: 'thread-order', eventType: EventType.OUTREACH, channel: ChannelType.EMAIL, content: '', timestamp: new Date(2026, 9, 1), senderId: 'recruiter-order', senderName: 'Sam Reid' }
+        ]
+      };
+      const serviceStub = Object.assign(interactionService, { threads$: of([thread]) });
+      TestBed.configureTestingModule({
+        imports: [InteractionsComponent, NoopAnimationsModule],
+        providers: [
+          { provide: InteractionService, useValue: serviceStub },
+          { provide: EmailSyncService, useValue: emailSyncService }
+        ]
+      });
+      const fixture = TestBed.createComponent(InteractionsComponent);
+      fixture.componentInstance.interactionMode = 'candidate';
+      fixture.componentInstance.selectThread(thread as any);
+      fixture.detectChanges();
+
+      const stage = (fixture.nativeElement as HTMLElement).querySelector('.insight-header-stage') as HTMLElement;
+      const order = Array.from(stage.children).map(child => child.className.split(' ')[0]);
+
+      expect(order.indexOf('stage-timeline-panel')).toBe(0);
+      expect(order.indexOf('insight-header-main')).toBe(1);
+      expect(order.indexOf('stage-guidance')).toBe(2);
     });
   });
 

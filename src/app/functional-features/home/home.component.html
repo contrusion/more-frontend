@@ -18,12 +18,18 @@
   </div>
 
   <nav class="sidebar-nav">
-    <a *ngFor="let tile of getVisibleTiles()" 
-       (click)="navigateTo(tile.route)"
-       class="nav-item">
-      <span class="nav-icon" [style.color]="tile.color">•</span>
-      <span>{{ tile.title }}</span>
-    </a>
+    <ng-container *ngFor="let tile of getVisibleTiles()">
+      <a (click)="navigateTo(tile.route)"
+         class="nav-item">
+        <span class="nav-icon" [style.color]="tile.color">•</span>
+        <span>{{ tile.route === '/interactions' ? getInteractionsTileTitle() : tile.title }}</span>
+      </a>
+      <a *ngFor="let child of tile.children"
+         (click)="navigateTo(child.route)"
+         class="nav-item nav-item--child">
+        <span>{{ child.route === '/interactions/events' ? 'Leads' : child.label }}</span>
+      </a>
+    </ng-container>
   </nav>
 
   <div class="sidebar-footer">
@@ -102,7 +108,7 @@
             </div>
           </div>
 
-          <div class="info-card">
+          <div class="info-card" *ngIf="showInteractionSummary()">
             <div class="info-card-icon" style="background: rgba(14, 165, 233, 0.15);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
@@ -110,12 +116,12 @@
               </svg>
             </div>
             <div class="info-card-content">
-              <p class="info-card-label">Active Interactions</p>
-              <p class="info-card-value">12</p>
+              <p class="info-card-label">{{ getActiveLeadsLabel() }}</p>
+              <p class="info-card-value">{{ interactionSummary ? interactionSummary.activeInteractions : '—' }}</p>
             </div>
           </div>
 
-          <div class="info-card">
+          <div class="info-card" *ngIf="showInteractionSummary()">
             <div class="info-card-icon" style="background: rgba(139, 92, 246, 0.15);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -126,11 +132,11 @@
             </div>
             <div class="info-card-content">
               <p class="info-card-label">Upcoming Interviews</p>
-              <p class="info-card-value">3</p>
+              <p class="info-card-value">{{ interactionSummary ? interactionSummary.upcomingInterviews : '—' }}</p>
             </div>
           </div>
 
-          <div class="info-card">
+          <div class="info-card" *ngIf="showInteractionSummary()">
             <div class="info-card-icon" style="background: rgba(16, 185, 129, 0.15);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
@@ -138,12 +144,12 @@
               </svg>
             </div>
             <div class="info-card-content">
-              <p class="info-card-label">New Opportunities</p>
-              <p class="info-card-value">8</p>
+              <p class="info-card-label">{{ getNewLeadsLabel() }}</p>
+              <p class="info-card-value">{{ interactionSummary ? interactionSummary.newOpportunities : '—' }}</p>
             </div>
           </div>
 
-          <div class="info-card">
+          <div class="info-card" *ngIf="showInteractionSummary()">
             <div class="info-card-icon" style="background: rgba(236, 72, 153, 0.15);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -153,8 +159,8 @@
               </svg>
             </div>
             <div class="info-card-content">
-              <p class="info-card-label">Connections</p>
-              <p class="info-card-value">24</p>
+              <p class="info-card-label">Recruiters</p>
+              <p class="info-card-value">{{ interactionSummary ? interactionSummary.recruiters : '—' }}</p>
             </div>
           </div>
         </div>

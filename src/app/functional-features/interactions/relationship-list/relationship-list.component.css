@@ -1,0 +1,75 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.relationship-page {
+  min-height: 100%;
+  background: #f8fafc;
+}
+
+.relationship-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 52%, #0ea5e9 100%);
+  padding: clamp(1.5rem, 2vw, 2.5rem) clamp(1rem, 2vw, 2rem) 1.5rem;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+.relationship-header__content {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  color: #f8fafc;
+}
+
+.relationship-kicker {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.relationship-header h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 2.3vw, 2.5rem);
+  line-height: 1.1;
+}
+
+.relationship-subtitle {
+  margin: 0.75rem 0 0;
+  max-width: none;
+  font-size: 1rem;
+  color: rgba(248, 250, 252, 0.82);
+}
+
+.relationship-body {
+  max-width: none;
+  margin: 0;
+  padding: clamp(1.25rem, 2vw, 2rem);
+}
+
+.relationship-empty {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: clamp(2rem, 4vw, 3rem);
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.relationship-empty__icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.relationship-empty h2 {
+  margin: 0 0 0.5rem;
+  color: #0f172a;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+}
+
+.relationship-empty p {
+  margin: 0;
+  color: #475569;
+}

@@ -133,6 +133,12 @@
   font-weight: bold;
 }
 
+.nav-item--child {
+  padding: 0.6rem 1.5rem 0.6rem 3.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
 .sidebar-footer {
   padding: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);

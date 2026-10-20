@@ -5,6 +5,9 @@ import { AuthService } from '../../none-functional-features/authentication-and-a
 import { Subject, takeUntil } from 'rxjs';
 import { MarketReadinessBreakdown } from '../recruitment/candidate/models/goal.model';
 import { MarketReadinessService } from '../recruitment/candidate/services/market-readiness.service';
+import { InteractionService } from '../interactions/services/interaction.service';
+import { InteractionSummary, summariseInteractions } from '../interactions/utils/interaction-summary.util';
+import { getInteractionsNavLinksForRole, NavLink } from '../../shared/navigation/interactions-nav';
 
 interface NavigationTile {
   title: string;
@@ -13,6 +16,8 @@ interface NavigationTile {
   route: string;
   color: string;
   roles?: string[];
+  /** Sub-pages listed under the tile in the sidebar. */
+  children?: readonly NavLink[];
 }
 
 @Component({
@@ -33,7 +38,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   userPersona: string | null = null;
   isSidebarOpen = false;
   marketReadiness: MarketReadinessBreakdown | null = null;
-
+  interactionSummary: InteractionSummary | null = null;
+  private interactionsSubscribed = false;
   navigationTiles: NavigationTile[] = [
     {
       title: 'Interactions',
@@ -111,10 +117,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private router: Router,
-    private marketReadinessService: MarketReadinessService
+    private marketReadinessService: MarketReadinessService,
+    private interactionService: InteractionService
   ) {}
 
   ngOnInit(): void {
+    // Resolved here (not in the field initializer, which runs before constructor parameter properties are assigned).
+    this.navigationTiles[0].children = getInteractionsNavLinksForRole(this.isApplicant() ? 'APPLICANT' : 'RECRUITER');
+
     this.authService.userData$
       .pipe(takeUntil(this.destroy$))
       .subscribe(userData => {
@@ -128,11 +138,13 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.userRoles = this.authService.getUserRoles();
         this.userPersona = this.authService.getUserPersona();
         this.loadMarketReadinessSummary();
+        this.loadInteractionSummary();
       });
 
     this.userRoles = this.authService.getUserRoles();
     this.userPersona = this.authService.getUserPersona();
     this.loadMarketReadinessSummary();
+    this.loadInteractionSummary();
   }
 
   ngOnDestroy(): void {
@@ -174,6 +186,34 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   isApplicant(): boolean {
     return this.userRoles.includes('APPLICANT') || this.authService.hasRole('APPLICANT');
+  }
+
+  /** Interaction totals only make sense for users who have interactions (applicants and recruiters). */
+  showInteractionSummary(): boolean {
+    return this.isApplicant() || this.authService.hasRole('RECRUITER');
+  }
+
+  private loadInteractionSummary(): void {
+    if (this.interactionsSubscribed || !this.showInteractionSummary()) {
+      return;
+    }
+
+    this.interactionsSubscribed = true;
+    this.interactionService.getThreads()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(threads => this.interactionSummary = summariseInteractions(threads));
+  }
+
+  getInteractionsTileTitle(): string {
+    return this.isApplicant() ? 'Recruiter Leads' : 'Candidate Leads';
+  }
+
+  getActiveLeadsLabel(): string {
+    return 'Active Leads';
+  }
+
+  getNewLeadsLabel(): string {
+    return 'New Leads';
   }
 
   getNextTierLabel(): string {

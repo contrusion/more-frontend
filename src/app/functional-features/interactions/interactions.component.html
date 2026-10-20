@@ -1,8 +1,16 @@
+<div class="events-header">
+  <div class="events-header-text">
+    <h1>{{ getPageHeaderTitle() }}</h1>
+    <p>Every conversation, stage and next step across your opportunities</p>
+  </div>
+  <a class="btn-discover-leads" routerLink="/interactions/email-sync">Discover Leads</a>
+</div>
+
 <div class="interactions-container" [class.no-insights]="!showInsightsPanel || isCandidateMode()" [class.candidate-mode]="isCandidateMode()">
   <!-- Left Panel - Thread List -->
   <div class="threads-panel" [class.candidate-accordion-panel]="isCandidateMode()">
     <div class="panel-header">
-      <h2>Interactions</h2>
+      <h2 *ngIf="!isCandidateMode()">Interactions</h2>
       <div class="header-actions">
         <button class="btn-sync" *ngIf="interactionMode === 'admin'" (click)="triggerEmailSync()" [disabled]="syncInProgress" title="Sync recruiter emails from Gmail">
           {{ syncInProgress ? 'Syncing...' : 'Sync Emails' }}
@@ -108,7 +116,52 @@
               <div class="insight-header">
                 <div class="insight-header-stage">
                   @let activityTimeline = getActivityTimeline(currentThread);
-                  <app-stage-timeline [steps]="activityTimeline.steps"></app-stage-timeline>
+                  <div class="stage-timeline-panel">
+                    <app-stage-timeline [steps]="activityTimeline.steps"></app-stage-timeline>
+                  </div>
+
+                  <div class="insight-header-main">
+                    <span class="eyebrow">Opportunity overview</span>
+                    <h4>{{ getOpportunityHeading(currentThread) }}</h4>
+                    <a
+                      *ngIf="getCompanyWebsiteUrl(currentThread) as companyWebsite"
+                      class="company-link"
+                      [href]="companyWebsite"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Visit company website
+                    </a>
+                    <ul class="related-opportunities" *ngIf="getAdditionalOpportunityLabels(currentThread).length > 0">
+                      <li *ngFor="let opportunityLabel of getAdditionalOpportunityLabels(currentThread)">
+                        {{ opportunityLabel }}
+                      </li>
+                    </ul>
+
+                    <dl class="fit-check" aria-label="Fit check">
+                      @for (row of getFitRows(currentThread); track row.label) {
+                        <div class="fit-check-row">
+                          <dt>{{ row.label }}</dt>
+                          <dd class="fit-check-detail">{{ row.detail ?? 'Not stated yet' }}</dd>
+                          <dd class="fit-check-status" [ngClass]="'tone-' + row.tone">{{ row.status }}</dd>
+                        </div>
+                      }
+                    </dl>
+
+                    @let dealBreakers = getDealBreakerLabels(currentThread);
+                    @if (dealBreakers.length > 0) {
+                      <div class="deal-breakers">
+                        <span class="meta-label">Deal breakers ({{ dealBreakers.length }})</span>
+                        <ul class="deal-breaker-list">
+                          @for (dealBreaker of dealBreakers; track dealBreaker) {
+                            <li>{{ dealBreaker }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                    <p class="us12-foundation-note">US-I12 foundation: this block expands with attachment-driven job spec fit intelligence.</p>
+                  </div>
+
                   @let candidateNotes = getCandidateNotes(currentThread);
                   <div class="stage-guidance" [class.has-notes]="candidateNotes.length > 0">
                     <div class="stage-next-block">
@@ -157,48 +210,6 @@
                         </ul>
                       </section>
                     }
-                  </div>
-
-                  <div class="insight-header-main">
-                    <span class="eyebrow">Opportunity overview</span>
-                    <h4>{{ getOpportunityHeading(currentThread) }}</h4>
-                    <a
-                      *ngIf="getCompanyWebsiteUrl(currentThread) as companyWebsite"
-                      class="company-link"
-                      [href]="companyWebsite"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Visit company website
-                    </a>
-                    <ul class="related-opportunities" *ngIf="getAdditionalOpportunityLabels(currentThread).length > 0">
-                      <li *ngFor="let opportunityLabel of getAdditionalOpportunityLabels(currentThread)">
-                        {{ opportunityLabel }}
-                      </li>
-                    </ul>
-
-                    <dl class="fit-check" aria-label="Fit check">
-                      @for (row of getFitRows(currentThread); track row.label) {
-                        <div class="fit-check-row">
-                          <dt>{{ row.label }}</dt>
-                          <dd class="fit-check-detail">{{ row.detail ?? 'Not stated yet' }}</dd>
-                          <dd class="fit-check-status" [ngClass]="'tone-' + row.tone">{{ row.status }}</dd>
-                        </div>
-                      }
-                    </dl>
-
-                    @let dealBreakers = getDealBreakerLabels(currentThread);
-                    @if (dealBreakers.length > 0) {
-                      <div class="deal-breakers">
-                        <span class="meta-label">Deal breakers ({{ dealBreakers.length }})</span>
-                        <ul class="deal-breaker-list">
-                          @for (dealBreaker of dealBreakers; track dealBreaker) {
-                            <li>{{ dealBreaker }}</li>
-                          }
-                        </ul>
-                      </div>
-                    }
-                    <p class="us12-foundation-note">US-I12 foundation: this block expands with attachment-driven job spec fit intelligence.</p>
                   </div>
                 </div>
               </div>
@@ -446,7 +457,7 @@
   </div>
 
   <!-- Empty State when no thread selected -->
-  <div class="conversation-panel empty" *ngIf="!selectedThread">
+  <div class="conversation-panel empty" *ngIf="!selectedThread && !isCandidateMode()">
     <div class="empty-state-large">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>

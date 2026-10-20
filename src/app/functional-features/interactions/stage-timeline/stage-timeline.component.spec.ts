@@ -63,7 +63,66 @@ describe('StageTimelineComponent', () => {
   it('shows when each reached group began and how many events stayed in it', () => {
     const dates = Array.from(host().querySelectorAll('.stage-date')).map(el => el.textContent?.replace(/\s+/g, ' ').trim());
 
-    expect(dates).toEqual(['1 Oct', '4 Oct ×2', '9 Oct', 'Not reached', 'Not reached']);
+    expect(dates).toEqual(['1 Oct', '4 Oct ×2', '9 Oct']);
+  });
+
+  const datesFor = (input: ActivityTimelineStep[]) => {
+    fixture.componentRef.setInput('steps', input);
+    fixture.detectChanges();
+    return Array.from(host().querySelectorAll('.stage-date')).map(el => el.textContent?.replace(/\s+/g, ' ').trim());
+  };
+
+  it('shows the window between the neighbouring stages for a passed step with no recorded events', () => {
+    const dates = datesFor([
+      { label: 'Outreach', tone: 'neutral', reachedAt: new Date(2026, 9, 3), count: 1, state: 'past', current: false },
+      { label: 'Screening', tone: 'info', count: 0, state: 'past', current: false },
+      { label: 'Interviews & Assessments', tone: 'success', reachedAt: new Date(2026, 9, 9), count: 1, state: 'current', current: true }
+    ]);
+
+    expect(dates).toEqual(['3 Oct', '3 \u2013 9 Oct', '9 Oct']);
+    expect(host().querySelector('.stage-date-inferred')?.getAttribute('title')).toContain('window between');
+    expect(host().textContent).not.toContain('Not reached');
+  });
+
+  it('includes both months when the window crosses a month boundary', () => {
+    const dates = datesFor([
+      { label: 'Outreach', tone: 'neutral', reachedAt: new Date(2026, 8, 29), count: 1, state: 'past', current: false },
+      { label: 'Screening', tone: 'info', count: 0, state: 'past', current: false },
+      { label: 'Interviews & Assessments', tone: 'success', reachedAt: new Date(2026, 9, 2), count: 1, state: 'current', current: true }
+    ]);
+
+    expect(dates[1]).toBe('29 Sep \u2013 2 Oct');
+  });
+
+  it('shows a single date when the neighbouring stages fall on the same day', () => {
+    const dates = datesFor([
+      { label: 'Outreach', tone: 'neutral', reachedAt: new Date(2026, 9, 9), count: 1, state: 'past', current: false },
+      { label: 'Screening', tone: 'info', count: 0, state: 'past', current: false },
+      { label: 'Interviews & Assessments', tone: 'success', reachedAt: new Date(2026, 9, 9), count: 1, state: 'current', current: true }
+    ]);
+
+    expect(dates[1]).toBe('9 Oct');
+  });
+
+  it('skips undated neighbours when looking for the window', () => {
+    const dates = datesFor([
+      { label: 'Outreach', tone: 'neutral', reachedAt: new Date(2026, 9, 3), count: 1, state: 'past', current: false },
+      { label: 'Screening', tone: 'info', count: 0, state: 'past', current: false },
+      { label: 'Offer stage', tone: 'info', count: 0, state: 'past', current: false },
+      { label: 'Closed', tone: 'neutral', reachedAt: new Date(2026, 9, 12), count: 1, state: 'current', current: true }
+    ]);
+
+    expect(dates).toEqual(['3 Oct', '3 \u2013 12 Oct', '3 \u2013 12 Oct', '12 Oct']);
+  });
+
+  it('falls back to Completed when no dated stage bounds the gap', () => {
+    const dates = datesFor([
+      { label: 'Outreach', tone: 'neutral', count: 0, state: 'past', current: false },
+      { label: 'Screening', tone: 'info', count: 0, state: 'past', current: false },
+      { label: 'Interviews & Assessments', tone: 'success', reachedAt: new Date(2026, 9, 9), count: 1, state: 'current', current: true }
+    ]);
+
+    expect(dates).toEqual(['Completed', 'Completed', '9 Oct']);
   });
 
   it('describes each step in visually hidden text', () => {

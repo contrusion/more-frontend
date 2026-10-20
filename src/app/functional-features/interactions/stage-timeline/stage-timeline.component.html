@@ -1,6 +1,6 @@
 <div class="stage-timeline-scroll">
 <ol class="stage-timeline" [attr.aria-label]="ariaLabel()" [style.--stage-count]="steps().length">
-  @for (step of steps(); track $index) {
+  @for (step of displaySteps(); track $index) {
     <li
       class="stage-item"
       [class]="'stage-item tone-' + step.tone + ' state-' + step.state"
@@ -25,8 +25,13 @@
             <span class="stage-count" aria-hidden="true">&times;{{ step.count }}</span>
           }
         </span>
-      } @else {
-        <span class="stage-date stage-date-placeholder">Not reached</span>
+      } @else if (step.inferredRange) {
+        <span
+          class="stage-date stage-date-inferred"
+          title="No message was classified in this stage. The dates show the window between the previous and next stage."
+        >{{ step.inferredRange }}</span>
+      } @else if (step.state === 'past') {
+        <span class="stage-date stage-date-placeholder">Completed</span>
       }
       <span class="stage-sr">{{ step.state === 'past' ? 'completed' : step.current ? 'current' : 'upcoming' }}@if (step.count > 1) {, {{ step.count }} events}</span>
     </li>

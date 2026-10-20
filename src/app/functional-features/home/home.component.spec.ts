@@ -3,6 +3,8 @@ import { Router } from '@angular/router';
 import { HomeComponent } from './home.component';
 import { AuthService } from '../../none-functional-features/authentication-and-authorization/services/auth.service';
 import { MarketReadinessService } from '../recruitment/candidate/services/market-readiness.service';
+import { InteractionService } from '../interactions/services/interaction.service';
+import { InteractionStatus, InteractionThread } from '../interactions/models/interaction.model';
 import { of } from 'rxjs';
 
 describe('Home', () => {
@@ -11,7 +13,22 @@ describe('Home', () => {
   let mockAuthService: jasmine.SpyObj<AuthService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockMarketReadinessService: jasmine.SpyObj<MarketReadinessService>;
+  let mockInteractionService: jasmine.SpyObj<InteractionService>;
 
+  const thread = (id: string, status: InteractionStatus, participantId = id): InteractionThread => ({
+    id,
+    participantId,
+    participantName: 'Recruiter',
+    participantRole: 'RECRUITER',
+    status,
+    opportunities: [],
+    lastEventDate: new Date(),
+    lastEventPreview: '',
+    unreadCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    events: []
+  });
   beforeEach(async () => {
     mockAuthService = jasmine.createSpyObj('AuthService', [
       'getUserRoles',
@@ -29,6 +46,12 @@ describe('Home', () => {
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
     mockAuthService.getUserPersona.and.returnValue('WARM_LEAD');
     mockMarketReadinessService = jasmine.createSpyObj('MarketReadinessService', ['getMyMarketReadiness']);
+    mockInteractionService = jasmine.createSpyObj('InteractionService', ['getThreads']);
+    mockInteractionService.getThreads.and.returnValue(of([
+      thread('1', InteractionStatus.NEW, 'recruiter-a'),
+      thread('2', InteractionStatus.ACTIVE, 'recruiter-b'),
+      thread('3', InteractionStatus.CLOSED, 'recruiter-a')
+    ]));
     mockMarketReadinessService.getMyMarketReadiness.and.returnValue(of({
       totalScore: 85,
       marketReadinessTier: 'GOLD',
@@ -46,7 +69,8 @@ describe('Home', () => {
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: Router, useValue: mockRouter },
-        { provide: MarketReadinessService, useValue: mockMarketReadinessService }
+        { provide: MarketReadinessService, useValue: mockMarketReadinessService },
+        { provide: InteractionService, useValue: mockInteractionService }
       ]
     }).compileComponents();
 
@@ -75,6 +99,47 @@ describe('Home', () => {
     
     component.toggleSidebar();
     expect(component.isSidebarOpen).toBe(false);
+  });
+
+  it('should show interaction totals computed from the user\'s threads', () => {
+    mockAuthService.getUserRoles.and.returnValue(['APPLICANT']);
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'APPLICANT');
+
+    fixture.detectChanges();
+
+    expect(component.interactionSummary).toEqual({
+      activeInteractions: 2,
+      upcomingInterviews: 0,
+      newOpportunities: 2,
+      recruiters: 2
+    });
+
+    const values = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.info-card-value'))
+      .map(element => element.textContent?.trim());
+    expect(values).toContain('2');
+    expect(values).not.toContain('12');
+    expect(values).not.toContain('24');
+  });
+
+  it('should not load or show interaction totals for users without interactions', () => {
+    mockAuthService.getUserRoles.and.returnValue(['MO_ADMIN']);
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'MO_ADMIN');
+
+    fixture.detectChanges();
+
+    expect(mockInteractionService.getThreads).not.toHaveBeenCalled();
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Active Leads');
+  });
+
+  it('should list the Interactions sub-pages under the Leads area in the sidebar', () => {
+    mockAuthService.getUserRoles.and.returnValue(['APPLICANT']);
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'APPLICANT');
+
+    fixture.detectChanges();
+
+    const childLinks = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.sidebar-nav .nav-item--child'))
+      .map(element => element.textContent?.trim());
+    expect(childLinks).toEqual(['Analytics', 'Leads', 'My Recruiters', 'Reconnect']);
   });
 
   it('should navigate to route and close sidebar', () => {
@@ -141,9 +206,9 @@ describe('Home', () => {
     const marketReadinessCard = compiled.querySelector('.market-readiness-card');
 
     expect(marketReadinessCard).not.toBeNull();
-    expect(marketReadinessCard?.textContent).toContain('Market Readiness');
-    expect(marketReadinessCard?.textContent).toContain('GOLD');
-    expect(marketReadinessCard?.textContent).toContain('15 pts to next tier');
+    expect(marketReadinessCard?.textContent).toContain('Points to Platinum');
+    expect(marketReadinessCard?.textContent).toContain('15');
+    expect(marketReadinessCard?.textContent).toContain('Current tier: GOLD');
   });
 
   it('should show the selected talent persona in the user metadata', () => {

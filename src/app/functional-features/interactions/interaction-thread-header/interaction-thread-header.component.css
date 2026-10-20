@@ -83,18 +83,13 @@
   align-items: center;
   justify-content: center;
   padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.22);
   color: #b91c1c;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 400;
   white-space: nowrap;
 }
 
 .thread-panel-risk--clear {
-  background: rgba(34, 197, 94, 0.1);
-  border-color: rgba(34, 197, 94, 0.28);
   color: #15803d;
 }
 
@@ -121,9 +116,9 @@
 }
 
 .activity-info {
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-  border-color: var(--color-info-border);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+  color: var(--color-text-on-dark);
+  border-color: transparent;
 }
 
 .activity-neutral {

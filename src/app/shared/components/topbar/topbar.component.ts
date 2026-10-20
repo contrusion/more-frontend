@@ -148,7 +148,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
       'profile': 'Profile',
       'jobs': 'Job Opportunities',
       'search': 'Talent Search',
-      'events': 'Events',
+      'events': 'Leads',
       'settings': 'Settings'
     };
 

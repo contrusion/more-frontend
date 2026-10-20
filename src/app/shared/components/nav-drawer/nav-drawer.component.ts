@@ -5,6 +5,7 @@ import { Subject, takeUntil, filter } from 'rxjs';
 import { NavDrawerService } from '../../services/nav-drawer.service';
 import { AuthService } from '../../../none-functional-features/authentication-and-authorization/services/auth.service';
 import { FeatureFlagsService } from '../../services/feature-flags.service';
+import { getInteractionsNavLinksForRole } from '../../navigation/interactions-nav';
 
 interface NavChild {
   label: string;
@@ -22,7 +23,19 @@ interface NavSection {
   children: NavChild[];
 }
 
-const ALL_SECTIONS: NavSection[] = [
+const getInteractionsSectionChildren = (authService: AuthService): NavChild[] => {
+  const role = authService.hasRole('APPLICANT') ? 'APPLICANT' : authService.hasRole('RECRUITER') ? 'RECRUITER' : null;
+  return getInteractionsNavLinksForRole(role).map(link => ({ ...link }));
+};
+
+const getAllSections = (authService: AuthService): NavSection[] => [
+  {
+    id: 'interactions',
+    label: 'Interactions',
+    requiredRoles: ['APPLICANT', 'RECRUITER'],
+    routePrefix: '/interactions',
+    children: getInteractionsSectionChildren(authService)
+  },
   {
     id: 'jobs',
     label: 'Jobs',
@@ -91,8 +104,7 @@ const ALL_SECTIONS: NavSection[] = [
     routePrefix: '/admin',
     children: [
       { label: 'Outreach ML Export', route: '/admin/outreach-ml' },
-      { label: 'Interaction Events', route: '/interactions/events' },
-      { label: 'Email Sync', route: '/interactions/email-sync' }
+      { label: 'Interaction Events', route: '/interactions/events' }
     ]
   }
 ];
@@ -124,13 +136,14 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
     this.authService.userData$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.visibleSections = ALL_SECTIONS
+        this.visibleSections = getAllSections(this.authService)
           .filter(section =>
             section.requiredRoles.length === 0 ||
             section.requiredRoles.some(role => this.authService.hasRole(role))
           )
           .map(section => ({
             ...section,
+            label: section.id === 'interactions' ? this.getInteractionsSectionLabel() : section.label,
             children: section.children.filter(child => this.isFeatureRouteEnabled(child.route))
           }))
           .filter(section => section.directRoute || section.children.length > 0);
@@ -155,6 +168,20 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // Final structure: candidate view = "Recruiter Leads" -> "Leads" + "My Recruiters";
+  // recruiter view = "Candidate Leads" -> "Leads" + "My Candidates";
+  // "Reconnect" remains a sibling workflow at /interactions/reconnection, not a child of the lead queue.
+  // Route URLs stay stable while the visible labels intentionally differ to match product language.
+  private getInteractionsSectionLabel(): string {
+    if (this.authService.hasRole('APPLICANT')) {
+      return 'Recruiter Leads';
+    }
+    if (this.authService.hasRole('RECRUITER')) {
+      return 'Candidate Leads';
+    }
+    return 'Leads';
   }
 
   private expandActiveSection(): void {
@@ -236,7 +263,8 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
   }
 
   private isFeatureRouteEnabled(route: string): boolean {
-    if (route.startsWith('/interactions')) {
+    // Mirrors InteractionsAccessGuard: the flag only blocks admins, applicants and recruiters always have Interactions.
+    if (route.startsWith('/interactions') && this.authService.hasRole('MO_ADMIN')) {
       return this.featureFlagsService.isInteractionsEventsEnabled();
     }
 

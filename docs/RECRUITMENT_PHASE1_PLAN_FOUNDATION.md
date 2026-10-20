@@ -187,6 +187,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - ✅ `LivingCvService`, `WorkExperienceService`, `EducationService`, `CertificationService`, `CandidateSkillService`, `ReferenceService`
 - **Data Model:** Aggregates Goal, Milestone, WorkExperience, Education, Certification, Skill, Reference, and candidate profile data
 - **Implemented Endpoints:** GET `/api/candidates/{id}/living-cv`
+- **Related (backlog):** US-I12 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` proposes a private "Weaknesses and focus areas" section on the Living CV, built from the skill gaps and candidate-side deal breakers gathered across the candidate's interactions. It is candidate-only, never shown in recruiter-facing Living CV views, and is not scheduled (open questions on the skills source of truth and counting rules).
 
 **US 1.3a: System Generates Anonymized Candidate Aliases** ✅ *Implemented* *(Technical Foundation)*
 - **As a** system
@@ -294,6 +295,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - `FeedbackAnalysisComponent` (patterns & suggestions)
 - **Data Model:** Feedback with category, sentiment, source, related_goal
 - **Estimated Endpoints:** GET `/api/candidates/{id}/feedback`, calculate patterns in component
+- **Related (backlog):** US-I12 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` aggregates recurring skill gaps from interactions. Decide whether feedback patterns here and the Living CV focus areas share one aggregation so they do not disagree.
 
 ---
 
@@ -376,6 +378,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - `GET /api/job-specs/{specId}/matches` — System-computed matches for a job spec
 - **Phase:** Phase 1 — **Together with US-R1 this closes the matching loop**
 - **Dependencies:** US-R1 (job spec exists), US 1.3 (Living CV exists), US 1.3a (alias system)
+- **Related (backlog, blocker questions open):** US-I16 and US-I17 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` propose that an expressed interest or application also creates an interaction on the platform channel, and that the conversation can continue on the platform. They must not be implemented until their blocker questions are answered, including whether interest alone creates an interaction and how the candidate alias applies to it.
 
 **US-C1: Candidate Sees Roles They'll Qualify For & Expresses Interest**
 - **As a** candidate
@@ -438,6 +441,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - `GET /api/candidates/{id}/interests/{interestId}/notifications` — Status updates from recruiter
 - **Phase:** Phase 1 — **Completes the triad with US-R1 and US-R2**
 - **Dependencies:** US-R2 (match engine computes eligibility + gaps), US 1.3a (alias system enforces identity hiding)
+- **Related (backlog, blocker questions open):** `GET /api/candidates/{id}/interests/{interestId}/notifications` and the interest tracking here overlap with US-I16 and US-I17 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md`, which would show these interests as platform interactions in the candidate's Interactions view. Resolve the overlap (one source of truth for interest status) before either is implemented.
 
 ---
 
