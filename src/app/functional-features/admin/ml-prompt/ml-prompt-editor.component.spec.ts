@@ -61,7 +61,7 @@ describe('MlPromptEditorComponent', () => {
     expect(text).toContain('3');
     expect(text).toContain('messages the model could not label');
     expect(text).toContain('are waiting for review');
-    expect(fixture.nativeElement.querySelector('a[href="/admin/ml-unknown"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/admin/ml-unknown-review"]')).not.toBeNull();
   });
 
   it('uses the singular when one message is waiting', () => {

@@ -1,105 +1,82 @@
-import { Component, OnDestroy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { NavDrawerService } from '../../shared/services/nav-drawer.service';
+import { getAdminRailLinks, ML_UNKNOWN_REVIEW_ROUTE } from '../../shared/navigation/admin-nav';
 import { MlPromptService } from './ml-prompt/ml-prompt.service';
+import { FeatureFlagsService } from '../../shared/services/feature-flags.service';
 
+/**
+ * Admin layout. The side rail shows only the pages of the drawer branch the admin is in
+ * (same behaviour as the interactions, jobs and recruiter layouts). Single-page branches such as
+ * Overview and User Management have no rail.
+ */
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterModule],
   template: `
     <div class="admin-layout">
-      <nav class="admin-nav" [class.nav-hidden]="navDrawerService.isOpen()">
-        <button
-          class="nav-item"
-          [class.active]="isActive('dashboard')"
-          (click)="navigate('dashboard')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"/>
-            <rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/>
-            <rect x="3" y="14" width="7" height="7"/>
-          </svg>
-          <span>Overview</span>
-        </button>
-        <button
-          class="nav-item"
-          [class.active]="isActive('users')"
-          (click)="navigate('users')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>Users</span>
-        </button>
-        <button
-          class="nav-item"
-          [class.active]="isActive('companies')"
-          (click)="navigate('companies')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 21h18"/>
-            <path d="M5 21V7l7-4 7 4v14"/>
-            <path d="M9 9h.01"/>
-            <path d="M15 9h.01"/>
-            <path d="M9 13h.01"/>
-            <path d="M15 13h.01"/>
-          </svg>
-          <span>Companies</span>
-        </button>
-        <button
-          class="nav-item"
-          [class.active]="isActive('outreach-ml')"
-          (click)="navigate('outreach-ml')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-          <span>ML Data</span>
-        </button>
-        <button
-          class="nav-item"
-          [class.active]="isActive('ml-prompt')"
-          (click)="navigate('ml-prompt')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-            <line x1="7" y1="7" x2="7.01" y2="7"/>
-          </svg>
-          <span>Prompt</span>
-        </button>
-        <button
-          class="nav-item"
-          [class.active]="isActive('ml-unknown')"
-          (click)="navigate('ml-unknown')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <span>Review</span>
-          @if (unreviewedCount() > 0) {
-            <span class="nav-badge" [attr.aria-label]="unreviewedCount() + ' messages to review'">{{ unreviewedCount() > 99 ? '99+' : unreviewedCount() }}</span>
+      @if (railLinks().length > 0) {
+        <nav class="admin-nav" [class.nav-hidden]="navDrawerService.isOpen()">
+          @for (link of railLinks(); track link.route) {
+            <button
+              class="nav-item"
+              [class.active]="isActive(link.route)"
+              (click)="navigate(link.route)"
+            >
+              @switch (link.icon) {
+                @case ('companies') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 21h18"/>
+                    <path d="M5 21V7l7-4 7 4v14"/>
+                    <path d="M9 9h.01"/>
+                    <path d="M15 9h.01"/>
+                    <path d="M9 13h.01"/>
+                    <path d="M15 13h.01"/>
+                  </svg>
+                }
+                @case ('challenges') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                }
+                @case ('ml-data') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                }
+                @case ('ml-prompt') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                  </svg>
+                }
+                @case ('ml-review') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                }
+                @case ('events') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                }
+              }
+              <span>{{ link.railLabel }}</span>
+              @if (link.route === reviewRoute && unreviewedCount() > 0) {
+                <span class="nav-badge" [attr.aria-label]="unreviewedCount() + ' messages to review'">{{ unreviewedCount() > 99 ? '99+' : unreviewedCount() }}</span>
+              }
+            </button>
           }
-        </button>
-        <button
-          class="nav-item"
-          [class.active]="isActive('challenges')"
-          (click)="navigate('challenges')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-          <span>Challenges</span>
-        </button>
-      </nav>
+        </nav>
+      }
       <div class="admin-content">
         <router-outlet></router-outlet>
       </div>
@@ -124,6 +101,7 @@ import { MlPromptService } from './ml-prompt/ml-prompt.service';
     }
 
     .nav-item {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -155,10 +133,6 @@ import { MlPromptService } from './ml-prompt/ml-prompt.service';
       text-align: center;
     }
 
-    .nav-item {
-      position: relative;
-    }
-
     .nav-item .nav-badge {
       position: absolute;
       top: 0.25rem;
@@ -166,8 +140,8 @@ import { MlPromptService } from './ml-prompt/ml-prompt.service';
       min-width: 1.25rem;
       padding: 0 0.35rem;
       border-radius: 999px;
-      background: #f59e0b;
-      color: #1f2937;
+      background: var(--color-warning-bg);
+      color: var(--color-warning-text);
       font-size: 0.65rem;
       line-height: 1.25rem;
     }
@@ -193,17 +167,30 @@ import { MlPromptService } from './ml-prompt/ml-prompt.service';
   `]
 })
 export class AdminComponent implements OnDestroy {
+  private readonly router = inject(Router);
   private readonly mlPromptService = inject(MlPromptService);
+  private readonly featureFlags = inject(FeatureFlagsService);
   private readonly navigationSubscription: Subscription;
+
+  readonly navDrawerService = inject(NavDrawerService);
+  readonly reviewRoute = ML_UNKNOWN_REVIEW_ROUTE;
 
   /** Messages the model could not label, shown as a badge on the Review item. */
   readonly unreviewedCount = this.mlPromptService.unreviewedCount;
 
-  constructor(private router: Router, public navDrawerService: NavDrawerService) {
+  private readonly currentUrl = signal(this.router.url);
+  readonly railLinks = computed(() =>
+    getAdminRailLinks(this.currentUrl(), this.featureFlags.isInteractionsEventsEnabled())
+  );
+
+  constructor() {
     this.refreshUnreviewedCount();
     this.navigationSubscription = this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => this.refreshUnreviewedCount());
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(event => {
+        this.currentUrl.set(event.urlAfterRedirects);
+        this.refreshUnreviewedCount();
+      });
   }
 
   ngOnDestroy(): void {
@@ -214,11 +201,11 @@ export class AdminComponent implements OnDestroy {
     this.mlPromptService.getUnknownSummary().subscribe({ error: () => undefined });
   }
 
-  isActive(path: string): boolean {
-    return this.router.url.includes(`/admin/${path}`);
+  isActive(route: string): boolean {
+    return this.currentUrl().startsWith(route);
   }
 
-  navigate(path: string): void {
-    this.router.navigate([`/admin/${path}`]);
+  navigate(route: string): void {
+    this.router.navigate([route]);
   }
 }

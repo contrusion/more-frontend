@@ -1,168 +1,182 @@
-<div class="prompt-editor">
-  <div class="editor-header">
-    <div class="header-left">
-      <h1 class="page-title">Classification Prompt</h1>
-      <p class="page-subtitle">Edit the labels and instructions the email classifier uses. Changes stay in a draft until you publish.</p>
-    </div>
-    <div class="header-actions">
-      <button pButton type="button" label="Refresh" icon="pi pi-refresh" class="p-button-outlined"
-              (click)="reload(true)"></button>
-      <button pButton type="button" label="Publish draft" icon="pi pi-cloud-upload"
-              [disabled]="!canPublish() || publishing()" (click)="openPublish()"></button>
-    </div>
-  </div>
+<div class="mlp-page">
 
-  @if (errors().length > 0) {
-    <div class="error-banner" role="alert">
-      @for (line of errors(); track $index) {
-        <div>{{ line }}</div>
-      }
-    </div>
-  }
-
-  @if (publishedMessage(); as message) {
-    <div class="success-banner" role="status">{{ message }}</div>
-  }
-
-  @if (status(); as s) {
-    <div class="status-strip">
-      <span class="status-item">
-        <span class="status-label">Running</span>
-        <p-tag [value]="s.runningVersion ? 'v' + s.runningVersion : 'none'" severity="info"></p-tag>
-      </span>
-      <span class="status-item">
-        <span class="status-label">Latest published</span>
-        <p-tag [value]="s.publishedVersion ? 'v' + s.publishedVersion : 'none'" severity="secondary"></p-tag>
-      </span>
-      @if (s.restartPending) {
-        <p-tag value="Restart pending" severity="warn"></p-tag>
-      }
-      @if (s.unpublishedChanges) {
-        <p-tag value="Unpublished changes" severity="warn"></p-tag>
-      } @else {
-        <p-tag value="Draft matches published" severity="success"></p-tag>
-      }
-    </div>
-    @if (s.validationErrors.length > 0) {
-      <div class="warning-banner" role="alert">
-        <strong>The draft cannot be published yet:</strong>
-        <ul class="issue-list">
-          @for (issue of s.validationErrors; track $index) {
-            <li>{{ issue }}</li>
+  <!-- ── Gradient Header ─────────────────────────────── -->
+  <div class="mlp-header">
+    <div class="mlp-header__content">
+      <div class="mlp-header__text">
+        <h1>Classification Prompt</h1>
+        <p>Edit the labels and instructions the email classifier uses. Changes stay in a draft until you publish.</p>
+      </div>
+      <div class="mlp-header__aside">
+        @if (status(); as s) {
+          <span class="header-status">
+            <span class="header-status__label">Running</span>
+            <p-tag [value]="s.runningVersion ? 'v' + s.runningVersion : 'none'" severity="info"></p-tag>
+          </span>
+          <span class="header-status">
+            <span class="header-status__label">Latest published</span>
+            <p-tag [value]="s.publishedVersion ? 'v' + s.publishedVersion : 'none'" severity="secondary"></p-tag>
+          </span>
+          @if (s.restartPending) {
+            <p-tag value="Restart pending" severity="warn"></p-tag>
           }
-        </ul>
-      </div>
-    }
-  }
-
-  @if (unreviewedCount() > 0) {
-    <div class="warning-banner" role="status">
-      <strong>{{ unreviewedCount() }}</strong>
-      {{ unreviewedCount() === 1 ? 'message' : 'messages' }} the model could not label with a published label
-      {{ unreviewedCount() === 1 ? 'is' : 'are' }} waiting for review.
-      <a routerLink="/admin/ml-unknown">Review them</a> to see what the prompt is missing.
-    </div>
-  }
-
-  @if (publishOpen()) {
-    <section class="panel publish-panel">
-      <h2 class="panel-title">Publish draft</h2>
-      <p class="panel-hint">This creates a new immutable version. The classifier loads it the next time the API starts.</p>
-      <label class="field-label" for="publish-note">Note (optional)</label>
-      <textarea pTextarea id="publish-note" rows="2" maxlength="500"
-                [ngModel]="publishNote()" (ngModelChange)="publishNote.set($event)"></textarea>
-      <div class="field-actions">
-        <button pButton type="button" label="Cancel" class="p-button-text" (click)="cancelPublish()"></button>
-        <button pButton type="button" label="Publish" icon="pi pi-cloud-upload"
-                [disabled]="publishing()" [loading]="publishing()" (click)="publish()"></button>
-      </div>
-    </section>
-  }
-
-  <div class="tab-row" role="tablist">
-    @for (item of tabs; track item.id) {
-      <button type="button" class="filter-chip" role="tab" [class.active]="tab() === item.id"
-              [attr.aria-selected]="tab() === item.id" (click)="selectTab(item.id)">{{ item.label }}</button>
-    }
-  </div>
-
-  @if (loading()) {
-    <div class="loading-state">Loading prompt...</div>
-  } @else {
-    @switch (tab()) {
-      @case ('sections') {
-        <app-ml-prompt-sections [sections]="sections()" (changed)="reload()"></app-ml-prompt-sections>
-      }
-      @case ('labels') {
-        <app-ml-prompt-labels [groups]="groups()" [labels]="labels()" (changed)="reload()"></app-ml-prompt-labels>
-      }
-      @case ('preview') {
-        <section class="panel">
-          <h2 class="panel-title">Rendered prompt</h2>
-          <p class="panel-hint">Exactly what the model receives as its instructions (the email itself is appended at run time).</p>
-          @if (preview(); as p) {
-            @if (p.validationErrors.length > 0) {
-              <div class="warning-banner">
-                <ul class="issue-list">
-                  @for (issue of p.validationErrors; track $index) {
-                    <li>{{ issue }}</li>
-                  }
-                </ul>
-              </div>
-            }
-            <pre class="prompt-preview mono">{{ p.prompt }}</pre>
+          @if (s.unpublishedChanges) {
+            <p-tag value="Unpublished changes" severity="warn"></p-tag>
           } @else {
-            <p class="empty-hint">Rendering preview...</p>
+            <p-tag value="Draft matches published" severity="success"></p-tag>
           }
-        </section>
-      }
-      @case ('versions') {
-        <section class="panel">
-          <h2 class="panel-title">Published versions</h2>
-          <p class="panel-hint">Restoring a version copies it into the draft; it does not change what is running.</p>
-          @if (versions().length === 0) {
-            <p class="empty-hint">Nothing has been published yet.</p>
-          }
-          <ul class="row-list">
-            @for (version of versions(); track version.id) {
-              <li class="row">
-                <div class="row-body">
-                  <span class="row-title">
-                    Version {{ version.versionNumber }}
-                    @if (version.running) {
-                      <p-tag value="Running" severity="success"></p-tag>
-                    }
-                  </span>
-                  <span class="row-text">
-                    {{ version.publishedAt | date: 'medium' }}
-                    @if (version.publishedBy) { by {{ version.publishedBy }} }
-                  </span>
-                  @if (version.note) {
-                    <span class="row-text">{{ version.note }}</span>
-                  }
-                </div>
-                <div class="row-actions">
-                  <button pButton type="button" label="View" icon="pi pi-eye" class="p-button-sm p-button-text"
-                          (click)="viewVersion(version)"></button>
-                  <button pButton type="button" label="Restore to draft" icon="pi pi-history"
-                          class="p-button-sm p-button-text" [disabled]="restoring()"
-                          (click)="restore(version)"></button>
-                </div>
-              </li>
+        }
+        <button pButton type="button" label="Refresh" icon="pi pi-refresh" class="p-button-outlined header-refresh"
+                (click)="reload(true)"></button>
+        <button pButton type="button" label="Publish draft" icon="pi pi-cloud-upload"
+                [disabled]="!canPublish() || publishing()" (click)="openPublish()"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Body ───────────────────────────────────────── -->
+  <div class="mlp-body">
+
+    @if (errors().length > 0) {
+      <div class="error-banner" role="alert">
+        @for (line of errors(); track $index) {
+          <div>{{ line }}</div>
+        }
+      </div>
+    }
+
+    @if (publishedMessage(); as message) {
+      <div class="success-banner" role="status">{{ message }}</div>
+    }
+
+    @if (status(); as s) {
+      @if (s.validationErrors.length > 0) {
+        <div class="warning-banner" role="alert">
+          <strong>The draft cannot be published yet:</strong>
+          <ul class="issue-list">
+            @for (issue of s.validationErrors; track $index) {
+              <li>{{ issue }}</li>
             }
           </ul>
-          @if (selectedVersion(); as selected) {
-            <div class="version-view">
-              <div class="version-view-head">
-                <h3 class="panel-title">Version {{ selected.versionNumber }} prompt</h3>
-                <button pButton type="button" label="Close" class="p-button-sm p-button-text"
-                        (click)="closeVersion()"></button>
-              </div>
-              <pre class="prompt-preview mono">{{ selected.renderedPrompt }}</pre>
-            </div>
-          }
-        </section>
+        </div>
       }
     }
-  }
+
+    @if (unreviewedCount() > 0) {
+      <div class="warning-banner" role="status">
+        <strong>{{ unreviewedCount() }}</strong>
+        {{ unreviewedCount() === 1 ? 'message' : 'messages' }} the model could not label with a published label
+        {{ unreviewedCount() === 1 ? 'is' : 'are' }} waiting for review.
+        <a routerLink="/admin/ml-unknown-review">Review them</a> to see what the prompt is missing.
+      </div>
+    }
+
+    @if (publishOpen()) {
+      <section class="panel publish-panel">
+        <h2 class="panel-title">Publish draft</h2>
+        <p class="panel-hint">This creates a new immutable version. The classifier loads it the next time the API starts.</p>
+        <label class="field-label" for="publish-note">Note (optional)</label>
+        <textarea pTextarea id="publish-note" rows="2" maxlength="500"
+                  [ngModel]="publishNote()" (ngModelChange)="publishNote.set($event)"></textarea>
+        <div class="field-actions">
+          <button pButton type="button" label="Cancel" class="p-button-text" (click)="cancelPublish()"></button>
+          <button pButton type="button" label="Publish" icon="pi pi-cloud-upload"
+                  [disabled]="publishing()" [loading]="publishing()" (click)="publish()"></button>
+        </div>
+      </section>
+    }
+
+    <!-- ── Tabs ───────────────────────────────────── -->
+    <div class="filter-section">
+      <div class="filter-bar" role="tablist">
+        @for (item of tabs; track item.id) {
+          <button type="button" class="filter-pill" role="tab" [class.filter-pill--active]="tab() === item.id"
+                  [attr.aria-selected]="tab() === item.id" (click)="selectTab(item.id)">{{ item.label }}</button>
+        }
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="state-block" role="status">
+        <div class="spinner"></div>
+        <p>Loading prompt…</p>
+      </div>
+    } @else {
+      @switch (tab()) {
+        @case ('sections') {
+          <app-ml-prompt-sections [sections]="sections()" (changed)="reload()"></app-ml-prompt-sections>
+        }
+        @case ('labels') {
+          <app-ml-prompt-labels [groups]="groups()" [labels]="labels()" (changed)="reload()"></app-ml-prompt-labels>
+        }
+        @case ('preview') {
+          <section class="panel">
+            <h2 class="panel-title">Rendered prompt</h2>
+            <p class="panel-hint">Exactly what the model receives as its instructions (the email itself is appended at run time).</p>
+            @if (preview(); as p) {
+              @if (p.validationErrors.length > 0) {
+                <div class="warning-banner preview-warning">
+                  <ul class="issue-list">
+                    @for (issue of p.validationErrors; track $index) {
+                      <li>{{ issue }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+              <pre class="prompt-preview mono">{{ p.prompt }}</pre>
+            } @else {
+              <p class="empty-hint">Rendering preview…</p>
+            }
+          </section>
+        }
+        @case ('versions') {
+          <section class="panel">
+            <h2 class="panel-title">Published versions</h2>
+            <p class="panel-hint">Restoring a version copies it into the draft; it does not change what is running.</p>
+            @if (versions().length === 0) {
+              <p class="empty-hint">Nothing has been published yet. Publish the draft to create version 1.</p>
+            }
+            <ul class="row-list">
+              @for (version of versions(); track version.id) {
+                <li class="row">
+                  <div class="row-body">
+                    <span class="row-title">
+                      Version {{ version.versionNumber }}
+                      @if (version.running) {
+                        <p-tag value="Running" severity="success"></p-tag>
+                      }
+                    </span>
+                    <span class="row-text">
+                      {{ version.publishedAt | date: 'medium' }}
+                      @if (version.publishedBy) { by {{ version.publishedBy }} }
+                    </span>
+                    @if (version.note) {
+                      <span class="row-text">{{ version.note }}</span>
+                    }
+                  </div>
+                  <div class="row-actions">
+                    <button pButton type="button" label="View" icon="pi pi-eye" class="p-button-sm p-button-text"
+                            (click)="viewVersion(version)"></button>
+                    <button pButton type="button" label="Restore to draft" icon="pi pi-history"
+                            class="p-button-sm p-button-text" [disabled]="restoring()"
+                            (click)="restore(version)"></button>
+                  </div>
+                </li>
+              }
+            </ul>
+            @if (selectedVersion(); as selected) {
+              <div class="version-view">
+                <div class="version-view-head">
+                  <h3 class="panel-title">Version {{ selected.versionNumber }} prompt</h3>
+                  <button pButton type="button" label="Close" class="p-button-sm p-button-text"
+                          (click)="closeVersion()"></button>
+                </div>
+                <pre class="prompt-preview mono">{{ selected.renderedPrompt }}</pre>
+              </div>
+            }
+          </section>
+        }
+      }
+    }
+  </div>
 </div>

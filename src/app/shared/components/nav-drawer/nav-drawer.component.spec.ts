@@ -69,7 +69,13 @@ describe('NavDrawerComponent', () => {
 
     const platformOps = component.visibleSections.find(s => s.id === 'platform-ops');
 
-    expect(platformOps?.children.map(c => c.route)).toEqual(['/admin/outreach-ml', '/admin/ml-prompt', '/admin/ml-unknown']);
+    expect(platformOps?.children.map(c => c.route)).toEqual([
+      '/admin/companies',
+      '/admin/challenges',
+      '/admin/outreach-ml',
+      '/admin/ml-prompt',
+      '/admin/ml-unknown-review'
+    ]);
   });
 
   it('lists the ML prompt and review pages under Platform Operations for admins', () => {
@@ -78,8 +84,25 @@ describe('NavDrawerComponent', () => {
     const platformOps = component.visibleSections.find(s => s.id === 'platform-ops');
 
     expect(platformOps?.children.map(c => c.route)).toEqual(
-      jasmine.arrayContaining(['/admin/ml-prompt', '/admin/ml-unknown'])
+      jasmine.arrayContaining(['/admin/ml-prompt', '/admin/ml-unknown-review'])
     );
+  });
+
+  it('only highlights Platform Operations on its own pages', () => {
+    const component = createComponent(['MO_ADMIN'], true);
+    const platformOps = component.visibleSections.find(s => s.id === 'platform-ops')!;
+
+    component.currentUrl = '/admin/dashboard';
+    expect(component.isSectionActive(platformOps)).toBeFalse();
+
+    component.currentUrl = '/admin/users/42';
+    expect(component.isSectionActive(platformOps)).toBeFalse();
+
+    component.currentUrl = '/admin/ml-prompt';
+    expect(component.isSectionActive(platformOps)).toBeTrue();
+
+    component.currentUrl = '/admin/challenges/new';
+    expect(component.isSectionActive(platformOps)).toBeTrue();
   });
 
   it('does not show Platform Operations to non-admins', () => {

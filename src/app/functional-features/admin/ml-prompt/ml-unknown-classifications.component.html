@@ -1,103 +1,120 @@
-<div class="unknown-page">
-  <div class="page-header">
-    <h1 class="page-title">Unrecognised Classifications</h1>
-    <p class="page-subtitle">
-      Emails where the model answered with a label that is not in the published list. Review them, then add or rename a
-      label in the prompt if the label should exist. Message text is deleted automatically when the countdown ends.
-    </p>
+<div class="mlp-page">
+
+  <!-- ── Gradient Header ─────────────────────────────── -->
+  <div class="mlp-header">
+    <div class="mlp-header__content">
+      <div class="mlp-header__text">
+        <h1>Unrecognised Classifications</h1>
+        <p>
+          Emails where the model answered with a label that is not in the published list. Review them, then add or rename a
+          label in the prompt if the label should exist. Message text is deleted automatically when the countdown ends.
+        </p>
+      </div>
+      @if (!loading()) {
+        <span class="mlp-header__count">{{ totalElements() }} total</span>
+      }
+    </div>
   </div>
 
-  @if (errors().length > 0) {
-    <div class="error-banner" role="alert">
-      @for (line of errors(); track $index) {
-        <div>{{ line }}</div>
-      }
-      <button pButton type="button" label="Retry" class="p-button-sm p-button-text" (click)="load()"></button>
-    </div>
-  }
+  <!-- ── Body ───────────────────────────────────────── -->
+  <div class="mlp-body">
 
-  <div class="filter-row" role="tablist">
-    @for (opt of filters; track opt.value) {
-      <button type="button" class="filter-chip" role="tab" [class.active]="filter() === opt.value"
-              [attr.aria-selected]="filter() === opt.value" (click)="applyFilter(opt.value)">{{ opt.label }}</button>
+    @if (errors().length > 0) {
+      <div class="error-banner" role="alert">
+        @for (line of errors(); track $index) {
+          <div>{{ line }}</div>
+        }
+        <button pButton type="button" label="Retry" class="p-button-sm p-button-text" (click)="load()"></button>
+      </div>
     }
-    <span class="total-count">{{ totalElements() }} total</span>
-  </div>
 
-  @if (loading()) {
-    <div class="loading-state">Loading...</div>
-  } @else if (items().length === 0) {
-    <div class="empty-state">
-      <i class="pi pi-check-circle empty-icon"></i>
-      <h2 class="empty-title">Nothing to review</h2>
-      <p class="empty-text">No messages match this filter. Try another status.</p>
+    <div class="filter-section">
+      <div class="filter-bar" role="tablist">
+        @for (opt of filters; track opt.value) {
+          <button type="button" class="filter-pill" role="tab" [class.filter-pill--active]="filter() === opt.value"
+                  [attr.aria-selected]="filter() === opt.value" (click)="applyFilter(opt.value)">{{ opt.label }}</button>
+        }
+      </div>
     </div>
-  } @else {
-    <ul class="row-list unknown-list">
-      @for (item of items(); track item.id) {
-        <li class="unknown-card">
-          <div class="card-top">
-            <div class="card-main">
-              <div class="label-line">
-                @for (label of item.unknownLabels; track label) {
-                  <span class="label-chip mono">{{ label }}</span>
-                }
-                <p-tag [value]="item.status" [severity]="statusSeverity(item.status)"></p-tag>
+
+    @if (loading()) {
+      <div class="state-block" role="status">
+        <div class="spinner"></div>
+        <p>Loading…</p>
+      </div>
+    } @else if (items().length === 0) {
+      <div class="state-block">
+        <i class="pi pi-check-circle empty-icon"></i>
+        <p class="state-block__title">Nothing to review</p>
+        <p>No messages match this filter. Try another status.</p>
+      </div>
+    } @else {
+      <ul class="row-list unknown-list">
+        @for (item of items(); track item.id) {
+          <li class="unknown-card">
+            <div class="card-top">
+              <div class="card-main">
+                <div class="label-line">
+                  @for (label of item.unknownLabels; track label) {
+                    <span class="label-chip mono">{{ label }}</span>
+                  }
+                  <p-tag [value]="item.status" [severity]="statusSeverity(item.status)"></p-tag>
+                </div>
+                <span class="row-title">{{ item.subject || '(no subject)' }}</span>
+                <span class="row-text">{{ item.unknownCause }}</span>
+                <span class="meta-line">
+                  {{ item.createdAt | date: 'medium' }}
+                  @if (item.promptVersion) { · prompt v{{ item.promptVersion }} }
+                  @if (item.confidence !== null) { · confidence {{ item.confidence * 100 | number: '1.0-0' }}% }
+                </span>
               </div>
-              <span class="row-title">{{ item.subject || '(no subject)' }}</span>
-              <span class="row-text">{{ item.unknownCause }}</span>
-              <span class="meta-line">
-                {{ item.createdAt | date: 'medium' }}
-                @if (item.promptVersion) { · prompt v{{ item.promptVersion }} }
-                @if (item.confidence !== null) { · confidence {{ item.confidence * 100 | number: '1.0-0' }}% }
-              </span>
+              <div class="card-side">
+                <span class="retention" [class.retention-soon]="item.daysRemaining <= 7">{{ retentionLabel(item) }}</span>
+                <button pButton type="button" class="p-button-sm p-button-text"
+                        [label]="expandedId() === item.id ? 'Hide message' : 'Show message'"
+                        [attr.aria-expanded]="expandedId() === item.id" (click)="toggle(item.id)"></button>
+              </div>
             </div>
-            <div class="card-side">
-              <span class="retention" [class.retention-soon]="item.daysRemaining <= 7">{{ retentionLabel(item) }}</span>
-              <button pButton type="button" class="p-button-sm p-button-text"
-                      [label]="expandedId() === item.id ? 'Hide message' : 'Show message'"
-                      [attr.aria-expanded]="expandedId() === item.id" (click)="toggle(item.id)"></button>
+
+            @if (expandedId() === item.id) {
+              <div class="card-detail">
+                <h3 class="detail-title">Model reason</h3>
+                <p class="row-text">{{ item.modelReason || 'The model gave no reason.' }}</p>
+                <h3 class="detail-title">Raw labels returned</h3>
+                <p class="row-text mono">
+                  {{ item.rawEventType || '(none)' }}
+                  @if (item.rawAdditionalEventTypes.length > 0) { + {{ item.rawAdditionalEventTypes.join(', ') }} }
+                </p>
+                <h3 class="detail-title">Message</h3>
+                <pre class="message-text">{{ item.messageText || '(text no longer stored)' }}</pre>
+              </div>
+            }
+
+            <div class="card-actions">
+              @if (item.status !== 'REVIEWED') {
+                <button pButton type="button" label="Mark reviewed" icon="pi pi-check" class="p-button-sm p-button-outlined"
+                        [disabled]="updatingId() === item.id" (click)="setStatus(item, 'REVIEWED')"></button>
+              }
+              @if (item.status !== 'DISMISSED') {
+                <button pButton type="button" label="Dismiss" icon="pi pi-times" class="p-button-sm p-button-text"
+                        [disabled]="updatingId() === item.id" (click)="setStatus(item, 'DISMISSED')"></button>
+              }
+              @if (item.status !== 'NEW') {
+                <button pButton type="button" label="Reopen" icon="pi pi-replay" class="p-button-sm p-button-text"
+                        [disabled]="updatingId() === item.id" (click)="setStatus(item, 'NEW')"></button>
+              }
             </div>
-          </div>
+          </li>
+        }
+      </ul>
 
-          @if (expandedId() === item.id) {
-            <div class="card-detail">
-              <h3 class="detail-title">Model reason</h3>
-              <p class="row-text">{{ item.modelReason || 'The model gave no reason.' }}</p>
-              <h3 class="detail-title">Raw labels returned</h3>
-              <p class="row-text mono">
-                {{ item.rawEventType || '(none)' }}
-                @if (item.rawAdditionalEventTypes.length > 0) { + {{ item.rawAdditionalEventTypes.join(', ') }} }
-              </p>
-              <h3 class="detail-title">Message</h3>
-              <pre class="message-text">{{ item.messageText || '(text no longer stored)' }}</pre>
-            </div>
-          }
-
-          <div class="card-actions">
-            @if (item.status !== 'REVIEWED') {
-              <button pButton type="button" label="Mark reviewed" icon="pi pi-check" class="p-button-sm p-button-outlined"
-                      [disabled]="updatingId() === item.id" (click)="setStatus(item, 'REVIEWED')"></button>
-            }
-            @if (item.status !== 'DISMISSED') {
-              <button pButton type="button" label="Dismiss" icon="pi pi-times" class="p-button-sm p-button-text"
-                      [disabled]="updatingId() === item.id" (click)="setStatus(item, 'DISMISSED')"></button>
-            }
-            @if (item.status !== 'NEW') {
-              <button pButton type="button" label="Reopen" icon="pi pi-replay" class="p-button-sm p-button-text"
-                      [disabled]="updatingId() === item.id" (click)="setStatus(item, 'NEW')"></button>
-            }
-          </div>
-        </li>
-      }
-    </ul>
-
-    <div class="pager">
-      <button pButton type="button" label="Previous" icon="pi pi-chevron-left" class="p-button-sm p-button-text"
-              [disabled]="!hasPrevious()" (click)="previousPage()"></button>
-      <span class="pager-text">Page {{ page() + 1 }} of {{ totalPages() }}</span>
-      <button pButton type="button" label="Next" icon="pi pi-chevron-right" iconPos="right"
-              class="p-button-sm p-button-text" [disabled]="!hasNext()" (click)="nextPage()"></button>
-    </div>
-  }
+      <div class="pager">
+        <button pButton type="button" label="Previous" icon="pi pi-chevron-left" class="p-button-sm p-button-text"
+                [disabled]="!hasPrevious()" (click)="previousPage()"></button>
+        <span class="pager-text">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+        <button pButton type="button" label="Next" icon="pi pi-chevron-right" iconPos="right"
+                class="p-button-sm p-button-text" [disabled]="!hasNext()" (click)="nextPage()"></button>
+      </div>
+    }
+  </div>
 </div>

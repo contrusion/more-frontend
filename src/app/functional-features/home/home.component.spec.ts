@@ -170,12 +170,12 @@ describe('Home', () => {
     mockAuthService.hasRole.and.callFake((role: string) => role === 'MO_ADMIN');
     const adminRoutes = component.getVisibleTiles().map(tile => tile.route);
     expect(adminRoutes).toContain('/admin/ml-prompt');
-    expect(adminRoutes).toContain('/admin/ml-unknown');
+    expect(adminRoutes).toContain('/admin/ml-unknown-review');
 
     mockAuthService.hasRole.and.callFake((role: string) => role === 'APPLICANT');
     const applicantRoutes = component.getVisibleTiles().map(tile => tile.route);
     expect(applicantRoutes).not.toContain('/admin/ml-prompt');
-    expect(applicantRoutes).not.toContain('/admin/ml-unknown');
+    expect(applicantRoutes).not.toContain('/admin/ml-unknown-review');
   });
 
   it('should show tiles without role restrictions to all users', () => {

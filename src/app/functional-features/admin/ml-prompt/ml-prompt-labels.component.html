@@ -18,9 +18,9 @@
 }
 
 <div class="view-switch" role="tablist">
-  <button type="button" class="filter-chip" role="tab" [class.active]="view() === 'groups'"
+  <button type="button" class="filter-pill" role="tab" [class.filter-pill--active]="view() === 'groups'"
           [attr.aria-selected]="view() === 'groups'" (click)="setView('groups')">By group</button>
-  <button type="button" class="filter-chip" role="tab" [class.active]="view() === 'hierarchy'"
+  <button type="button" class="filter-pill" role="tab" [class.filter-pill--active]="view() === 'hierarchy'"
           [attr.aria-selected]="view() === 'hierarchy'" (click)="setView('hierarchy')">Hierarchy</button>
 </div>
 

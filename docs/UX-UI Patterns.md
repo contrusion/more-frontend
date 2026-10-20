@@ -145,6 +145,39 @@ TODO:
 Ask phrase:
 - Apply cross-browser form and drawer typography consistency checks.
 
+## 13) Feature and Admin Page Shell
+Use when: building any routed page, admin pages included.
+
+Includes:
+- Page wrapper with fluid `clamp()` tokens
+- Full-width sticky gradient header with title, one-line subtitle, and page-level status/actions inside it
+- Padded body below the header (no page title in the body)
+- Centered `filter-pill` filters/tabs, `state-block` loading/empty/error states
+- Theme tokens only (no hex), semantic status colours, neutral chips, reduced-motion fallback
+
+Before starting: open the closest sibling (`/interactions/email-sync`, `/career-development/living-cv`, admin `user-list`, `company-list`) and reuse its shell. Admin ML pages (`ml-prompt`, `ml-unknown-review`) are the worked example for admin pages (`ml-prompt-shared.css`).
+
+Ask phrase:
+- Use the standard feature page shell, matching <sibling page>.
+
+## 14) Drawer and Side Rail Navigation
+Use when: adding or moving a page.
+
+Includes:
+- Every drawer branch has its own layout and side rail showing only that branch's pages (admin included)
+- Rail items equal the branch's drawer children, from one shared definition (`shared/navigation/admin-nav.ts`, `interactions-nav.ts`)
+- Single-page branches (admin Overview, User Management) have no rail
+- Drawer sections highlight only for their own pages
+- New page checklist: branch definition (drawer + rail), Home Quick Access if primary, specs updated
+
+Admin Platform Operations rail: Companies, Challenges, ML Data, Prompt, Review.
+
+Ask phrase:
+- Register this page in the drawer and the branch side rail.
+
+## 15) Route Naming
+- Descriptive kebab-case matching the page title (`ml-unknown-review`, not `ml-unknown`).
+
 ---
 
 ## Recommended Quick Commands

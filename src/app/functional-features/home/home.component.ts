@@ -77,7 +77,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       title: 'ML Review',
       description: 'Review messages the classifier could not label to improve the model',
       icon: 'clipboard',
-      route: '/admin/ml-unknown',
+      route: '/admin/ml-unknown-review',
       color: '#0ea5e9',
       roles: ['MO_ADMIN']
     },

@@ -1,4 +1,6 @@
-﻿.text-fields { margin-top: 0.5rem; }
+﻿.text-fields {
+  margin-top: 0.5rem;
+}
 
 .items-head {
   display: flex;
@@ -8,9 +10,9 @@
 }
 
 .items-title {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: var(--mlp-text-fs);
+  font-weight: 600;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -18,4 +20,3 @@
   width: 100%;
   padding: 0.5rem 0;
 }
-

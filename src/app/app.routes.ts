@@ -82,7 +82,7 @@ export const routes: Routes = [
         loadComponent: () => import('./functional-features/admin/ml-prompt/ml-prompt-editor.component').then(m => m.MlPromptEditorComponent)
       },
       {
-        path: 'ml-unknown',
+        path: 'ml-unknown-review',
         loadComponent: () => import('./functional-features/admin/ml-prompt/ml-unknown-classifications.component').then(m => m.MlUnknownClassificationsComponent)
       },
       {

@@ -6,6 +6,7 @@ import { NavDrawerService } from '../../services/nav-drawer.service';
 import { AuthService } from '../../../none-functional-features/authentication-and-authorization/services/auth.service';
 import { FeatureFlagsService } from '../../services/feature-flags.service';
 import { getInteractionsNavLinksForRole } from '../../navigation/interactions-nav';
+import { ADMIN_PLATFORM_OPERATIONS_LINKS } from '../../navigation/admin-nav';
 
 interface NavChild {
   label: string;
@@ -18,6 +19,8 @@ interface NavSection {
   label: string;
   requiredRoles: string[];
   routePrefix: string;
+  /** Overrides routePrefix when a section owns several unrelated url prefixes. */
+  routePrefixes?: string[];
   /** When set, the section renders as a single direct link instead of a collapsible group. */
   directRoute?: string;
   children: NavChild[];
@@ -27,6 +30,8 @@ const getInteractionsSectionChildren = (authService: AuthService): NavChild[] =>
   const role = authService.hasRole('APPLICANT') ? 'APPLICANT' : authService.hasRole('RECRUITER') ? 'RECRUITER' : null;
   return getInteractionsNavLinksForRole(role).map(link => ({ ...link }));
 };
+
+const getSectionPrefixes = (section: NavSection): string[] => section.routePrefixes ?? [section.routePrefix];
 
 const getAllSections = (authService: AuthService): NavSection[] => [
   {
@@ -101,13 +106,9 @@ const getAllSections = (authService: AuthService): NavSection[] => [
     id: 'platform-ops',
     label: 'Platform Operations',
     requiredRoles: ['MO_ADMIN'],
-    routePrefix: '/admin',
-    children: [
-      { label: 'Outreach ML Export', route: '/admin/outreach-ml' },
-      { label: 'ML Prompt', route: '/admin/ml-prompt' },
-      { label: 'ML Review', route: '/admin/ml-unknown' },
-      { label: 'Interaction Events', route: '/interactions/events' }
-    ]
+    routePrefix: '/admin/companies',
+    routePrefixes: ADMIN_PLATFORM_OPERATIONS_LINKS.map(link => link.route),
+    children: ADMIN_PLATFORM_OPERATIONS_LINKS.map(link => ({ label: link.label, route: link.route }))
   }
 ];
 
@@ -188,7 +189,7 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
 
   private expandActiveSection(): void {
     for (const section of this.visibleSections) {
-      if (this.currentUrl.startsWith(section.routePrefix)) {
+      if (this.isSectionActive(section)) {
         this.expandedSections.add(section.id);
         return;
       }
@@ -196,7 +197,7 @@ export class NavDrawerComponent implements OnInit, OnDestroy {
   }
 
   isSectionActive(section: NavSection): boolean {
-    return this.currentUrl.startsWith(section.routePrefix);
+    return getSectionPrefixes(section).some(prefix => this.currentUrl.startsWith(prefix));
   }
 
   getVisibleChildren(section: NavSection): NavChild[] {
