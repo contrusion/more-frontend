@@ -97,7 +97,8 @@ export const ACTIVITY_GROUPS: readonly ActivityGroup[] = [
       EventType.REPLY,
       EventType.FOLLOW_UP,
       EventType.ACKNOWLEDGEMENT,
-      EventType.PENDING_CLASSIFICATION
+      EventType.PENDING_CLASSIFICATION,
+      EventType.UNKNOWN
     ]
   }
 ];

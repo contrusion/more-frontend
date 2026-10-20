@@ -78,6 +78,14 @@ export const routes: Routes = [
         loadComponent: () => import('./functional-features/interactions/dataset-export/dataset-export.component').then(m => m.DatasetExportComponent)
       },
       {
+        path: 'ml-prompt',
+        loadComponent: () => import('./functional-features/admin/ml-prompt/ml-prompt-editor.component').then(m => m.MlPromptEditorComponent)
+      },
+      {
+        path: 'ml-unknown',
+        loadComponent: () => import('./functional-features/admin/ml-prompt/ml-unknown-classifications.component').then(m => m.MlUnknownClassificationsComponent)
+      },
+      {
         path: 'users',
         loadComponent: () => import('./functional-features/admin/users/user-list.component').then(m => m.UserListComponent)
       },

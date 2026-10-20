@@ -1,0 +1,107 @@
+@if (errors().length > 0) {
+  <div class="error-banner" role="alert">
+    @for (line of errors(); track $index) {
+      <div>{{ line }}</div>
+    }
+  </div>
+}
+
+@for (section of sections(); track section.id) {
+  <section class="panel">
+    <header class="section-head">
+      <div>
+        <h2 class="panel-title">{{ titles[section.type].title }}</h2>
+        <p class="panel-hint">{{ titles[section.type].hint }}</p>
+      </div>
+    </header>
+
+    <div class="text-fields">
+      <label class="field-label" [for]="'heading-' + section.id">Heading</label>
+      <input pInputText #heading [id]="'heading-' + section.id" [value]="section.heading ?? ''" maxlength="255" />
+      <label class="field-label" [for]="'intro-' + section.id">Text</label>
+      <textarea pTextarea #intro [id]="'intro-' + section.id" rows="4" [value]="section.intro ?? ''"></textarea>
+      <div class="field-actions">
+        <button pButton type="button" label="Save text" icon="pi pi-save" class="p-button-sm"
+                [disabled]="busy()" (click)="saveSection(section, heading.value, intro.value)"></button>
+      </div>
+    </div>
+
+    @if (section.supportsItems) {
+      <div class="items-head">
+        <h3 class="items-title">Entries ({{ section.items.length }})</h3>
+        <button pButton type="button" label="Add entry" icon="pi pi-plus" class="p-button-sm p-button-outlined"
+                [disabled]="busy()" (click)="startAdd(section.type)"></button>
+      </div>
+
+      @if (section.items.length === 0 && editing()?.sectionType !== section.type) {
+        <p class="empty-hint">No entries yet. Add the first one.</p>
+      }
+
+      <ol class="row-list">
+        @for (item of section.items; track item.id; let i = $index; let last = $last) {
+          <li class="row" [class.inactive]="!item.active">
+            @if (editing()?.itemId === item.id) {
+              <ng-container *ngTemplateOutlet="itemEditor"></ng-container>
+            } @else {
+              <div class="row-body">
+                @if (item.title) {
+                  <span class="row-title">{{ item.title }}</span>
+                }
+                <span class="row-text">{{ item.content }}</span>
+                @if (!item.active) {
+                  <p-tag value="Hidden from prompt" severity="secondary"></p-tag>
+                }
+              </div>
+              <div class="row-actions">
+                <button pButton type="button" icon="pi pi-arrow-up" class="p-button-sm p-button-text"
+                        pTooltip="Move up" aria-label="Move up" [disabled]="busy() || i === 0"
+                        (click)="move(section, i, -1)"></button>
+                <button pButton type="button" icon="pi pi-arrow-down" class="p-button-sm p-button-text"
+                        pTooltip="Move down" aria-label="Move down" [disabled]="busy() || last"
+                        (click)="move(section, i, 1)"></button>
+                <button pButton type="button" icon="pi pi-pencil" class="p-button-sm p-button-text"
+                        pTooltip="Edit" aria-label="Edit" [disabled]="busy()"
+                        (click)="startEdit(section.type, item)"></button>
+                @if (confirmDeleteId() === item.id) {
+                  <button pButton type="button" label="Delete" class="p-button-sm p-button-danger"
+                          [disabled]="busy()" (click)="confirmDelete(item.id)"></button>
+                  <button pButton type="button" label="Keep" class="p-button-sm p-button-text"
+                          (click)="cancelDelete()"></button>
+                } @else {
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
+                          pTooltip="Delete" aria-label="Delete" [disabled]="busy()"
+                          (click)="askDelete(item.id)"></button>
+                }
+              </div>
+            }
+          </li>
+        }
+        @if (editing()?.sectionType === section.type && editing()?.itemId === null) {
+          <li class="row">
+            <ng-container *ngTemplateOutlet="itemEditor"></ng-container>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+}
+
+<ng-template #itemEditor>
+  <form class="item-form" [formGroup]="itemForm" (ngSubmit)="saveItem()">
+    <label class="field-label" for="item-title">Title (optional)</label>
+    <input pInputText id="item-title" formControlName="title" maxlength="255" />
+    <label class="field-label" for="item-content">Content <span class="required">*</span></label>
+    <textarea pTextarea id="item-content" formControlName="content" rows="4"></textarea>
+    @if (itemForm.controls.content.invalid && itemForm.controls.content.touched) {
+      <span class="field-error">Content is required (up to 20000 characters).</span>
+    }
+    <div class="checkbox-row">
+      <p-checkbox inputId="item-active" formControlName="active" [binary]="true"></p-checkbox>
+      <label for="item-active">Include in prompt</label>
+    </div>
+    <div class="field-actions">
+      <button pButton type="button" label="Cancel" class="p-button-sm p-button-text" (click)="cancelEdit()"></button>
+      <button pButton type="submit" label="Save entry" icon="pi pi-save" class="p-button-sm" [disabled]="busy()"></button>
+    </div>
+  </form>
+</ng-template>

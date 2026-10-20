@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { NavDrawerService } from '../../shared/services/nav-drawer.service';
+import { MlPromptService } from './ml-prompt/ml-prompt.service';
 
 @Component({
   selector: 'app-admin',
@@ -60,6 +62,32 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
           </svg>
           <span>ML Data</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="isActive('ml-prompt')"
+          (click)="navigate('ml-prompt')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <span>Prompt</span>
+        </button>
+        <button
+          class="nav-item"
+          [class.active]="isActive('ml-unknown')"
+          (click)="navigate('ml-unknown')"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Review</span>
+          @if (unreviewedCount() > 0) {
+            <span class="nav-badge" [attr.aria-label]="unreviewedCount() + ' messages to review'">{{ unreviewedCount() > 99 ? '99+' : unreviewedCount() }}</span>
+          }
         </button>
         <button
           class="nav-item"
@@ -127,6 +155,23 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
       text-align: center;
     }
 
+    .nav-item {
+      position: relative;
+    }
+
+    .nav-item .nav-badge {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+      min-width: 1.25rem;
+      padding: 0 0.35rem;
+      border-radius: 999px;
+      background: #f59e0b;
+      color: #1f2937;
+      font-size: 0.65rem;
+      line-height: 1.25rem;
+    }
+
     .nav-hidden {
       display: none;
     }
@@ -147,8 +192,27 @@ import { NavDrawerService } from '../../shared/services/nav-drawer.service';
     }
   `]
 })
-export class AdminComponent {
-  constructor(private router: Router, public navDrawerService: NavDrawerService) {}
+export class AdminComponent implements OnDestroy {
+  private readonly mlPromptService = inject(MlPromptService);
+  private readonly navigationSubscription: Subscription;
+
+  /** Messages the model could not label, shown as a badge on the Review item. */
+  readonly unreviewedCount = this.mlPromptService.unreviewedCount;
+
+  constructor(private router: Router, public navDrawerService: NavDrawerService) {
+    this.refreshUnreviewedCount();
+    this.navigationSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => this.refreshUnreviewedCount());
+  }
+
+  ngOnDestroy(): void {
+    this.navigationSubscription.unsubscribe();
+  }
+
+  private refreshUnreviewedCount(): void {
+    this.mlPromptService.getUnknownSummary().subscribe({ error: () => undefined });
+  }
 
   isActive(path: string): boolean {
     return this.router.url.includes(`/admin/${path}`);

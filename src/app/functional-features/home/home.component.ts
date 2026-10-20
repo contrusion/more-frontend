@@ -66,6 +66,22 @@ export class HomeComponent implements OnInit, OnDestroy {
       roles: ['MO_ADMIN']
     },
     {
+      title: 'ML Prompt',
+      description: 'Edit the event labels and prompt the classifier uses, then publish a new version',
+      icon: 'sparkles',
+      route: '/admin/ml-prompt',
+      color: '#0ea5e9',
+      roles: ['MO_ADMIN']
+    },
+    {
+      title: 'ML Review',
+      description: 'Review messages the classifier could not label to improve the model',
+      icon: 'clipboard',
+      route: '/admin/ml-unknown',
+      color: '#0ea5e9',
+      roles: ['MO_ADMIN']
+    },
+    {
       title: 'Job Opportunities and Applications',
       description: 'Manage job postings and track applications',
       icon: 'briefcase',

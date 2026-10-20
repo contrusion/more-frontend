@@ -75,6 +75,7 @@ Status as of the current phase checkpoint:
 - Completed: `EMAIL_DOMAIN` scan strategy skeleton is active for new user defaults. It first queries Gmail using known recruiter-company domains, then fills remaining slots with the baseline inbox query
 - Completed: `SPECIFIC_EMAIL_ADDRESS` scan strategy is implemented as a selectable first-class option for focused testing. The user can configure one or more sender email addresses from the frontend settings, and the strategy applies the same inbox/category/date watermark rules as other strategies
 - Policy change to confirm: full body text of recruiter-relevant emails is now stored on the event so it can feed inhouse model training; rejected emails are never stored. This supersedes the "no original email body" line in the policy below
+- Completed (`US-ML11`, backend + admin UI): the classification prompt and the event label taxonomy are master data in the database (Flyway `V20261020_130000__add_ml_prompt_taxonomy_master_data.sql`, seeded from `local-llama-email-classification-prompt.txt`, which stays unchanged as reference). Admins edit a draft in the admin UI (`/admin/ml-prompt`), publish it as an immutable version, and the classifier loads the latest published version once at startup (a restart is needed for a published version to take effect; an invalid stored version stops startup). Labels the model returns that are not in the published list become `UNKNOWN`, are kept for 90 days in `ml_unknown_classification` and are reviewed in the admin UI (`/admin/ml-unknown`). See `US-ML11` below
 
 The work is now split into two clear streams:
 1. Core ML extraction boundary (done and validated)
@@ -144,6 +145,7 @@ Phase 1 scope:
 | Human review for low-confidence cases | US-ML6: Low-Confidence Output Is Flagged For Review | Completed |
 | Logging and evaluation of model outputs | US-ML7: Model Outputs Are Logged And Evaluated | Completed |
 | Sync-safe live timeline classification | US-ML10: Live Messages Are Marked Pending Until Sync Classification | Completed |
+| Prompt and event taxonomy as admin-managed master data | US-ML11: Canonical Event Taxonomy Is Managed As Master Data | In progress |
 
 Note: classification audit logging and evaluation summaries are now active in the ML layer for operational review and Phase 2 handoff preparation.
 
@@ -292,7 +294,7 @@ Status: In progress
 
 #### US-ML11: Canonical Event Taxonomy Is Managed As Master Data
 
-Status: Proposed
+Status: In progress (backend, admin UI and automated tests are done; remaining: run the Flyway migrations against PostgreSQL, wire the prompt version into the review item in the live flow, and an end-to-end check against a live Llama)
 
 **As a** product owner or admin  
 **I want to** define the allowed ML event labels in application settings and store them as master data  
@@ -314,6 +316,21 @@ Status: Proposed
 - Unknown labels are rejected explicitly and surfaced for admin review rather than silently accepted into the pipeline
 - System behavior remains stable even when the prompt or classification schema changes over time
 
+**Implementation (as built):**
+
+- Tables: `ml_prompt_section`, `ml_prompt_item` (rules and field specs), `ml_label_group`, `ml_event_label` (+ `ml_event_label_alias`) hold the editable **draft**; `ml_prompt_version` holds immutable published versions (snapshot JSON, rendered prompt, SHA-256 hash); `ml_unknown_classification` holds unrecognised results.
+- The seed reproduces `local-llama-email-classification-prompt.txt` (7 sections, 6 label groups, 40 labels; label priority = position in the hierarchy list). `MlPromptSeedMigrationTest` renders the seeded data and compares it with the `.txt` (whitespace-insensitive). The `.txt` itself is never read at runtime.
+- Text may reference labels with `{{label:NAME}}` tokens; publish fails if a token names a missing or inactive label, if a label has no group or definition, or if names/aliases collide.
+- Flow: admin edits draft -> **Publish** validates, renders the prompt and stores version _n_ -> `MlTaxonomyCatalog` loads the latest version once at startup (seeding v1 from the draft if none exists) -> `LocalLlamaEmailClassificationService` uses `catalog.current().prompt()` and `catalog.current().resolve(raw)`. Changes take effect only after a restart; the admin UI shows the running version, the latest published version, "Restart pending" and "Unpublished changes". Older versions can be viewed and copied back into the draft.
+- Matching is case-, space- and hyphen-insensitive and accepts active labels and their aliases only. Seeded aliases: `CV_SUBMISSION`, `CV_SUBMITED` -> `CV_SUBMITTED`; `INTERVIEW_ACCEPTED` -> `INTERVIEW_TIME_ACCEPTED`; `JOB_SPEC_SHARED` -> `JOB_SPEC_WRITTEN_IN_MAIL_TEXT`. The name remaps that used to live in `EmailProcessorTransactional` (for example `INTERVIEW_INVITE` -> `INTERVIEW_REQUEST`) were removed; the prompt file is the source of truth.
+- `UNKNOWN` is not offered to the model. When the primary label cannot be resolved the event type becomes `UNKNOWN` and `reviewRequired` is set; unresolved additional labels are dropped. Either case is recorded (message text, raw labels, model reason, cause) in `ml_unknown_classification`, deduplicated by message id and deleted automatically after `more.ml.unknown-retention-days` (default 90; purge cron `more.ml.unknown-purge-cron`).
+- Unknown capture is asynchronous and best-effort. The classifier only attaches an `UnknownClassificationCapture` to its result; `EmailProcessorTransactional` publishes `UnknownClassificationDetected` (capture + saved interaction event id) and `UnknownClassificationRecorder` handles it `AFTER_COMMIT` on a bounded single-thread executor (the same pattern as `OpportunityExtractionDispatcher`). Only emails that were actually saved are recorded, and each review item links to its interaction event (`interaction_event_id`, part of the `ml_unknown_classification` table in `V20261020_130000`). If the queue is full or recording fails the item is logged and dropped; the classification and the email save are never affected. Losing the odd item is accepted because the data only feeds model improvement.
+- Feedback loop for admins: `GET /api/v1/admin/ml/unknown-classifications/summary` returns the unreviewed count. It drives a badge on the admin navigation "Review" item and a banner on the Prompt page linking to the review list.
+- API (role `MO_ADMIN`): `/api/v1/admin/ml/prompt` (draft, status, preview, sections, items, groups, labels, hierarchy, publish, versions, restore-to-draft) and `/api/v1/admin/ml/unknown-classifications` (list by status, change status).
+- Admin UI: `Prompt` (`/admin/ml-prompt`: prompt text, labels by group and by hierarchy, preview, versions) and `Review` (`/admin/ml-unknown`: filter by status, message text, raw labels, reason, retention countdown, mark reviewed/dismiss/reopen). The frontend `EventType` enum has `UNKNOWN`, displayed as "Not Classified".
+- Adding a label also needs a matching constant in `InteractionEventType` (the enum stays the persisted type) and a deploy; renaming, regrouping, re-ordering, re-wording and retiring labels are admin-only changes. The admin UI tells the admin early: each label response carries `codeSupported`, the Labels tab shows a "Needs code change" tag and a banner while the draft contains such labels, and publish fails with "Label 'X' has no matching event type in the application; a new label needs a code change". The client-facing text deliberately does not name the internal enum (`InteractionEventType`); the validator logs it at WARN server-side. Removing this dependency is tracked in Phase 2 as US-ML26.
+- The published prompt is currently written from the candidate's point of view and there is one prompt for all users. A separate recruiter-side prompt (and hybrid mailboxes) is covered by US 1.4a in `RECRUITMENT_PHASE1_PLAN_FOUNDATION.md`, which now describes how it builds on this master data: shared labels, a persona dimension on prompt versions, one catalog snapshot per persona.
+
 ### Story Breakdown Summary: ML Phase 1 Foundation & Follow-On Roadmap
 
 > This summary covers the ML stream from the initial package separation and local Llama validation through the structured-extraction boundary and the confidence/review gating work.
@@ -333,7 +350,7 @@ Status: Proposed
 | **US-ML8** | Label-based mailbox scanning | Phase 1 | US-ML1, US-ML7 | ⏳ Pending |
 | **US-ML9** | Sender-targeted mailbox scanning | Phase 1 | US-ML1, US-ML7 | ⏳ Pending |
 | **US-ML10** | Live pending until sync classification | Phase 1 | US-ML3, US-ML5, US-ML6 | ✅ Completed |
-| **US-ML11** | Canonical event taxonomy as master data | Phase 1 | US-ML3, US-ML5, US-ML7 | 📌 Proposed |
+| **US-ML11** | Canonical event taxonomy as master data | Phase 1 | US-ML3, US-ML5, US-ML7 | � In progress |
 
 ## Operating Principles
 

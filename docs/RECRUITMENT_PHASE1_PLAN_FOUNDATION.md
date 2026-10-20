@@ -220,6 +220,19 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - Default to separate prompts or separate routing for `RECRUITER_SCAN` and `CANDIDATE_SCAN`
   - Use the sender/author role plus thread ownership and active persona context to decide which classification path to invoke
   - This is a known edge case for founder/recruiter users, a recruiter who is also job-seeking, or a user with multi-role mailboxes
+- **Current state (not implemented):** the classifier has one published prompt, written from the candidate's side ("You help a job candidate triage their inbox"), and no persona routing. Recruiter-sent mail is classified with that same prompt; the `Author:` line and rule 4 only tell it who wrote the newest message.
+- **Builds on US-ML11 (`ML_Phase_1.md`):** the prompt, label groups and labels are admin-managed master data, published as immutable versions and loaded into `MlTaxonomyCatalog` at startup. Persona prompts should reuse that, not add hard-coded prompt files:
+  - Keep one shared label taxonomy (`ml_event_label`, groups, aliases, hierarchy) so both personas use the same event vocabulary and the same `InteractionEventType` constants. Persona-specific wording lives in the prompt text, not in duplicate labels.
+  - Add a persona dimension to the draft and to `ml_prompt_version` (for example `CANDIDATE_SCAN` and `RECRUITER_SCAN`). Each persona has its own INSTRUCTION, RULES and OUTPUT_FORMAT sections and its own publish history; the label sections are shared, and a publish must still pass the same validation (tokens resolve, every label has an event type in the application).
+  - `MlTaxonomyCatalog` holds one current snapshot per persona; the classifier picks the snapshot from the persona the message is interpreted under.
+  - The admin Prompt page gets a persona selector, and the Platform Operations "ML Prompt" page shows the running and latest version per persona (including "Restart pending").
+  - `ml_unknown_classification` records which persona and prompt version produced an unknown result, so the admin Review list can be filtered by persona and a recruiter-side gap is not mistaken for a candidate-side one.
+- **Additional Acceptance Criteria (from US-ML11):**
+  - An admin can edit and publish the recruiter prompt separately from the candidate prompt without affecting the other
+  - Both prompts are built from the same shared labels; renaming, regrouping or retiring a label updates both
+  - The persona and prompt version used are stored with each classification and with each unknown-classification review item
+  - A label that has no matching event type in the application blocks publishing for every persona, with the same message
+  - Until the recruiter prompt is published, recruiter-side messages fall back to the candidate prompt and are flagged for review rather than being silently misclassified
 
 **US 1.4: System Calculates Candidate Class (All-Star/Gold/Silver/Bronze)** ✅ *Implemented*
 - **As a** system

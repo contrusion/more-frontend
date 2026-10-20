@@ -166,6 +166,18 @@ describe('Home', () => {
     expect(visibleTiles.every(tile => component.canAccessTile(tile))).toBe(true);
   });
 
+  it('should offer the ML prompt and review pages to admins only', () => {
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'MO_ADMIN');
+    const adminRoutes = component.getVisibleTiles().map(tile => tile.route);
+    expect(adminRoutes).toContain('/admin/ml-prompt');
+    expect(adminRoutes).toContain('/admin/ml-unknown');
+
+    mockAuthService.hasRole.and.callFake((role: string) => role === 'APPLICANT');
+    const applicantRoutes = component.getVisibleTiles().map(tile => tile.route);
+    expect(applicantRoutes).not.toContain('/admin/ml-prompt');
+    expect(applicantRoutes).not.toContain('/admin/ml-unknown');
+  });
+
   it('should show tiles without role restrictions to all users', () => {
     mockAuthService.hasRole.and.returnValue(false);
     

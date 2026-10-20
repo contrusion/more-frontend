@@ -1019,6 +1019,7 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       case EventType.OUTREACH:
         return fromUser ? 'You initiated the conversation' : 'New recruiter outreach needs your response';
       case EventType.PENDING_CLASSIFICATION:
+      case EventType.UNKNOWN:
         return 'Not Classified';
       default:
         return thread.lastEventPreview || 'Latest status updated';
@@ -1077,7 +1078,8 @@ export class InteractionsComponent implements OnInit, OnDestroy {
       [EventType.NOT_INTERESTED]: 'interest decision',
       [EventType.REJECTION]: 'decision outcome',
       [EventType.RECRUITEMENT_PROCESS_UPDATE]: 'process update',
-      [EventType.PENDING_CLASSIFICATION]: 'classification'
+      [EventType.PENDING_CLASSIFICATION]: 'classification',
+      [EventType.UNKNOWN]: 'classification'
     };
 
     const ordered = inquiryOrder

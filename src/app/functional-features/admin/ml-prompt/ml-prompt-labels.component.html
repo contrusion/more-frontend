@@ -1,0 +1,225 @@
+@if (errors().length > 0) {
+  <div class="error-banner" role="alert">
+    @for (line of errors(); track $index) {
+      <div>{{ line }}</div>
+    }
+  </div>
+}
+
+@if (unsupportedLabels().length > 0) {
+  <div class="warning-banner" role="alert">
+    <strong>Needs a developer before it can be published:</strong>
+    These active labels have no matching event type in the application:
+    @for (label of unsupportedLabels(); track label.id; let last = $last) {
+      <span class="mono">{{ label.name }}</span>{{ last ? '.' : ', ' }}
+    }
+    Until the constant is added and deployed, make them inactive or remove them, otherwise the draft cannot be published.
+  </div>
+}
+
+<div class="view-switch" role="tablist">
+  <button type="button" class="filter-chip" role="tab" [class.active]="view() === 'groups'"
+          [attr.aria-selected]="view() === 'groups'" (click)="setView('groups')">By group</button>
+  <button type="button" class="filter-chip" role="tab" [class.active]="view() === 'hierarchy'"
+          [attr.aria-selected]="view() === 'hierarchy'" (click)="setView('hierarchy')">Hierarchy</button>
+</div>
+
+@if (view() === 'groups') {
+  <div class="groups-head">
+    <p class="panel-hint">Labels are listed in the prompt under their group. Order inside a group is the order shown to the model.</p>
+    <button pButton type="button" label="Add group" icon="pi pi-plus" class="p-button-sm p-button-outlined"
+            [disabled]="busy()" (click)="startAddGroup()"></button>
+  </div>
+
+  @if (editingGroupId() === 'new') {
+    <section class="panel">
+      <ng-container *ngTemplateOutlet="groupEditor"></ng-container>
+    </section>
+  }
+
+  @for (entry of grouped(); track entry.group.id; let gi = $index; let gLast = $last) {
+    <section class="panel">
+      @if (editingGroupId() === entry.group.id) {
+        <ng-container *ngTemplateOutlet="groupEditor"></ng-container>
+      } @else {
+        <header class="group-head">
+          <div>
+            <h2 class="panel-title">{{ entry.group.name }}</h2>
+            @if (entry.group.intro) {
+              <p class="panel-hint">{{ entry.group.intro }}</p>
+            }
+          </div>
+          <div class="row-actions">
+            <button pButton type="button" icon="pi pi-arrow-up" class="p-button-sm p-button-text"
+                    pTooltip="Move group up" aria-label="Move group up" [disabled]="busy() || gi === 0"
+                    (click)="moveGroup(gi, -1)"></button>
+            <button pButton type="button" icon="pi pi-arrow-down" class="p-button-sm p-button-text"
+                    pTooltip="Move group down" aria-label="Move group down" [disabled]="busy() || gLast"
+                    (click)="moveGroup(gi, 1)"></button>
+            <button pButton type="button" icon="pi pi-pencil" class="p-button-sm p-button-text"
+                    pTooltip="Edit group" aria-label="Edit group" [disabled]="busy()"
+                    (click)="startEditGroup(entry.group)"></button>
+            @if (confirmDeleteKey() === 'group:' + entry.group.id) {
+              <button pButton type="button" label="Delete group" class="p-button-sm p-button-danger"
+                      [disabled]="busy()" (click)="deleteGroup(entry.group.id)"></button>
+              <button pButton type="button" label="Keep" class="p-button-sm p-button-text"
+                      (click)="cancelDelete()"></button>
+            } @else {
+              <button pButton type="button" icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
+                      pTooltip="Delete group (must be empty)" aria-label="Delete group" [disabled]="busy()"
+                      (click)="askDelete('group:' + entry.group.id)"></button>
+            }
+          </div>
+        </header>
+      }
+
+      <ul class="row-list">
+        @for (label of entry.labels; track label.id; let li = $index; let lLast = $last) {
+          <li class="row" [class.inactive]="!label.active">
+            @if (editingLabelId() === label.id) {
+              <ng-container *ngTemplateOutlet="labelEditor"></ng-container>
+            } @else {
+              <div class="row-body">
+                <span class="row-title">
+                  <span class="mono">{{ label.name }}</span>
+                  <span class="display-name">{{ label.displayName }}</span>
+                  @if (!label.active) {
+                    <p-tag value="Inactive" severity="secondary"></p-tag>
+                  } @else if (!label.codeSupported) {
+                    <p-tag value="Needs code change" severity="warn"
+                           pTooltip="This label has no matching event type in the application. A developer must add it before this label can be published."></p-tag>
+                  }
+                </span>
+                <span class="row-text">{{ label.definition }}</span>
+                @if (label.aliases.length > 0) {
+                  <span class="alias-line">Also accepts:
+                    @for (alias of label.aliases; track alias) {
+                      <span class="alias-chip mono">{{ alias }}</span>
+                    }
+                  </span>
+                }
+              </div>
+              <div class="row-actions">
+                <button pButton type="button" icon="pi pi-arrow-up" class="p-button-sm p-button-text"
+                        pTooltip="Move up" aria-label="Move label up" [disabled]="busy() || li === 0"
+                        (click)="moveLabel(entry.group.id, li, -1)"></button>
+                <button pButton type="button" icon="pi pi-arrow-down" class="p-button-sm p-button-text"
+                        pTooltip="Move down" aria-label="Move label down" [disabled]="busy() || lLast"
+                        (click)="moveLabel(entry.group.id, li, 1)"></button>
+                <button pButton type="button" icon="pi pi-pencil" class="p-button-sm p-button-text"
+                        pTooltip="Edit" aria-label="Edit label" [disabled]="busy()"
+                        (click)="startEditLabel(label)"></button>
+                @if (confirmDeleteKey() === 'label:' + label.id) {
+                  <button pButton type="button" label="Delete" class="p-button-sm p-button-danger"
+                          [disabled]="busy()" (click)="deleteLabel(label.id)"></button>
+                  <button pButton type="button" label="Keep" class="p-button-sm p-button-text"
+                          (click)="cancelDelete()"></button>
+                } @else {
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger"
+                          pTooltip="Delete" aria-label="Delete label" [disabled]="busy()"
+                          (click)="askDelete('label:' + label.id)"></button>
+                }
+              </div>
+            }
+          </li>
+        }
+        @if (editingLabelId() === 'new' && labelForm.controls.groupId.value === entry.group.id) {
+          <li class="row">
+            <ng-container *ngTemplateOutlet="labelEditor"></ng-container>
+          </li>
+        }
+      </ul>
+
+      @if (entry.labels.length === 0 && editingLabelId() !== 'new') {
+        <p class="empty-hint">No labels in this group.</p>
+      }
+      <div class="field-actions">
+        <button pButton type="button" label="Add label" icon="pi pi-plus" class="p-button-sm p-button-outlined"
+                [disabled]="busy()" (click)="startAddLabel(entry.group.id)"></button>
+      </div>
+    </section>
+  }
+
+  @if (grouped().length === 0) {
+    <p class="empty-hint">No groups yet. Add a group before adding labels.</p>
+  }
+} @else {
+  <section class="panel">
+    <h2 class="panel-title">Label hierarchy</h2>
+    <p class="panel-hint">Highest priority first. When several labels fit an email, the model is told to prefer the label nearest the top.</p>
+    <ol class="row-list">
+      @for (label of hierarchy(); track label.id; let hi = $index; let hLast = $last) {
+        <li class="row" [class.inactive]="!label.active">
+          <div class="row-body">
+            <span class="row-title">
+              <span class="priority">{{ hi + 1 }}</span>
+              <span class="mono">{{ label.name }}</span>
+              <span class="display-name">{{ label.groupName }}</span>
+              @if (!label.active) {
+                <p-tag value="Inactive" severity="secondary"></p-tag>
+              }
+            </span>
+          </div>
+          <div class="row-actions">
+            <button pButton type="button" icon="pi pi-arrow-up" class="p-button-sm p-button-text"
+                    pTooltip="Raise priority" aria-label="Raise priority" [disabled]="busy() || hi === 0"
+                    (click)="moveInHierarchy(hi, -1)"></button>
+            <button pButton type="button" icon="pi pi-arrow-down" class="p-button-sm p-button-text"
+                    pTooltip="Lower priority" aria-label="Lower priority" [disabled]="busy() || hLast"
+                    (click)="moveInHierarchy(hi, 1)"></button>
+          </div>
+        </li>
+      }
+    </ol>
+  </section>
+}
+
+<ng-template #groupEditor>
+  <form class="editor-form" [formGroup]="groupForm" (ngSubmit)="saveGroup()">
+    <label class="field-label" for="group-name">Group name <span class="required">*</span></label>
+    <input pInputText id="group-name" formControlName="name" maxlength="100" />
+    @if (groupForm.controls.name.invalid && groupForm.controls.name.touched) {
+      <span class="field-error">A group name is required.</span>
+    }
+    <label class="field-label" for="group-intro">Introduction (optional)</label>
+    <textarea pTextarea id="group-intro" formControlName="intro" rows="3"></textarea>
+    <div class="field-actions">
+      <button pButton type="button" label="Cancel" class="p-button-sm p-button-text" (click)="cancelEdits()"></button>
+      <button pButton type="submit" label="Save group" icon="pi pi-save" class="p-button-sm" [disabled]="busy()"></button>
+    </div>
+  </form>
+</ng-template>
+
+<ng-template #labelEditor>
+  <form class="editor-form" [formGroup]="labelForm" (ngSubmit)="saveLabel()">
+    <label class="field-label" for="label-name">Label name <span class="required">*</span></label>
+    <input pInputText id="label-name" class="mono" formControlName="name" maxlength="100" placeholder="e.g. CV_REQUEST" />
+    @if (labelForm.controls.name.invalid && labelForm.controls.name.touched) {
+      <span class="field-error">Use upper-case letters, digits and underscores, starting with a letter.</span>
+    }
+    <label class="field-label" for="label-display">Display name <span class="required">*</span></label>
+    <input pInputText id="label-display" formControlName="displayName" maxlength="255" />
+    @if (labelForm.controls.displayName.invalid && labelForm.controls.displayName.touched) {
+      <span class="field-error">A display name is required.</span>
+    }
+    <label class="field-label" for="label-group">Group <span class="required">*</span></label>
+    <p-select inputId="label-group" formControlName="groupId" [options]="groupOptions()"
+              optionLabel="label" optionValue="value" placeholder="Select group" appendTo="body"></p-select>
+    <label class="field-label" for="label-definition">Definition <span class="required">*</span></label>
+    <textarea pTextarea id="label-definition" formControlName="definition" rows="4"></textarea>
+    @if (labelForm.controls.definition.invalid && labelForm.controls.definition.touched) {
+      <span class="field-error">Describe when the model should use this label.</span>
+    }
+    <label class="field-label" for="label-aliases">Also accept these names (optional)</label>
+    <input pInputText id="label-aliases" class="mono" formControlName="aliases" placeholder="OLD_NAME, ANOTHER_NAME" />
+    <span class="field-help">Old or alternative names the model may return; they resolve to this label.</span>
+    <div class="checkbox-row">
+      <p-checkbox inputId="label-active" formControlName="active" [binary]="true"></p-checkbox>
+      <label for="label-active">Active (listed in the prompt)</label>
+    </div>
+    <div class="field-actions">
+      <button pButton type="button" label="Cancel" class="p-button-sm p-button-text" (click)="cancelEdits()"></button>
+      <button pButton type="submit" label="Save label" icon="pi pi-save" class="p-button-sm" [disabled]="busy()"></button>
+    </div>
+  </form>
+</ng-template>

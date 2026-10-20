@@ -69,7 +69,23 @@ describe('NavDrawerComponent', () => {
 
     const platformOps = component.visibleSections.find(s => s.id === 'platform-ops');
 
-    expect(platformOps?.children.map(c => c.route)).toEqual(['/admin/outreach-ml']);
+    expect(platformOps?.children.map(c => c.route)).toEqual(['/admin/outreach-ml', '/admin/ml-prompt', '/admin/ml-unknown']);
+  });
+
+  it('lists the ML prompt and review pages under Platform Operations for admins', () => {
+    const component = createComponent(['MO_ADMIN'], true);
+
+    const platformOps = component.visibleSections.find(s => s.id === 'platform-ops');
+
+    expect(platformOps?.children.map(c => c.route)).toEqual(
+      jasmine.arrayContaining(['/admin/ml-prompt', '/admin/ml-unknown'])
+    );
+  });
+
+  it('does not show Platform Operations to non-admins', () => {
+    const component = createComponent(['RECRUITER'], true);
+
+    expect(component.visibleSections.some(s => s.id === 'platform-ops')).toBeFalse();
   });
 
   it('shows the admin Interactions links when the events flag is on', () => {

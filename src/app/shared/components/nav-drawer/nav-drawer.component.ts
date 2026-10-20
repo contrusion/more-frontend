@@ -104,6 +104,8 @@ const getAllSections = (authService: AuthService): NavSection[] => [
     routePrefix: '/admin',
     children: [
       { label: 'Outreach ML Export', route: '/admin/outreach-ml' },
+      { label: 'ML Prompt', route: '/admin/ml-prompt' },
+      { label: 'ML Review', route: '/admin/ml-unknown' },
       { label: 'Interaction Events', route: '/interactions/events' }
     ]
   }

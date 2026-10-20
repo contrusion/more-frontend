@@ -13,6 +13,7 @@ export enum ChannelType {
 export enum EventType {
   OUTREACH = 'OUTREACH',           // Initial contact from recruiter
   PENDING_CLASSIFICATION = 'PENDING_CLASSIFICATION', // Live Gmail message not yet classified by sync pipeline
+  UNKNOWN = 'UNKNOWN', // Model returned a label outside the published taxonomy; awaiting admin review
   REPLY = 'REPLY',                 // Reply from candidate to recruiter
   FOLLOW_UP = 'FOLLOW_UP',         // Follow-up message from either party
   CV_REQUEST = 'CV_REQUEST',       // CV request from recruiter to candidate

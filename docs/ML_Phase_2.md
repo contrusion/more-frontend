@@ -87,6 +87,7 @@ The inhouse model should eventually become the primary production model only aft
 - Shadow-mode comparisons are captured and reviewed.
 - Benchmark reports and promotion checks are produced for each release.
 - Cutover, rollback, and retirement rules are defined for Llama.
+- Admins can add event labels from the UI without a code change or deployment.
 
 | Scope item | User story |
 |------------|------------|
@@ -97,6 +98,7 @@ The inhouse model should eventually become the primary production model only aft
 | Shadow-mode comparisons are captured and reviewed | US-ML16: Inhouse Model And Llama Run In Shadow Mode; US-ML17: Disagreement Cases Are Stored In A Review Queue |
 | Benchmark reports and promotion checks are produced for each release | US-ML18: Benchmark Reports Exist For Each Release; US-ML19: Routing Uses Confidence Thresholds; US-ML20: Clear Promotion Checklist Exists Before Cutover |
 | Cutover, rollback, and retirement rules are defined for Llama | US-ML21: Cutover Criteria Are Defined Before Retirement; US-ML22: Rollback Path Exists Back To Llama; US-ML23: Latency And Error Rate Are Tracked For Both Models; US-ML24: Training Pipeline Is Repeatable; US-ML25: Llama Remains Fallback Until Confidence Is High |
+| Admins can add event labels from the UI without a code change or deployment | US-ML26: New Event Labels Need No Code Change |
 
 ## User Stories
 
@@ -270,6 +272,39 @@ The inhouse model should eventually become the primary production model only aft
 - Llama remains available until thresholds are met
 - Fallback can be enabled per route or per use case
 - Retirement only happens when the inhouse model is consistently stronger
+
+### Epic: Taxonomy Without Deployments
+
+#### US-ML26: New Event Labels Need No Code Change
+
+Status: Proposed. The approach (Option B or Option C below) is decided at implementation time.
+
+**As an** admin  
+**I want to** add a new event label in the prompt settings and have it work end to end  
+**So that** extending the taxonomy never needs a developer or a deployment
+
+**Background:**
+US-ML11 (Phase 1) made the prompt and label list admin-managed master data. A label still has to match a constant of the Java enum `InteractionEventType`, because that enum is the stored event type and the rules in `EmailProcessorTransactional` and the frontend `EventType` refer to its constants. Today the admin UI warns (draft: "Needs code change" badge and banner on the Labels tab; publish: validation error naming `InteractionEventType`) and a developer adds the constant. This story removes that step.
+
+**Options (choose one when this story is picked up):**
+
+| | Option B: Fully data-driven | Option C: Hybrid |
+|---|---|---|
+| Stored event type | String that references `ml_event_label.name`; the enum is removed | Enum kept for labels the code reasons about; any other label is stored as a plain string |
+| Behaviour per label | Moves to columns on `ml_event_label` (UI group, display name, colour, stage effect, bottleneck / needs-met pairing, review rules) | Only the enum labels keep their coded behaviour; other labels are generic: shown with the admin's display name in a neutral group, with no stage logic |
+| Developer needed for a new label | Never | Only when the label needs special behaviour |
+| Effort | Large: entity and converter, DTOs, analytics maps, processor rules, frontend `EventType`, grouping and colours, data migration of stored values | Medium: persistence and DTO type change from enum to string-backed value; rules stay as they are |
+| Main risk | Behavioural rules in code (INTEREST_CHECK handling, CV_REQUEST fallbacks, thread inference) must be re-expressed as data | Two kinds of label to explain to admins; generic labels cannot drive timeline or stage behaviour |
+
+**Acceptance Criteria:**
+- A label added and published in the admin UI is accepted from the model, stored on the event, returned by the API and shown in the frontend without a code change or deployment
+- Publishing no longer fails with "has no matching event type in the application; a new label needs a code change"
+- Existing stored events keep their type values; a migration (if needed) is reversible and tested
+- Labels that keep coded behaviour are clearly identified to the admin, with the behaviour each one triggers
+- The frontend renders labels it has no special handling for, using the display name and group from master data
+- The chosen option and the reasons for it are recorded in this document before implementation starts
+- Tests cover storing, reading, filtering and analytics for a label that has no enum constant
+- The "Needs code change" feedback from US-ML11 is removed or limited to the labels that still need code
 
 ## Operating Principles
 
