@@ -177,3 +177,22 @@ Primary owners:
 - Intelligence domain: Stage/risk/action engine and calibration.
 - Product/UX: Guidance language quality and action clarity.
 - DevOps/SRE: Runtime config reliability, observability, and rollout safety.
+
+## 11. Job Spec Intelligence: Deferred Scope
+Phase 1 delivers the job spec analysis foundation, profile fit, Gmail attachments and Living CV focus areas (US-I12a to US-I12d in `INTERACTIONS_INTELLIGENCE_PHASE_1.md`). The items below were considered during refinement and deliberately moved here. Story IDs are assigned when an item is scheduled.
+
+| Item | Why deferred | Pull forward when |
+|---|---|---|
+| LLM-written narrative (gap explanations, interview tips, fit summary) | v1 uses templated text from the deterministic match; a second model call doubles load and failure surface | Candidate feedback shows templated text is too generic, and the model is reliable enough on structured input |
+| Alternative model providers (vLLM, OpenAI-compatible server, AWS Bedrock) behind `JobSpecExtractionService` | Local Ollama meets v1; cloud providers need a privacy and cross-border transfer decision | Throughput on Ollama becomes the bottleneck, or the AWS deployment needs managed inference |
+| OCR for scanned PDFs and a layout-aware local parser | Scanned and table-heavy specs are rare; hosted parsers send documents to a third party | Unreadable-spec failure rate is material |
+| Sandboxed parser worker | v1 relies on content-type checks, size, page and zip limits, timeouts and a separate parse pool | Uploads open to untrusted external parties at volume |
+| Circuit breaker around model calls | Timeouts, bounded queue and sweeper cover v1 | Repeated model hangs affect other features |
+| Message broker (SQS on AWS) behind `JobSpecAnalysisQueue` | A Postgres queue with `SKIP LOCKED` handles far more than the model can process | Several consumers need the same event, workers become a separate deployment, or queue depth is sustained |
+| NER-based redaction (names in prose) | v1 redacts patterns (emails, phones, ID numbers) and stores no document text | Redacted snippets are found to carry names, or document text storage is reconsidered |
+| Reuse of derived specs across candidates | Needs a decision on cross-candidate data reuse | Reuse rate and model cost justify it |
+| Candidate growth pathways and challenge recommendations from spec gaps | US-I12b already links each gap to an existing Living CV or career-development action; generating pathways is a larger gamification feature | US-I12b is live and gap actions show demand for guided pathways |
+| Opportunity readiness scores per target role | Overlaps Market Readiness; needs a shared scoring decision | Market Readiness scoring is extended per role |
+| Recruiter demand signals and market intelligence from aggregated derived specs | Needs enough specs and de-identified aggregation (derived facts only, never text) | Spec volume supports meaningful trends |
+| Chat over a job spec | Needs text kept for the session, which conflicts with the no-text rule | A concrete need appears and the retention rule is revisited |
+| Recruiter spec to selection criteria (US-R7) | Recruiter-side; belongs with the match engine | See `RECRUITMENT_PHASE3_PLAN_MATCH_ENGINE.md` |

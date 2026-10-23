@@ -175,6 +175,32 @@ interface TalentSearchParams {
 
 ---
 
+#### US-R7: Recruiter Drafts Selection Criteria from an Uploaded Job Spec (Backlog)
+
+**As a** recruiter creating a job advertisement
+**I want to** upload a job specification document and receive draft selection criteria
+**So that** I spend less time configuring the job ad by hand
+
+**Acceptance Criteria:**
+- The recruiter uploads a job spec (PDF, DOCX, TXT) on the job ad form and receives a draft of the structured fields the form already supports (required and preferred skills, certifications, minimum years of experience, seniority, industry, location)
+- The draft is never published automatically: the recruiter reviews, edits and saves it through the existing form validation
+- The document and its text are not stored; only derived data (the structured draft and short evidence snippets) and the fields the recruiter saves on the job ad are kept
+- A document that is not a job spec is rejected with a clear message
+- Extraction reuses the shared job spec analysis pipeline (safe parse, redaction, extraction, validation, grounding) built in US-I12a; this story adds a recruiter-scoped entry point and the form integration, not a second pipeline
+- The upload is analysed once as a job-ad-scoped spec (`scope_type` `JOB_AD`, origin `JOB_AD` or `RECRUITER_UPLOAD`, see the shared design in US-I12 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md`) and is shared by every candidate who interacts with that ad, so it is never re-analysed per candidate. A repeated upload of the same file (idempotency key or content hash) returns the existing result
+- A job-ad spec has the highest authority when a candidate's fit is computed (job ad, then recruiter-origin, then candidate upload). Candidates never edit it; their corrections are a private overlay (US-I12b)
+- Only the recruiter who owns the job ad can upload to it
+
+**Open questions:**
+- Does extracted skill vocabulary map to the controlled vocabularies used by the job ad form (US-R1), and what happens to skills that do not match?
+- Should weighting of criteria for the match engine be suggested here or stay with US-R2?
+- Once the recruiter saves the job ad, are the saved fields or the analysed spec the one candidates are compared against? (Proposed: the saved, recruiter-reviewed fields, with the analysis kept as the draft they started from.)
+
+**Phase:** Phase 3 backlog, unscheduled
+**Dependencies:** US-R1, US-R2, US-I12a (shared analysis pipeline)
+
+---
+
 ### Epic: Platform Personalisation
 
 #### US-H1: Dynamic & Personalised Quick Access
@@ -246,6 +272,7 @@ QuickAccessTile {
 | **US-R6** | Recruiter views interested applicants | 13 | US-R1, US-C1, US 1.3a | 0.5 sprint |
 | **US-R5** | Company Alumni multi-select | 14 | US-R1, Companies API | 1 sprint |
 | **US-H1** | Dynamic & Personalised Quick Access | 14 | Home page stable | 1.5 sprints |
+| **US-R7** | Recruiter drafts selection criteria from an uploaded job spec (job-ad-scoped, shared analysis) | Unscheduled | US-R1, US-R2, US-I12a | TBD |
 
 ---
 

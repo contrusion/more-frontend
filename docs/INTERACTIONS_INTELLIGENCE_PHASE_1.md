@@ -793,60 +793,152 @@ As a candidate
 I want a job spec, whether I upload it myself or a recruiter attaches it, to be read and compared with my profile, and the skill gaps and deal breakers that keep recurring across my opportunities to be gathered for me  
 So that I see my skill coverage, gaps, interview tips and an evidence-backed fit verdict before I respond, and so that my Living CV shows me which weaknesses to work on and where to focus
 
-This story has two parts. They share the same text extraction, spec extraction, deterministic matching, narrative step and fit section, and differ only in how the job spec text arrives. In neither part is the document stored: it is read in memory and only derived data is kept.
+This story is delivered as four stories that share one analysis pipeline. They differ in how the job spec arrives and in what is done with the extracted spec.
 
-##### Part 1: Manual job spec upload
+| Story | Scope |
+|---|---|
+| US-I12a | Analysis foundation and manual upload: safe parse, redaction, extraction, validation, grounding, status and polling, and a structured read of the spec |
+| US-I12b | Profile fit: deterministic matching, gaps, interview tips, fit verdict, and candidate correction of the extracted spec |
+| US-I12c | Gmail attachments: job specs attached to recruiter emails run through the same pipeline automatically |
+| US-I12d | Living CV "Weaknesses and focus areas", aggregated from the candidate's interactions (does not need a spec to be uploaded) |
+
+The aim is intelligence, not document storage. In none of the stories is the document or its text stored: the file is read in memory, and only derived data is kept.
+
+##### Shared design (US-I12a to US-I12c)
+
+**Data classification.** Job specs are mostly generic role facts (skills, years, seniority, responsibilities, stack), which are not personal information. The real exposure is elsewhere: the link between a candidate and the roles they pursue (covered by owner-only access), incidental personal data such as recruiter names or phone numbers in headers and footers, wrong documents (for example a CV), and cross-border transfer (avoided by keeping the model local). Recruiter email bodies are already stored in `interaction_events.message_body`, so this story deliberately stores less than that.
+
+| Kept | Never kept |
+|---|---|
+| Structured spec: title, seniority, required and nice-to-have skills, years, certifications, tech stack, paraphrased responsibilities, salary and location when stated | The file (no file store, no database blob, no temporary file) |
+| One short evidence snippet per extracted item (redacted, length capped, for example 200 characters) | The document text, redacted or not |
+| Text hash, model name, prompt version, schema version, status, attempts, timestamps | Contact names, emails, phone numbers, ID numbers |
+
+**Pipeline.** Each stage is a plain interface that can be faked in tests:
+
+```
+upload or attachment -> safe parse -> redact -> extract (one LLM call, also classifies the document)
+-> schema validate -> grounding check -> derived spec (draft) -> [US-I12b] deterministic match -> fit
+```
+
+- **Safe parse.** PDFBox for PDF and POI for DOCX, plain read for TXT. We enforce our own limits before and during parsing: MIME check on file content (magic number) and not only the extension, size cap, page cap, archive-entry and decompression limits, and a parse timeout. Parsing runs on its own small pool, separate from the model pool, so a hostile file cannot starve model calls. OCR, hosted parsers (for example LlamaParse) and parser sandboxing are out of scope for v1.
+- **Redact.** Emails, phone numbers and ID-number patterns are removed from the text before the model call and from every stored snippet.
+- **Extract.** One call to the local Ollama model, using Ollama's JSON schema constrained output. The schema has no field for names, emails or phone numbers, free-text fields are instructed to paraphrase, and a deterministic scan drops any extracted value that looks like an email, phone number or URL. The same call returns a document type (`JOB_SPEC` or `NOT_A_JOB_SPEC`, with a short reason), so no extra call is needed to detect a wrong document.
+- **Validate.** Model output is validated against the schema before it is stored or shown. Attachment text is untrusted and cannot change the model instructions.
+- **Grounding check.** Instead of trusting model confidence scores, each extracted item is checked deterministically against the source text (for example that the skill or the year count actually appears). Items that cannot be found carry no evidence snippet and are shown as "verify this".
+
+**LLM integration.** LangChain4j (Ollama module and AI Services) is used for the new extraction only, behind our own `JobSpecExtractionService` interface, so the rest of the code is not coupled to the framework. The existing `LocalLlama*` classes are not changed. Spring AI is not added. A deterministic fake implementation is used in dev and CI; vLLM, an OpenAI-compatible server or AWS Bedrock would be further implementations of the interface (Phase 2, and only after a privacy and legal decision).
+
+**Analysis table and queue.** A new `job_spec_analysis` table holds one row per analysis: scope (`scope_type` of `INTERACTION` or `JOB_AD`, with the scope id), owner (the uploading or mailbox-owning user), origin (`JOB_AD`, `RECRUITER_UPLOAD`, `EMAIL_ATTACHMENT` or `CANDIDATE_UPLOAD`), source reference (Gmail message and attachment ids only for Gmail), status (PENDING, DONE, FAILED), attempts, failure reason code, content hash (SHA-256 of the file bytes, computed in memory), text hash, model name, prompt version, schema version, the derived spec as `JSONB`, a superseded marker, and timestamps. A candidate's edits are not stored here (see US-I12b). Check existing migrations first.
+- Manual uploads (US-I12a) run directly on a bounded executor, with the text held in memory only by the in-flight task. They are prioritised over Gmail work.
+- Gmail rows (US-I12c) are claimed by a worker with `FOR UPDATE SKIP LOCKED`, so several API instances can share the work and a restart loses nothing, because a retry re-fetches the attachment.
+- Access goes through a small `JobSpecAnalysisQueue` interface (enqueue, claim, complete, fail). No message broker is added: the model, not the queue, is the bottleneck, a Postgres claim query handles far more than the model can process, and enqueueing in the same transaction as the status row avoids the dual-write problem. If several consumers, separate worker deployments or sustained queue depth appear, an SQS implementation replaces the Postgres one behind the same interface.
+- If the same candidate re-analyses identical text (same text hash, model, prompt version and schema version), the stored derived spec is reused and the model call is skipped. Reuse across different candidates is not done in v1.
+
+**Ownership, authority and idempotency (proposed, to be confirmed).** The source of truth for a role's spec is the recruiter side (the job ad, a recruiter upload, or the spec the recruiter emailed), not the candidate. The candidate can still upload, because many specs arrive outside the platform, but that copy has the lowest authority.
+- **Who can upload where.** A mailbox thread belongs to the mailbox owner, so access follows ownership and nobody gets access to the other party's mailbox thread.
+
+  | Scope | Candidate upload | Recruiter upload |
+  |---|---|---|
+  | Job ad (`JOB_AD`) | No | Yes. Analysed once and shared by every candidate who interacts with the ad (see US-R7) |
+  | Candidate's own interaction | Yes, as a private lowest-authority copy | No (the recruiter's spec reaches the candidate through the job ad or the email attachment, US-I12c) |
+  | Recruiter's own interaction (platform-native, or from the recruiter's own mailbox once US 1.4a exists) | n/a | Yes |
+- **Precedence (effective spec).** Job ad, then recruiter-origin (recruiter upload or email attachment), then candidate upload. Within the same tier the latest wins. The effective spec is chosen at read time by origin, so a lower tier never blocks or deletes a higher one, and the candidate's private copy is used only when no higher tier exists.
+- **Idempotency.**
+  - Uploads carry a client-generated `Idempotency-Key`; a repeated key returns the existing row instead of a second analysis.
+  - A repeated upload of the same content (same content hash) for the same scope and origin returns the existing result and skips the model call.
+  - A partial unique index allows one active (non-superseded) row per scope and origin; a newer upload marks the previous one superseded in the same transaction.
+  - Gmail rows are unique on owner, Gmail message id and attachment id, so a sync replay or sweeper retry cannot create a duplicate.
+- **Separate records per party.** The recruiter's and the candidate's interactions are separate rows, so an upload on one never locks the other. Linking them is a later enhancement (see the engagement link note in US-I16): until it exists the candidate only receives a recruiter's spec through the job ad or their own email attachment.
+
+**Operations and testing.**
+- Micrometer metrics: queue depth, per-stage latency, failure rate by reason, model call duration, and reuse rate. No document text in logs or metrics.
+- Ollama concurrency (`OLLAMA_NUM_PARALLEL`, `OLLAMA_MAX_QUEUE`) and the extraction thread count are documented configuration for ops.
+- Golden-set fixtures: synthetic job spec texts with expected extractions run against the fake provider in CI. A separate tagged suite runs them against a real Ollama model when a prompt or model changes.
+- Deferred scope (LLM narrative, cloud and vLLM providers, OCR, circuit breaker, broker, NER redaction, growth pathways, demand signals) is tracked in section 11 of `INTERACTIONS_INTELLIGENCE_PHASE_2_PRODUCTION_SCALE.md`.
+
+#### US-I12a: Candidate Uploads a Job Spec and Gets a Structured Read
+As a candidate  
+I want to upload a job spec and have it read into a structured summary  
+So that I can see what the role actually requires, with a pointer to where each item came from
+
+This is the foundation story: it builds the shared pipeline, the `job_spec_analysis` table, status and polling, and the manual upload path.
+
 The candidate uploads a job spec document themselves, for specs that did not arrive as an email attachment (for example a link, a LinkedIn message, a shared drive file, or an interaction that started on the platform, see US-I16).
 
 Acceptance Criteria:
 - On an expanded opportunity the candidate can upload a job spec (PDF, DOCX, TXT) with a file upload control.
-- The file is read in memory and converted to text. The document itself is never saved (no file store, no database blob, no temporary file left behind) and its text is not logged. Only the derived structured spec is stored, exactly as in Part 2.
-- The structured extraction, deterministic skill matching, narrative generation, fit verdict and fit section are the same as in Part 2, so the result looks the same however the spec arrived. The same untrusted-text and schema validation rules apply.
+- The file is read in memory and converted to text. The document and its text are never saved (no file store, no database blob, no temporary file left behind) and the text is not logged. Only the derived structured spec with short evidence snippets is stored, as described in the shared design.
+- The text is redacted and sent to the model in one extraction call that also classifies the document. A document that is not a job spec (for example a CV or an unrelated file) is rejected with "This doesn't look like a job spec" and a retry option, the same way non-recruiter emails are rejected. A deterministic backup rejects a result that has neither a title nor any skills.
+- The extracted spec is validated against the schema and every item is grounded against the source text. The candidate sees the spec as a read-only draft labelled "AI-read, please check", with the evidence snippet next to each item. Items with no evidence are highlighted as "verify this". Editing items and the fit verdict are part of US-I12b.
+- The structured extraction is the same whether the spec arrived by upload (this story) or as an email attachment (US-I12c), so the result looks the same however the spec arrived. The same untrusted-text and schema validation rules apply.
 - Unsupported types, oversized files and unreadable files (for example scanned PDFs) show a clear inline message with a retry option, never a silent failure.
 - Upload is send and forget: the candidate does not wait for the analysis. As soon as the upload is accepted the section shows an inline "Job Spec being analyzed" message and the candidate can keep using the page.
 - The frontend polls for completion every 1 minute while the analysis is PENDING. Polling stops as soon as the status is DONE or FAILED, and also when the candidate leaves the page or the opportunity is no longer shown. Polling never runs when nothing is pending.
-- When the analysis completes the fit section updates in place with a short inline success state. A FAILED result shows the inline error with a retry option (retry uploads again).
+- When the analysis completes the structured spec section (and the fit section once US-I12b is live) updates in place with a short inline success state. A FAILED result shows the inline error with a retry option (retry uploads again).
 - If the page is reloaded or reopened while an analysis is still PENDING, the "being analyzed" message is shown again and polling resumes, because the status comes from the server and not from browser state.
 - Polling is capped (for example 30 minutes). After the cap the section shows "Analysis is taking longer than expected" with a manual refresh action instead of polling forever.
-- The upload belongs to a specific opportunity (the primary opportunity until US-I11 is decided). A newer upload replaces the derived spec for that opportunity.
+- The upload belongs to a specific opportunity (the primary opportunity until US-I11 is decided). A newer candidate upload supersedes the candidate's previous one for that opportunity. It never overrides a recruiter-origin spec (job ad, recruiter upload or email attachment); precedence and idempotency (idempotency key, content hash, one active row per scope and origin) follow the shared design.
 - The candidate can remove the derived spec data for an opportunity.
 - Only the owning candidate can upload to, read or remove the data of their own interactions.
-- A spec from either part feeds the "Weaknesses and focus areas" aggregation in Part 2 in the same way.
+- A spec from any source feeds the "Weaknesses and focus areas" aggregation (US-I12d) in the same way.
 
 Design decisions (proposed, to be confirmed):
 - A candidate-scoped multipart upload endpoint. The stream is processed in memory with a size cap, a MIME allow-list checked on file content and not only the extension, and page and archive-entry limits to guard against oversized or decompression-bomb files. Uploads are rate limited.
-- It reuses the text extraction service, spec extraction service, schema validation and PENDING/DONE/FAILED status mechanics from Part 2. The request returns `202 Accepted` with the PENDING status once the upload is accepted and the extraction runs on the same bounded executor, so a slow local model call does not hold the HTTP request open. The file bytes are held in memory only until the text is extracted, and only the extracted text (not the file) is passed to the background step, so a retry by the sweeper is not possible from the file and the candidate retries by uploading again.
+- It uses the shared pipeline (safe parse, redaction, extraction, validation, grounding) and the `job_spec_analysis` status row. The request returns `202 Accepted` with the PENDING status once the upload is accepted, and the analysis runs on a bounded executor so a slow local model call does not hold the HTTP request open. The file bytes are held in memory only until the text is extracted, and the text is held only by the in-flight task. Because nothing is persisted, a retry by the sweeper is not possible and the candidate retries by uploading again.
 - Completion is read by polling a lightweight, candidate-scoped status read (opportunity spec status: PENDING, DONE, FAILED, plus the derived spec when DONE) every 1 minute, rather than reloading all threads. A push channel (SSE or WebSocket) was considered and rejected for now because a 1-minute poll is enough for a send-and-forget flow.
-- The derived spec uses the same `JSONB` structure as Part 2. A manual upload has no recruiter email behind it, so it is proposed to be recorded as a candidate-added event on the thread (no stage signal by itself) rather than a new table. Check existing migrations first.
-- Part 1 needs no Gmail scope or adapter changes, so it can ship before Part 2 and also works for platform-originated interactions.
+- The derived spec is stored as `JSONB` on the `job_spec_analysis` row, linked to the interaction event and opportunity. A manual upload has no recruiter email behind it, so the row itself is the record of the upload and it creates no stage signal on its own. Check existing migrations first.
+- This story needs no Gmail scope or adapter changes, so it can ship before US-I12c and also works for platform-originated interactions.
 - Frontend: PrimeNG file upload (the UI guidance reserves PrimeNG for file upload), with the upload sent through a service, plus analyzing, error and retry states. The polling lives in the service (an RxJS timer every 60 seconds, switched to the status read, completed with `takeWhile` on the PENDING status and torn down with `takeUntilDestroyed()`), and the component only reads a signal. Only one poll runs per opportunity, and a new upload replaces the running poll.
 - Because the extracted text is held only in the in-flight background task, a server restart while PENDING loses the task. The sweeper marks such stale PENDING items FAILED after a timeout so the candidate sees the retry state instead of waiting indefinitely.
 
 Open questions (not yet decided):
-- Where is the derived spec stored for a manual upload (a candidate-added event, or a column tied to the opportunity), and does it count as a stage signal such as `JOB_SPEC_ATTACHED`?
-- If an uploaded spec differs from a spec that arrived by email for the same opportunity, does the latest win, or are both kept?
+- Does a manual upload count as a stage signal such as `JOB_SPEC_ATTACHED`, or stay purely informational?
+- If an uploaded spec differs from a spec that arrived by email for the same opportunity, does the latest win, or are both kept? (Proposed: the precedence and idempotency rules in the shared design. A candidate upload never overrides a recruiter-origin spec, and the candidate's edits apply to the spec they were made on.)
+- Should a candidate upload be allowed at all when the source of truth is the recruiter or the email? (Proposed: yes, as a private lowest-authority copy, because many specs arrive outside the platform.)
 - Can a candidate upload a spec for a role that has no interaction yet (for example a role found elsewhere)?
 - Is a 1-minute poll acceptable for a typical analysis time on the local model, or should the first check come sooner (for example after 15 seconds) and then settle at 1 minute?
 
 Backend + frontend changes required:
-- Backend: multipart upload endpoint (DTO records, validation, ownership checks), in-memory handling with no persistence of the file, and reuse of the Part 2 extraction pipeline. Flyway only if a column is needed, versioned per project convention.
+- Backend: multipart upload endpoint (DTO records, validation, ownership checks), in-memory handling with no persistence of the file or text, and the shared analysis pipeline behind the `JobSpecExtractionService` and `JobSpecAnalysisQueue` interfaces (LangChain4j Ollama implementation plus a deterministic fake). Flyway migration for `job_spec_analysis`, versioned per project convention.
 - Backend: `202 Accepted` upload response, a candidate-scoped spec status read for polling, and stale PENDING handling in the sweeper.
-- Frontend: upload control and the spec-driven fit section states (analyzing, unreadable, error, retry, replace, remove, taking longer than expected), plus the 1-minute completion poll in the service.
-- Unit tests for MIME and size validation, no file persistence, unreadable files, replace and remove, ownership and role checks, and the frontend upload states.
+- Frontend: upload control and the structured spec section states (analyzing, not a job spec, unreadable, error, retry, replace, remove, taking longer than expected, verify-this highlighting with evidence snippets), plus the 1-minute completion poll in the service.
+- Unit tests for MIME and size validation, no file or text persistence, unreadable files, not-a-job-spec rejection, redaction (emails, phones, ID numbers, snippets), contact-value scan on extracted fields, grounding (evidence found and not found), replace and remove, ownership and role checks, and the frontend upload states.
+- Golden-set extraction fixtures against the fake provider, and a content-hash reuse test (identical text, model, prompt and schema version skips the model call).
 - Unit tests for polling: it starts after an accepted upload, repeats every 60 seconds (fake timer), stops on DONE and on FAILED, stops on component destroy, resumes for an already PENDING spec on load, does not start when nothing is pending, is replaced by a new upload, and stops at the cap.
 
-##### Part 2: Gmail attachments, profile fit and Living CV weaknesses
-The job spec a recruiter attaches to an email is read automatically, and recurring skill gaps and deal breakers are aggregated for the Living CV.
+#### US-I12b: Candidate Sees Profile Fit and Corrects the Extracted Spec
+As a candidate  
+I want my profile compared with the extracted job spec, and to fix anything the AI got wrong  
+So that I see my skill coverage, gaps, interview tips and an evidence-backed fit verdict that I can trust before I respond
 
 Acceptance Criteria:
-- Job spec attachments (PDF, DOCX, TXT) on recruiter emails are fetched and converted to text; unsupported, oversized or unreadable files (for example scanned PDFs) show a clear "couldn't read this spec" state instead of failing silently.
-- A structured job spec is extracted: required and nice-to-have skills, seniority, responsibilities, tech stack, and salary/location when stated.
 - Each required skill is mapped against the candidate's profile as strong, partial or missing, using deterministic matching (including a synonym map such as "Spring Boot" vs "Spring"), not model judgement.
 - The candidate sees gaps with a suggested action for each, interview preparation tips tied to the spec, and a fit verdict (for example Strong, Partial, Weak) with the evidence behind it (for example "requires 5y Java, your profile shows 3y").
-- Narrative output (gap explanations, interview tips, fit summary) is generated by the model from the structured match result, never from raw attachment text.
+- Gap explanations, interview tips and the fit summary are templated text keyed to the structured match result in v1. No second model call is made and the model never sees the candidate profile. An LLM-written narrative is deferred to Phase 2.
+- The candidate can edit or remove any extracted item (skill, years, seniority, certification) and add one that was missed. Edits persist, override the extraction, recompute the match, and are not overwritten by a re-analysis. Review is optional and never blocks the fit section.
+- Edits are stored as a per-candidate overlay (for example a `candidate_job_spec_override` table keyed by candidate and analysis), not on the analysis row. This keeps a spec shared by many candidates (a job-ad spec) read-only for everyone, so one candidate's edits never change another candidate's view. The match is computed from the effective spec plus the candidate's overlay.
+- The fit section appears as soon as the draft is ready, labelled "AI-read, please check" until the candidate has edited or confirmed it, with ungrounded items highlighted.
 - The section replaces the signal-only skills and role fit rows from US-I3 when a spec has been analysed; without a spec it falls back to the US-I3 behaviour.
+- The spec, match result and edits are visible only to the owning candidate.
+
+#### US-I12c: Job Spec Attachments on Recruiter Emails Are Read Automatically
+As a candidate  
+I want the job spec a recruiter attaches to an email to be read without me uploading it  
+So that my fit and gaps are ready when I open the opportunity
+
+Acceptance Criteria:
+- Job spec attachments (PDF, DOCX, TXT) on recruiter emails are fetched and run through the same pipeline as a manual upload (US-I12a); unsupported, oversized or unreadable files show a clear "couldn't read this spec" state instead of failing silently.
+- Email sync is never blocked or failed by attachment analysis. A PENDING `job_spec_analysis` row is created after the event commits and picked up asynchronously.
+- The row stores the Gmail message and attachment ids, never the content, so a retry re-fetches the attachment and a server restart loses nothing.
 - Attachment text is treated as untrusted data: it cannot alter model instructions, and model output is validated against a schema before it is stored or shown.
+- A recruiter attachment that is not a job spec (for example a signature image or a CV of someone else) is classified as such and ignored without an error shown to the candidate.
 - Document text is not logged, and only derived data is stored.
+
+#### US-I12d: Candidate Sees Weaknesses and Focus Areas on the Living CV
+As a candidate  
+I want the skill gaps and deal breakers that keep recurring across my opportunities gathered in one place  
+So that my Living CV shows me which weaknesses to work on and where to focus
 
 Acceptance Criteria (weaknesses and focus areas for the Living CV):
 - The candidate-side skill gaps and deal breakers of all of the candidate's interaction opportunities are gathered into one aggregated list per candidate. Sources: `SKILLS_GAP` and `SKILLS_INQUIRY` signals, required skills from the extracted opportunity facts and job spec that the candidate's profile does not cover (strong/partial/missing from the matching above), and extracted deal breakers the candidate cannot currently meet (including those behind `LOCATION_BOTTLENECK`, `COMPENSATION_BOTTLENECK`, visa and notice period constraints).
@@ -859,16 +951,16 @@ Acceptance Criteria (weaknesses and focus areas for the Living CV):
 - The candidate can dismiss an entry or mark it as not relevant, and the choice persists and is not re-added by later syncs unless the evidence changes.
 - Aggregation is deterministic and testable; the model is not used to decide what counts as a gap or a deal breaker.
 
-Design decisions (proposed, to be confirmed):
+Design decisions (proposed, to be confirmed) for US-I12b to US-I12d, in addition to the shared design above:
 - Gmail access: the existing `gmail.readonly` scope already allows downloading attachments, so no new consent is needed. `GmailInboundEmailSourceAdapter` currently reads only text parts, so it must also collect parts with a filename and `body.attachmentId` and fetch them through the Gmail attachments API, with a MIME allow-list and a size cap.
-- Text extraction happens server-side (for example Apache Tika, or PDFBox and POI). The model never receives raw files. OCR is out of scope for v1.
-- Spec extraction is a separate event-driven step with its own prompt and model configuration, following the US-I10 pattern: after-commit dispatch on a bounded executor, PENDING/DONE/FAILED status, attempts counter and a retry sweeper, so email sync is never blocked or failed. It may extend the opportunity extraction rather than add a second pipeline.
-- The extracted spec is stored as `JSONB` on the interaction event (derived data only, no attachment bytes unless a retention need is agreed). Check existing migrations first; no new table is expected.
-- Matching is deterministic and testable; the model is used only for narrative. This keeps results stable and auditable and works with a small local Llama.
+- Text extraction happens server-side with PDFBox and POI (see the shared design). The model never receives raw files. OCR is out of scope for v1.
+- Spec analysis is event-driven, following the US-I10 pattern for the trigger (after-commit event, bounded executor, attempts counter and a sweeper) but with its own `job_spec_analysis` table and Postgres-backed queue described in the shared design, so email sync is never blocked or failed.
+- The extracted spec is stored as `JSONB` on the `job_spec_analysis` row (derived data and evidence snippets only, no attachment bytes and no text). Check existing migrations first; a new table is expected here.
+- Matching is deterministic and testable; the model is used only for extraction in v1. This keeps results stable and auditable and works with a small local Llama.
 - Long specs are truncated or chunked to fit the model context; the request timeout and executor limits follow the `more.ml.*` configuration.
-- Privacy: job specs and CV data are personal data. Keep processing on the local model, avoid logging document content, and apply a retention rule to extracted content.
+- Privacy: see the data classification in the shared design. Keep processing on the local model, never log document content, store only derived data and redacted evidence snippets, and expose the spec only to the owning candidate. Specs never feed cross-candidate analytics as text; only de-identified derived facts may do so, and only in a later story.
 - A spec belongs to a specific opportunity, so this story depends on how US-I11 scopes opportunities within a thread. Until US-I11 is decided, attach the spec to the primary opportunity.
-- Weaknesses and focus areas: the Living CV page does not load interaction threads, and only the candidate's own threads are visible to them, so the aggregation should be a backend read model rather than a frontend merge of full threads. Proposed endpoint: a candidate-scoped read (for example `GET /api/candidates/me/interaction-insights`) returning `{ skillGaps[], dealBreakers[] }` with key, label, occurrences, last seen, severity and resolved flag. It is derived from the per-event `JSONB` extractions (US-I10 and the spec extraction here), so no new extraction pipeline is needed. Check existing migrations first; a table is only needed for the dismissed or not-relevant choices, and for the aggregate itself if read cost requires caching.
+- Weaknesses and focus areas: the Living CV page does not load interaction threads, and only the candidate's own threads are visible to them, so the aggregation should be a backend read model rather than a frontend merge of full threads. Proposed endpoint: a candidate-scoped read (for example `GET /api/candidates/me/interaction-insights`) returning `{ skillGaps[], dealBreakers[] }` with key, label, occurrences, last seen, severity and resolved flag. It is derived from the per-event `JSONB` extractions (US-I10) and from the derived specs on `job_spec_analysis` (this story), so no new extraction pipeline is needed. Check existing migrations first; a table is only needed for the dismissed or not-relevant choices, and for the aggregate itself if read cost requires caching.
 - The aggregation, normalisation and ranking rules live in one deterministic utility or service shared with the skill matching, so the Interactions fit rows and the Living CV section never disagree about what a gap is.
 - Gap resolution is evaluated against the same candidate profile source as the skill matching, so a skill that is added to the Living CV moves to resolved on the next read.
 - Privacy: this is personal development data. It is exposed only to the owning candidate (role and ownership checks on the endpoint), is excluded from every recruiter-facing Living CV, candidate search and export path, and follows the same retention rule as the extracted spec data.
@@ -881,25 +973,27 @@ Open questions (not yet decided):
 - How long does evidence stay relevant (for example only the last 6 or 12 months), and should stale items fade out?
 - Which deal breakers are candidate-side, and which are preferences the candidate chooses to keep (for example a location the candidate will not move to)? Those may belong in preferences (US-I15) rather than as weaknesses.
 - Is a fit verdict acceptable for candidates, or should the section show coverage and gaps only?
-- Which file types and size cap are supported in v1, and what is the retention period for extracted spec data?
+- Which file types and size cap are supported in v1? (Retention of the document is not an issue because it is not kept; retention of the derived spec follows the interaction.)
 - Should specs pasted into the email body (`JOB_SPEC_WRITTEN_IN_MAIL_TEXT`) go through the same extraction path?
-- Is the local Llama good enough for interview tips, or does that part wait for the in-house model (see `ML_Phase_2.md`)?
+- Should identical specs be reused across different candidates (a cache hit skips the model), given that the derived spec and snippets then originate from another candidate's upload? v1 reuses only within the same candidate.
+- Should the Information Officer confirm the POPIA position (derived facts and redacted snippets, local processing) before US-I12c ships, since it reads third-party recruiter attachments automatically?
 
 Backend + frontend changes required:
 - Gmail adapter: collect and download supported attachments, extend `InboundEmailMessage` (or a sibling DTO) with attachment text, and enforce MIME and size limits.
-- Text extraction service with a clear failure state for unreadable files.
-- Spec extraction service interface and implementation with its own prompt, schema validation and configuration (`more.ml.*`); event, dispatcher, processor and sweeper reusing the US-I10 mechanics.
-- Flyway migration adding the spec `JSONB` column and extraction status/attempts columns on `interaction_events`, versioned per project convention.
-- Expose the extracted spec through the existing interaction event DTOs, and map it in the frontend interaction service.
-- Deterministic skill matching utility with synonym map and unit tests; narrative generation step fed with the structured match.
-- Frontend: a spec-driven fit section in the accordion (skill coverage, gaps with actions, interview tips, fit verdict with evidence) following the UX instructions, plus loading, error and unreadable-spec states.
+- Text extraction service (PDFBox and POI with our own limits) with a clear failure state for unreadable files.
+- Spec extraction service interface and LangChain4j Ollama implementation with its own prompt, schema validation, redaction, grounding and configuration (`more.ml.*`); an after-commit event, the `job_spec_analysis` table, a Postgres-backed queue and a sweeper (see the shared design).
+- Flyway migration for the `job_spec_analysis` table (scope, origin, content hash, superseded marker and the partial unique indexes) and for the per-candidate override table used by US-I12b, versioned per project convention. Check whether the local sync reset script needs the new tables.
+- Unit tests for precedence selection, idempotency key and content-hash replay, one-active-row-per-scope-and-origin, Gmail duplicate prevention, and that a candidate upload never overrides a recruiter-origin spec.
+- Candidate-scoped read of the derived spec and its status for the frontend; no spec data added to recruiter-facing interaction DTOs.
+- Deterministic skill matching utility with synonym map and unit tests; templated gap, tip and verdict text fed by the structured match.
+- Frontend: a spec-driven fit section in the accordion (skill coverage, gaps with actions, interview tips, fit verdict with evidence, editable extracted items) following the UX instructions, plus loading, error and unreadable-spec states.
 - Backend: interaction insights aggregation service and candidate-scoped endpoint (DTO records, mapper, ownership checks) that gathers skill gaps and candidate-side deal breakers across the candidate's interaction events, with dismissal persistence if a table is required (Flyway, versioned per project convention).
 - Frontend: interaction insights service, models matching the DTOs, and a "Weaknesses and focus areas" section in the Living CV (`living-cv` feature) with focus-action links, empty, loading, error and retry states, and no exposure in recruiter-facing views.
 - Unit tests for attachment filtering, text extraction failures, spec parsing and schema validation, prompt-injection handling, idempotent replay, skill matching and the frontend section states.
 - Unit tests for aggregation: deduplication through the synonym map, candidate-side filtering, ranking, resolved-gap handling, dismissal persistence, ownership and role checks on the endpoint, and the Living CV section states and privacy (not rendered in recruiter views).
 
 Phase: Backlog, needs design discussion before scheduling  
-Dependencies: US-I3, US-I10; US-I11 for per-opportunity scoping; candidate profile data source (open question); Living CV skills and goals (US 1.1 to 1.3) for the focus actions; Part 1 has no dependency on the Gmail adapter changes in Part 2  
+Dependencies: US-I12a first (foundation), then US-I12b and US-I12c in either order; US-I12d is independent of a spec being uploaded and can ship earlier. Recruiter uploads on a recruiter-owned interaction need the recruiter view (US-I16/US-I17 blockers) and, for the recruiter's own mailbox, US 1.4a; passing a recruiter-owned spec to a linked candidate interaction needs the engagement link described in US-I16, a later enhancement. Overall: US-I3, US-I10; US-I11 for per-opportunity scoping; candidate profile data source (open question); Living CV skills and goals (US 1.1 to 1.3) for the focus actions; US-I12a has no dependency on the Gmail adapter changes in US-I12c  
 Note: US 1.1 to 1.3 are marked completed in `RECRUITMENT_PHASE1_PLAN_FOUNDATION.md`. That is only a dependency here: the "Weaknesses and focus areas" section is new work owned by this story, added to the existing Living CV page, and the Living CV is not being reopened or reimplemented.
 
 #### US-I13: Candidate Replies From a Take Note Action
@@ -931,7 +1025,7 @@ Backend + frontend changes required:
 - Unit tests for template filling, dispatcher routing, and note re-evaluation after sync.
 
 Phase: Backlog, needs design discussion before scheduling  
-Dependencies: Take note panel, US-I10 (facts for templates), Gmail scope decision, US-I12 (CV data source)
+Dependencies: Take note panel, US-I10 (facts for templates), Gmail scope decision, US-I12b (CV data source)
 
 #### US-I14: Candidate Adds Interview and Assessment Times to Their Calendar
 As a candidate  
@@ -979,7 +1073,7 @@ Backend + frontend changes required:
 - Unit tests for preference mismatch rules and form validation.
 
 Phase: Backlog, needs design discussion before scheduling  
-Dependencies: Take note panel, US-I10 (facts), US-I12 (profile data source), US-I13 (availability draft)
+Dependencies: Take note panel, US-I10 (facts), US-I12b (profile data source), US-I13 (availability draft)
 
 ### Epic: Platform-Originated Interactions
 
@@ -1006,10 +1100,21 @@ Design decisions (proposed, to be confirmed):
 - `RecruiterInteraction` already allows a nullable recruiter and has external email fields, and each event carries its own channel, so one thread can hold platform and email events. The existing model is reused. A new table is not expected; check existing migrations first.
 - The opportunity shown for a platform interaction is built from the job ad and fed to the same `OpportunityContext` contract as US-I10, so the accordion header, overview and fit rows need no separate path.
 - A job interest is a lighter signal than an application. The proposed default is to create the interaction on interest or application and record the application as an event inside it.
+- **Engagement link, shared facts versus private perspective, and the identity rule (design note, to be confirmed).** Today a `RecruiterInteraction` is candidate-owned (`applicant_id` is required, `recruiter_id` is nullable), and nothing links it to a recruiter-owned record (US 1.4a). If both sides keep independent records of the same opportunity, they can show different statuses.
+  - Shared facts are written once and read by both sides: the job ad, the application status (`JobApplication` stays the source of truth) and agreed milestones such as an interview scheduled. A platform-held engagement key ties together the candidate record, the recruiter record, the job ad and the application, and carries only shared facts.
+  - Private perspective stays on each owner's own record and is never merged into the other's view: notes, mailbox-inferred stage signals, classifier output and message content from the owner's mailbox.
+  - A recruiter's view of a candidate shows the shared facts plus the recruiter's own events, not the candidate's stage signals or notes. One merged interaction holding both mailboxes' events is rejected because it would expose one party's inbox content to the other.
+  - Identity rule: the link is made server-side and never exposes the candidate's email address or identity to the recruiter before reveal. Matching by email address is not used for the shared link, because a match would de-anonymise the alias. The recruiter sees "linked" and the shared facts only, and the match key is the job ad or application id.
+  - This link is a later enhancement. US-I12 does not depend on it (a job-ad spec already reaches candidates through the job ad).
 
 Open questions:
 - **Blocker:** does an expressed interest alone create an interaction, or only a full application?
-- **Blocker:** if the candidate already has an email thread with the same recruiter, do we merge the platform events into it, keep a separate interaction, or merge only when it is about the same job? What is the matching rule (recruiter, candidate, job ad, role title)?
+- **Blocker:** if the candidate already has an email thread with the same recruiter, do we merge the platform events into it, keep a separate interaction, or merge only when it is about the same job? What is the matching rule (recruiter, candidate, job ad, role title)? Proposed three-tier rule, in order of confidence:
+  1. Platform-originated: linked at creation by the job ad and application id. No inference is needed.
+  2. Email replies: matched by the `In-Reply-To` and `Message-ID` headers, or by a reply token the platform put in the first message.
+  3. Heuristic (recruiter, candidate and role title): only a suggestion that needs confirmation, never an automatic link.
+  When none applies, or the recruiter is external with no account, the two sides stay independent. That is expected, not an error.
+- **Blocker:** engagement link, shared facts versus private perspective, and the identity rule (see the design note below). Without it a recruiter and a candidate could see different statuses for the same opportunity.
 - **Blocker:** is the recruiter side in scope (a recruiter Interactions view of platform interactions), or is this candidate-side only for now?
 - **Blocker:** what does the recruiter see before the candidate reveals their identity, and how does that apply to an interaction record and its events?
 - Which application statuses map to which stage signals, and what happens to statuses with no matching signal (for example on hold)?
@@ -1050,7 +1155,8 @@ Design decisions (proposed, to be confirmed):
 Open questions:
 - **Blocker:** structured actions only, free text only, or both for the first release? Free text needs a decision on whether platform messages go through the classifier.
 - **Blocker:** does the recruiter get an inbox and Interactions view in this story, or does it only update the candidate side? Messaging needs both parties.
-- **Blocker:** when a candidate or recruiter moves to email, how is the matching to the existing interaction done reliably (reply-to address, subject token, recruiter and job ad), and what happens when it cannot be matched?
+- **Blocker:** when a candidate or recruiter moves to email, how is the matching to the existing interaction done reliably (reply-to address, subject token, recruiter and job ad), and what happens when it cannot be matched? Use the three-tier rule and the engagement link design note in US-I16, so both parties see the same shared facts and the identity rule holds.
+- **Blocker:** when a message arrives in one party's mailbox, does it update only that party's own record plus the shared facts, and never the other party's record (see the US-I16 design note)?
 - **Blocker:** what notification channels are used (in-app, email), and does a notification email count as an interaction event?
 - Are attachments (CV, job spec) allowed in platform messages, and are they scanned and size limited? How does this relate to US-I12?
 - What is the retention and deletion rule for platform messages?
@@ -1133,12 +1239,16 @@ Dependencies: none to start; must stay compatible with US-I16 and US-I17
 | US-I9 | Deterministic Test Coverage | 4 | US-I2-US-I8 | 1 sprint | Completed |
 | US-I10 | Client opportunity metadata extraction from recruiter email | Follow-up | US-I1, US-I6 | 1 sprint | Completed (pending commit) |
 | US-I11 | Multi-opportunity display and per-opportunity intelligence | Unscheduled | US-I10 | TBD | Backlog |
-| US-I12 | Job spec intelligence (Part 1: manual upload; Part 2: Gmail attachments), candidate profile fit, and Living CV weaknesses and focus areas | Unscheduled | US-I3, US-I10, US-I11, Living CV | TBD | Backlog |
+| US-I12 | Job spec intelligence parent story, split into US-I12a to US-I12d (shared design, ownership, precedence and idempotency in the story) | Unscheduled | US-I3, US-I10, US-I11, Living CV; recruiter-side uploads need US-I16/US-I17 and US 1.4a; engagement link is a later enhancement | TBD | Backlog |
+| US-I12a | Job spec analysis foundation and manual upload (safe parse, redaction, extraction, grounding, status polling, scope/origin, idempotency) | Unscheduled | US-I10 | TBD | Backlog |
+| US-I12b | Profile fit and candidate correction of the extracted spec (per-candidate override table) | Unscheduled | US-I12a, US-I3, Living CV | TBD | Backlog |
+| US-I12c | Gmail job spec attachments read automatically | Unscheduled | US-I12a, Gmail adapter change | TBD | Backlog |
+| US-I12d | Living CV weaknesses and focus areas | Unscheduled | US-I10, Living CV (US-I12a and US-I12b optional inputs) | TBD | Backlog |
 | US-I13 | Take Note reply actions (send CV, follow-up, suggest times, feedback) | Unscheduled | Take note panel, US-I10, Gmail scope decision | TBD | Backlog |
 | US-I14 | Take Note calendar actions (add interview, plan assessment) | Unscheduled | Take note panel, US-I10, US-I13 | TBD | Backlog |
 | US-I15 | Take Note preparation actions (screening answers, availability, offer targets) | Unscheduled | Take note panel, US-I12, US-I13 | TBD | Backlog |
-| US-I16 | Platform-originated interaction from job interest or application | Unscheduled | Job ads, interest and applications, US-I10, US-I6 | TBD | Backlog (blocker questions open) |
-| US-I17 | Conversation on the platform and handoff to email | Unscheduled | US-I16, US-I13 to US-I15, notification infrastructure | TBD | Backlog (blocker questions open) |
+| US-I16 | Platform-originated interaction from job interest or application (includes engagement link design note and three-tier matching rule) | Unscheduled | Job ads, interest and applications, US-I10, US-I6 | TBD | Backlog (blocker questions open) |
+| US-I17 | Conversation on the platform and handoff to email (uses the US-I16 matching rule and engagement link) | Unscheduled | US-I16, US-I13 to US-I15, notification infrastructure | TBD | Backlog (blocker questions open) |
 | US-I18 | Candidate-facing names for Interactions and Events, aligned with Jobs | Current | None (compatible with US-I16, US-I17) | 0.5 sprint | Ready, naming decision (D1, D2) pending |
 
 ## 11.4 Story Delivery Notes
@@ -1153,7 +1263,7 @@ Dependencies: none to start; must stay compatible with US-I16 and US-I17
   - "Visit company website" only ever uses the primary client opportunity's verified website. There is no fallback to the recruiter company (the former hard-coded Aesglobal lookup was removed); when the client site is unknown the link is hidden.
   - Merge rule for unknown clients: when a mention names no company (or the existing opportunity names none) it joins an existing opportunity only if exactly one has a compatible title (equal or missing); ambiguity keeps them apart. This stops a role stated in one email and its client named in the next from being counted as two opportunities ("+1 more").
 - US-I11 is a backlog idea raised while designing US-I10 (threads that pitch several roles or companies). It is not scheduled and needs design discussion first.
-- US-I12 is a backlog idea with two parts: (1) the candidate manually uploads a job spec document, which is read and not stored, and (2) reading job spec attachments from Gmail and mapping them to the candidate profile. Today the Gmail adapter reads only text parts, so attachments are ignored and `JOB_SPEC_ATTACHED` is inferred from the email text. It also gathers the candidate-side skill gaps and deal breakers across all of the candidate's opportunities and feeds a private "Weaknesses and focus areas" section in the Living CV so the candidate knows what to improve. It is not scheduled and needs design discussion first (profile data source, fit verdict policy, retention, how repeated gaps are counted, and whether focus areas feed Market Readiness).
+- US-I12 is a backlog parent story, split into US-I12a (analysis foundation and manual upload), US-I12b (profile fit and candidate correction), US-I12c (Gmail attachments) and US-I12d (Living CV weaknesses and focus areas). Today the Gmail adapter reads only text parts, so attachments are ignored and `JOB_SPEC_ATTACHED` is inferred from the email text. Design decisions made during refinement: neither the document nor its text is stored (only derived data, a short redacted evidence snippet per item and a text hash); analysis runs through a Postgres-backed table and queue behind an interface rather than a message broker; LangChain4j with the local Ollama model is used for the new extraction only, behind our own interface; items are grounded deterministically against the source text instead of using model confidence scores; the extraction call also rejects documents that are not job specs; fit narrative is templated in v1. Deferred scope is tracked in section 11 of `INTERACTIONS_INTELLIGENCE_PHASE_2_PRODUCTION_SCALE.md`. Open items: profile data source, fit verdict policy, how repeated gaps are counted, whether focus areas feed Market Readiness, and Information Officer confirmation before US-I12c ships.
 - US-I13 to US-I15 define the behaviour behind the Take note action buttons. The buttons and their stable ids (`CandidateNoteActionId` in `utils/candidate-notes.util.ts`) already exist in the UI, but clicking them does nothing yet. US-I13 first needs a decision on Gmail scope (the current `gmail.readonly` scope cannot create drafts or send mail).
 - US-I16 and US-I17 cover interactions that start on the platform (a candidate shows interest in or applies to a posted job) and the conversation that follows, including the move to email. `ChannelType.MO_NATIVE` already exists in the frontend model, and `RecruiterInteraction` already allows a nullable recruiter, so the model is largely in place. **Blocker questions are open on both stories and must be answered before implementation** (interest versus application, merging with an existing email thread, recruiter-side scope, candidate alias handling, structured actions versus free text, and email-to-interaction matching). Until then the stories are documentation only.
 - US-I18 replaces the former production-readiness item about candidate-facing navigation labels. It is label-only (routes, guards and the feature flag are unchanged) and is blocked only on the naming decision. The name "Opportunities" is already used by `/jobs/opportunities`, so using it for conversations would also mean renaming the job feed.

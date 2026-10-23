@@ -12,7 +12,7 @@
 # Website Content Draft
 
 ## Mission
-**To empower candidates to prove their growth, protect their identity, and earn recruiter trust in the era of AI-driven competition.**
+**To empower candidates to prove their growth, protect their identity, and earn recruiter trust in the era of AI-driven competition. In an AI-driven world where CVs increasingly look similar, candidates must differentiate themselves through proof, growth, behaviour, and continuous improvement.** 
 
 ## Vision
 **A recruitment ecosystem where progress speaks louder than résumés, and trust is built through transparency, proof, and fairness.**

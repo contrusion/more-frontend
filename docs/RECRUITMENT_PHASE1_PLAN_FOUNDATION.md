@@ -187,7 +187,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - ✅ `LivingCvService`, `WorkExperienceService`, `EducationService`, `CertificationService`, `CandidateSkillService`, `ReferenceService`
 - **Data Model:** Aggregates Goal, Milestone, WorkExperience, Education, Certification, Skill, Reference, and candidate profile data
 - **Implemented Endpoints:** GET `/api/candidates/{id}/living-cv`
-- **Related (backlog):** US-I12 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` proposes a private "Weaknesses and focus areas" section on the Living CV, built from the skill gaps and candidate-side deal breakers gathered across the candidate's interactions. It is candidate-only, never shown in recruiter-facing Living CV views, and is not scheduled (open questions on the skills source of truth and counting rules).
+- **Related (backlog):** US-I12d in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` proposes a private "Weaknesses and focus areas" section on the Living CV, built from the skill gaps and candidate-side deal breakers gathered across the candidate's interactions. It is candidate-only, never shown in recruiter-facing Living CV views, and is not scheduled (open questions on the skills source of truth and counting rules).
 
 **US 1.3a: System Generates Anonymized Candidate Aliases** ✅ *Implemented* *(Technical Foundation)*
 - **As a** system
@@ -221,6 +221,12 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - Use the sender/author role plus thread ownership and active persona context to decide which classification path to invoke
   - This is a known edge case for founder/recruiter users, a recruiter who is also job-seeking, or a user with multi-role mailboxes
 - **Current state (not implemented):** the classifier has one published prompt, written from the candidate's side ("You help a job candidate triage their inbox"), and no persona routing. Recruiter-sent mail is classified with that same prompt; the `Author:` line and rule 4 only tell it who wrote the newest message.
+- **Recruiter-owned records and the engagement link (design note, blocker question, to be confirmed):** persona-aware scanning produces interactions owned by the recruiter, while today an interaction is candidate-owned (`applicant_id` is required) and nothing links it to the recruiter's record of the same opportunity. Without a link the two sides can show different statuses.
+  - Shared facts (job ad, application status, agreed milestones) are written once and read by both sides through a platform-held engagement key. Private perspective (notes, mailbox-inferred stage, classifier output, message content) stays on each owner's own record and is never merged into the other party's view.
+  - The recruiter's view of a candidate shows the shared facts plus the recruiter's own events, never the candidate's inbox content, stage signals or notes.
+  - Identity rule: linking is done server-side and must not expose the candidate's email or identity before reveal; the match key is the job ad or application id, not an email address.
+  - Matching tiers are defined in US-I16 (`INTERACTIONS_INTELLIGENCE_PHASE_1.md`): platform-originated ids, then reply headers or a reply token, then a heuristic suggestion that needs confirmation. A recruiter mailbox scan of a thread that cannot be matched stays an independent record.
+  - Open question: does the recruiter scan in this story create the recruiter-owned interaction model, or is that part of the US-I16/US-I17 recruiter-side scope?
 - **Builds on US-ML11 (`ML_Phase_1.md`):** the prompt, label groups and labels are admin-managed master data, published as immutable versions and loaded into `MlTaxonomyCatalog` at startup. Persona prompts should reuse that, not add hard-coded prompt files:
   - Keep one shared label taxonomy (`ml_event_label`, groups, aliases, hierarchy) so both personas use the same event vocabulary and the same `InteractionEventType` constants. Persona-specific wording lives in the prompt text, not in duplicate labels.
   - Add a persona dimension to the draft and to `ml_prompt_version` (for example `CANDIDATE_SCAN` and `RECRUITER_SCAN`). Each persona has its own INSTRUCTION, RULES and OUTPUT_FORMAT sections and its own publish history; the label sections are shared, and a publish must still pass the same validation (tokens resolve, every label has an event type in the application).
@@ -308,7 +314,7 @@ The recruitment extension will reuse this foundation and add candidate-facing fe
   - `FeedbackAnalysisComponent` (patterns & suggestions)
 - **Data Model:** Feedback with category, sentiment, source, related_goal
 - **Estimated Endpoints:** GET `/api/candidates/{id}/feedback`, calculate patterns in component
-- **Related (backlog):** US-I12 in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` aggregates recurring skill gaps from interactions. Decide whether feedback patterns here and the Living CV focus areas share one aggregation so they do not disagree.
+- **Related (backlog):** US-I12d in `INTERACTIONS_INTELLIGENCE_PHASE_1.md` aggregates recurring skill gaps from interactions. Decide whether feedback patterns here and the Living CV focus areas share one aggregation so they do not disagree.
 
 ---
 
